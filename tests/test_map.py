@@ -78,9 +78,8 @@ def test_map_dict():
         '$': 'chain',
         'funcs': [
             {
-                '$': 'convert',
-                'name': 'zip',
-                'values': [
+                '$': 'zip',
+                'items': [
                     {'$': 'attr', 'name': 'keys'},
                     {'$': 'attr', 'name': 'values'},
                 ]

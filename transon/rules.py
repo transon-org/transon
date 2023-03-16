@@ -129,6 +129,17 @@ def rule_map(t: Transformer, template, context: Context):
     )
 
 
+@Transformer.register_rule('zip')
+def rule_zip(t: Transformer, template, context: Context):
+    if 'items' in template:
+        t_items = template['items']
+        items = t.walk(t_items, context)
+        return list(zip(*items))
+    raise DefinitionError(
+        '`items` attribute is  required for `zip` rule'
+    )
+
+
 @Transformer.register_rule('file')
 def rule_file(t: Transformer, template, context: Context):
     def write_file(_name, _content):
@@ -217,3 +228,18 @@ def rule_convert(t: Transformer, template, context: Context):
         return convertor(*values)
     else:
         return convertor(context.this)
+
+
+@Transformer.register_rule('format')
+def rule_format(t: Transformer, template, context: Context):
+    pattern = template['pattern']
+    value = context.this
+    if 'value' in template:
+        t_value = template['value']
+        value = t.walk(t_value, context)
+    if isinstance(value, list):
+        return pattern.format(*value)
+    elif isinstance(value, dict):
+        return pattern.format(**value)
+    else:
+        return pattern.format(value)
