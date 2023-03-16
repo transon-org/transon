@@ -15,7 +15,7 @@ def test_map_join():
             {
                 '$': 'map',
                 'item': {
-                    'value': {'$': 'this'}
+                    'value': {'$': 'item'}
                 }
             }
         ]
@@ -71,3 +71,32 @@ def test_map_items():
         'b', 2,
         'c', 3,
     ]
+
+
+def test_map_dict():
+    transformer = Transformer({
+        '$': 'chain',
+        'funcs': [
+            {
+                '$': 'convert',
+                'name': 'zip',
+                'values': [
+                    {'$': 'attr', 'name': 'keys'},
+                    {'$': 'attr', 'name': 'values'},
+                ]
+            },
+            {
+                '$': 'map',
+                'key': {'$': 'attr', 'name': 0},
+                'value': {'$': 'attr', 'name': 1},
+            }
+        ]
+    })
+    assert transformer.transform({
+        'keys': ['a', 'b', 'c'],
+        'values': [1, 2, 3],
+    }) == {
+        'a': 1,
+        'b': 2,
+        'c': 3,
+    }

@@ -8,6 +8,7 @@ def test_chain_attr():
             'key': {
                 '$': 'chain',
                 'funcs': [
+                    {'$': 'item'},
                     {'$': 'attr', 'name': 'a'},
                     {'$': 'attr', 'name': 'b'},
                     {'$': 'attr', 'name': 'c'},
@@ -16,6 +17,7 @@ def test_chain_attr():
             'value': {
                 '$': 'chain',
                 'funcs': [
+                    {'$': 'item'},
                     {'$': 'attr', 'name': 'd'},
                     {'$': 'attr', 'name': 'e'},
                     {'$': 'attr', 'name': 'f'},

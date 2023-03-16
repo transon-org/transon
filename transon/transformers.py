@@ -36,6 +36,14 @@ class Context:
     def index(self):
         return self._data['index']
 
+    def __getitem__(self, key: str):
+        assert key not in ('this', 'item', 'key', 'value', 'index')
+        return self._data[key]
+
+    def __setitem__(self, key: str, value):
+        assert key not in ('this', 'item', 'key', 'value', 'index')
+        self._data[key] = value
+
 
 class DefinitionError(Exception):
     pass

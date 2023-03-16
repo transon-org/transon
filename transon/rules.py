@@ -1,3 +1,4 @@
+import operator
 from functools import reduce
 
 from transon import (
@@ -38,13 +39,33 @@ def rule_value(t: Transformer, template, context: Context):
     return context.value
 
 
-@Transformer.register_rule('attr')
-def rule_attr(t: Transformer, template, context: Context):
-    if 'name' not in template:
-        raise DefinitionError('`name` property is required for `attr` rule')
+@Transformer.register_rule('set')
+def rule_set(t: Transformer, template, context: Context):
     t_name = template['name']
     name = t.walk(t_name, context)
-    return context.this[name]
+    context[name] = context.this
+    return context.this
+
+
+@Transformer.register_rule('get')
+def rule_get(t: Transformer, template, context: Context):
+    t_name = template['name']
+    name = t.walk(t_name, context)
+    return context[name]
+
+
+@Transformer.register_rule('attr')
+def rule_attr(t: Transformer, template, context: Context):
+    if 'name' in template:
+        t_name = template['name']
+        name = t.walk(t_name, context)
+        return context.this[name]
+    elif 'names' in template:
+        t_names = template['names']
+        names = t.walk(t_names, context)
+        return reduce(operator.getitem, names, context.this)
+    else:
+        raise DefinitionError('`name` property is required for `attr` rule')
 
 
 @Transformer.register_rule('object')
