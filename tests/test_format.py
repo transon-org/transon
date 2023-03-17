@@ -1,6 +1,20 @@
 from transon import Transformer
 
 
+def test_with_single_value():
+    transformer = Transformer({
+        '$': 'map',
+        'item': {
+            '$': 'format',
+            'pattern': '{:.03f}'
+        }
+    })
+
+    assert transformer.transform([
+        1 / i for i in range(2, 10)
+    ]) == ['0.500', '0.333', '0.250', '0.200', '0.167', '0.143', '0.125', '0.111']
+
+
 def test_with_dict():
     transformer = Transformer({
         '$': 'map',

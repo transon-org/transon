@@ -4,4 +4,5 @@ from transon import (
 
 
 Transformer.register_convertor('str')(str)
-Transformer.register_convertor('number')(float)
+Transformer.register_convertor('int')(int)
+Transformer.register_convertor('float')(float)

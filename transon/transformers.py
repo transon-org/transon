@@ -60,12 +60,13 @@ class NoContent:
 FileWriterType = Callable[[str, any], NoReturn]
 
 
-def no_file_writer(name, data):
+# noinspection PyUnusedLocal
+def no_file_writer(name, data):  # pragma: no cover
     return
 
 
 class Transformer:
-    NOCONTENT = NoContent()
+    NO_CONTENT = NoContent()
     _convertors: dict[str, Callable] = {}
     _operators: dict[str, Callable] = {}
     _rules = {}
@@ -134,7 +135,8 @@ class Transformer:
             key: self.walk(value, context)
             for key, value in template.items()
         }
-    
+
+    # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def walk_scalar(self, template, context):
         return template
 
@@ -156,6 +158,12 @@ class Transformer:
 
     def write_file(self, name, content):
         self.file_writer(name, content)
+
+    def require(self, template, name):
+        if name not in template:
+            rule = template[self.marker]
+            raise DefinitionError(f'`{name}` property is required for `{rule}` rule')
+        return template[name]
 
     def transform(self, data):
         context = Context(this=data)
