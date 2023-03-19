@@ -1,8 +1,9 @@
-from transon import Transformer
+from . import base
 
 
-def test_chain_attr():
-    transformer = Transformer({
+class ChainWithAttr(base.BaseCase):
+    tags = ['map:item', 'chain']
+    template = {
         '$': 'map',
         'item': {
             'key': {
@@ -24,14 +25,12 @@ def test_chain_attr():
                 ]
             },
         },
-    })
-
+    }
     data = [
         {'a': {'b': {'c': 1}}, 'd': {'e': {'f': 2}}},
         {'a': {'b': {'c': 3}}, 'd': {'e': {'f': 4}}},
     ]
-
-    assert transformer.transform(data) == [
+    result = [
         {'key': 1, 'value': 2},
         {'key': 3, 'value': 4},
     ]

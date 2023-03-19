@@ -1,54 +1,56 @@
-from transon import Transformer
+from . import base
 
 
-def test_with_single_value():
-    transformer = Transformer({
+class FormatFromSingleValue(base.BaseCase):
+    tags = ['map:item', 'format']
+    template = {
         '$': 'map',
         'item': {
             '$': 'format',
             'pattern': '{:.03f}'
         }
-    })
-
-    assert transformer.transform([
-        1 / i for i in range(2, 10)
-    ]) == ['0.500', '0.333', '0.250', '0.200', '0.167', '0.143', '0.125', '0.111']
+    }
+    data = [1 / i for i in range(2, 10)]
+    result = ['0.500', '0.333', '0.250', '0.200', '0.167', '0.143', '0.125', '0.111']
 
 
-def test_with_dict():
-    transformer = Transformer({
+class FormatFromDict(base.BaseCase):
+    tags = ['map:item', 'format']
+    template = {
         '$': 'map',
         'item': {
             '$': 'format',
             'pattern': '{name}-{index}'
         }
-    })
-
-    assert transformer.transform([
+    }
+    data = [
         {'name': 'a', 'index': 1},
         {'name': 'b', 'index': 2},
         {'name': 'c', 'index': 3},
-    ]) == ['a-1', 'b-2', 'c-3']
+    ]
+    result = ['a-1', 'b-2', 'c-3']
 
 
-def test_with_list():
-    transformer = Transformer({
+class FormatFromList(base.BaseCase):
+    tags = ['map:item', 'format']
+    template = {
         '$': 'map',
         'item': {
             '$': 'format',
             'pattern': '{0}-{1}'
         }
-    })
-
-    assert transformer.transform([
+    }
+    data = [
         ['a', 1],
         ['b', 2],
         ['c', 3],
-    ]) == ['a-1', 'b-2', 'c-3']
+    ]
+    result = ['a-1', 'b-2', 'c-3']
 
 
-def test_with_value():
-    transformer = Transformer({
+class FormatWithValue(base.BaseCase):
+    tags = ['map:item', 'format:value', 'index']
+    template = {
         '$': 'map',
         'item': {
             '$': 'format',
@@ -62,10 +64,6 @@ def test_with_value():
                 }
             }
         }
-    })
-
-    assert transformer.transform([
-        'a',
-        'b',
-        'c',
-    ]) == ['a-1', 'b-2', 'c-3']
+    }
+    data = ['a', 'b', 'c']
+    result = ['a-1', 'b-2', 'c-3']

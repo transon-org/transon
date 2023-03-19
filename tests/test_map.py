@@ -1,8 +1,9 @@
-from transon import Transformer
+from . import base
 
 
-def test_map_join():
-    transformer = Transformer({
+class MapListToList(base.BaseCase):
+    tags = ['chain', 'join', 'map:item', 'item']
+    template = {
         '$': 'chain',
         'funcs': [
             {
@@ -19,11 +20,12 @@ def test_map_join():
                 }
             }
         ]
-    })
-    assert transformer.transform({
+    }
+    data = {
         'first': [1, 2, 3],
         'second': [4, 5, 6],
-    }) == [
+    }
+    result = [
         {'value': 1},
         {'value': 2},
         {'value': 3},
@@ -33,48 +35,70 @@ def test_map_join():
     ]
 
 
-def test_map_item():
-    transformer = Transformer({
+class MapDictToList(base.BaseCase):
+    tags = ['map:item', 'key', 'value']
+    template = {
         '$': 'map',
         'item': {
             'key': {'$': 'key'},
             'value': {'$': 'value'},
         }
-    })
-
-    assert transformer.transform({
+    }
+    data = {
         'a': 1,
         'b': 2,
         'c': 3,
-    }) == [
+    }
+    result = [
         {'key': 'a', 'value': 1},
         {'key': 'b', 'value': 2},
         {'key': 'c', 'value': 3},
     ]
 
 
-def test_map_items():
-    transformer = Transformer({
+class MapDictToDictItems(base.BaseCase):
+    tags = ['map:key', 'map:value', 'key', 'value']
+    template = {
+        '$': 'map',
+        'key': {'$': 'value'},
+        'value': {'$': 'key'},
+    }
+    data = {
+        'a': 'd',
+        'b': 'e',
+        'c': 'f',
+    }
+    result = {
+        'd': 'a',
+        'e': 'b',
+        'f': 'c',
+    }
+
+
+class MapDictToListItems(base.BaseCase):
+    tags = ['map:items', 'key', 'value']
+    template = {
         '$': 'map',
         'items': [
             {'$': 'key'},
             {'$': 'value'},
         ]
-    })
-
-    assert transformer.transform({
+    }
+    data = {
         'a': 1,
         'b': 2,
         'c': 3,
-    }) == [
+    }
+    result = [
         'a', 1,
         'b', 2,
         'c', 3,
     ]
 
 
-def test_map_dict():
-    transformer = Transformer({
+class MapListsToDict(base.BaseCase):
+    tags = ['chain', 'zip', 'map:key', 'map:value', 'attr:name']
+    template = {
         '$': 'chain',
         'funcs': [
             {
@@ -90,11 +114,12 @@ def test_map_dict():
                 'value': {'$': 'attr', 'name': 1},
             }
         ]
-    })
-    assert transformer.transform({
+    }
+    data = {
         'keys': ['a', 'b', 'c'],
         'values': [1, 2, 3],
-    }) == {
+    }
+    result = {
         'a': 1,
         'b': 2,
         'c': 3,

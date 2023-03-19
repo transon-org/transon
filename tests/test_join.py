@@ -5,99 +5,83 @@ from transon import (
     TransformationError,
 )
 
-
-def test_join_static_dict(subtests):
-    transformer = Transformer({
-        '$': 'join',
-        'items': [
-            {
-                'a': 'default',
-            },
-            {
-                '$': 'this',
-            },
-        ]
-    })
-
-    with subtests.test("no override"):
-        assert transformer.transform({
-            'a': 'b',
-            'c': 'd',
-        }) == {
-            'a': 'b',
-            'c': 'd',
-        }
-
-    with subtests.test("with override"):
-        assert transformer.transform({
-            'c': 'd',
-            'e': 'f',
-        }) == {
-            'a': 'default',
-            'c': 'd',
-            'e': 'f',
-        }
+from . import base
+from . import base_join
 
 
-def test_join_two_dicts(subtests):
-    transformer = Transformer({
-        '$': 'join',
-        'items': [
-            {
-                '$': 'attr',
-                'name': 'first',
-            },
-            {
-                '$': 'attr',
-                'name': 'second',
-            },
-        ]
-    })
+class JoinWithStaticNoOverrides(base_join.JoinWithStaticBase):
+    data = {
+        'a': 'b',
+        'c': 'd',
+    }
+    result = {
+        'a': 'b',
+        'c': 'd',
+    }
 
-    with subtests.test("no common keys"):
-        assert transformer.transform({
-            'first': {
-                'a': 1,
-                'b': 2,
-            },
-            'second': {
-                'c': 3,
-                'd': 4,
-            },
-        }) == {
+
+class JoinWithStaticWithOverrides(base_join.JoinWithStaticBase):
+    data = {
+        'c': 'd',
+        'e': 'f',
+    }
+    result = {
+        'a': 'default',
+        'c': 'd',
+        'e': 'f',
+    }
+
+
+class JoinTwoDictsNoCommonKeys(base_join.JoinTwoBase):
+    data = {
+        'first': {
             'a': 1,
             'b': 2,
+        },
+        'second': {
             'c': 3,
             'd': 4,
-        }
+        },
+    }
+    result = {
+        'a': 1,
+        'b': 2,
+        'c': 3,
+        'd': 4,
+    }
 
-    with subtests.test("with common keys"):
-        assert transformer.transform({
-            'first': {
-                'a': 1,
-                'b': 2,
-                'c': 5,
-            },
-            'second': {
-                'c': 3,
-                'd': 4,
-            },
-        }) == {
+
+class JoinTwoDictsWithCommonKeys(base_join.JoinTwoBase):
+    data = {
+        'first': {
             'a': 1,
             'b': 2,
+            'c': 5,
+        },
+        'second': {
             'c': 3,
             'd': 4,
-        }
+        },
+    }
+    result = {
+        'a': 1,
+        'b': 2,
+        'c': 3,
+        'd': 4,
+    }
 
-    with subtests.test("with common keys"):
-        assert transformer.transform({
-            'first': 'hello ',
-            'second': 'world!',
-        }) == 'hello world!'
+
+class JoinTwoStrings(base_join.JoinTwoBase):
+    data = {
+        'first': 'hello ',
+        'second': 'world!',
+    }
+    result = 'hello world!'
 
 
-def test_join_many_dynamic_dicts(subtests):
-    transformer = Transformer({
+class JoinManyDynamicDicts(base.BaseCase):
+    tags = ['join', 'map:item', 'object']
+    template = {
         '$': 'join',
         'items': {
             '$': 'join',
@@ -132,11 +116,12 @@ def test_join_many_dynamic_dicts(subtests):
                 },
             ],
         },
-    })
-    assert transformer.transform([
+    }
+    data = [
         {'key': 'a', 'value': 'b'},
         {'key': 'c', 'value': 'd'},
-    ]) == {
+    ]
+    result = {
         'a': 'b',
         'b': 'a',
         'c': 'd',

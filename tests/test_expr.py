@@ -1,8 +1,37 @@
-from transon import Transformer
+from . import base
 
 
-def test_sum_squares():
-    transformer = Transformer({
+class ExprSimpleMonads1(base.BaseCase):
+    tags = ['expr:value']
+    template = {
+        '$': 'expr',
+        'op': '+',
+        'value': '_suffix',
+    }
+    data = 'value'
+    result = 'value_suffix'
+
+
+class ExprSimpleMonads2(base.BaseCase):
+    tags = ['chain', 'expr:value', 'parent']
+    template = {
+        '$': 'chain',
+        'funcs': [
+            "prefix_",
+            {
+                '$': 'expr',
+                'op': '+',
+                'value': {'$': 'parent'},
+            }
+        ]
+    }
+    data = 'value'
+    result = 'prefix_value'
+
+
+class ExprMonadsComplex(base.BaseCase):
+    tags = ['chain', 'expr:value', 'parent']
+    template = {
         '$': 'chain',
         'funcs': [
             {
@@ -33,115 +62,88 @@ def test_sum_squares():
                 },
             }
         ]
-    })
-
+    }
     data = {
         'a': 3,
         'b': 4,
     }
-
-    assert transformer.transform(data) == 25
-
-
-def test_add_string_suffix():
-    transformer = Transformer({
-        '$': 'expr',
-        'op': '+',
-        'value': '_suffix',
-    })
-
-    assert transformer.transform('value') == 'value_suffix'
+    result = 25
 
 
-def test_value_add_string_prefix():
-    transformer = Transformer({
-        '$': 'chain',
-        'funcs': [
-            "prefix_",
-            {
-                '$': 'expr',
-                'op': '+',
-                'value': {'$': 'parent'},
-            }
-        ]
-    })
-
-    assert transformer.transform('value') == 'prefix_value'
-
-
-def test_values_sum_squares():
-    transformer = Transformer({
-        '$': 'expr',
-        'op': '+',
-        'values': [
-            {
-                '$': 'expr',
-                'op': '*',
-                'values': [
-                    {'$': 'attr', 'name': 'a'},
-                    {'$': 'attr', 'name': 'a'},
-                ]
-            },
-            {
-                '$': 'expr',
-                'op': '*',
-                'values': [
-                    {'$': 'attr', 'name': 'b'},
-                    {'$': 'attr', 'name': 'b'},
-                ]
-            },
-        ]
-    })
-
-    data = {
-        'a': 3,
-        'b': 4,
-    }
-
-    assert transformer.transform(data) == 25
-
-
-def test_values_add_string_suffix():
-    transformer = Transformer({
+class ExprSimpleValues1(base.BaseCase):
+    tags = ['expr:values']
+    template = {
         '$': 'expr',
         'op': '+',
         'values': [
             {'$': 'this'},
             '_suffix',
         ]
-    })
+    }
+    data = 'value'
+    result = 'value_suffix'
 
-    assert transformer.transform('value') == 'value_suffix'
 
-
-def test_values_add_string_prefix():
-    transformer = Transformer({
+class ExprSimpleValues2(base.BaseCase):
+    tags = ['expr:values']
+    template = {
         '$': 'expr',
         'op': '+',
         'values': [
             "prefix_",
             {'$': 'this'},
         ]
-    })
+    }
+    data = 'value'
+    result = 'prefix_value'
 
-    assert transformer.transform('value') == 'prefix_value'
+
+class ExprValuesComplex(base.BaseCase):
+    tags = ['expr:values']
+    template = {
+        '$': 'expr',
+        'op': '+',
+        'values': [
+            {
+                '$': 'expr',
+                'op': '*',
+                'values': [
+                    {'$': 'attr', 'name': 'a'},
+                    {'$': 'attr', 'name': 'a'},
+                ]
+            },
+            {
+                '$': 'expr',
+                'op': '*',
+                'values': [
+                    {'$': 'attr', 'name': 'b'},
+                    {'$': 'attr', 'name': 'b'},
+                ]
+            },
+        ]
+    }
+    data = {
+        'a': 3,
+        'b': 4,
+    }
+    result = 25
 
 
-def test_unary_operator(subtests):
-    with subtests.test("!"):
-        transformer = Transformer({
-            '$': 'expr',
-            'op': '!',
-        })
+class ExprUnary1(base.BaseCase):
+    tags = ['expr:op']
+    template = {
+        '$': 'expr',
+        'op': '!',
+    }
+    data = True
+    result = False
 
-        assert transformer.transform(True) is False
-        assert transformer.transform(False) is True
 
-    with subtests.test("not"):
-        transformer = Transformer({
-            '$': 'expr',
-            'op': 'not',
-        })
-
-        assert transformer.transform(True) is False
-        assert transformer.transform(False) is True
+class ExprUnary2(base.BaseCase):
+    tags = ['expr:op']
+    template = {
+        '$': 'expr',
+        'op': 'not',
+    }
+    data = False
+    result = True

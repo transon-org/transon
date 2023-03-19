@@ -1,51 +1,45 @@
-from transon import Transformer
+from . import base
+from . import base_attr
 
 
-def test_attr_simple():
-    transformer = Transformer({
+class AttrSimpleFixedName(base.BaseCase):
+    tags = ['attr:name']
+    template = {
         '$': 'attr',
         'name': 'a',
-    })
-
+    }
     data = {
         'a': 1
     }
+    result = 1
 
-    assert transformer.transform(data) == 1
 
-
-def test_attr_reference():
-    transformer = Transformer({
-        '$': 'attr',
-        'name': {
-            '$': 'attr',
-            'name': 'name'
-        },
-    })
-
+class AttrDynamicReferenceName1(base_attr.AttrDynamicReferenceName):
     data = {
         'a': 1,
         'b': 2,
         'name': 'a',
     }
-    assert transformer.transform(data) == 1
+    result = 1
 
+
+class AttrDynamicReferenceName2(base_attr.AttrDynamicReferenceName):
     data = {
         'a': 1,
         'b': 2,
         'name': 'b',
     }
-    assert transformer.transform(data) == 2
+    result = 2
 
 
-def test_attr_names():
-    transformer = Transformer([
+class AttrSimpleFixedNames(base.BaseCase):
+    tags = ['attr:names']
+    template = [
         {'$': 'attr', 'names': ['a', 'b', 'c']},
         {'$': 'attr', 'names': ['a', 'b', 'd']},
         {'$': 'attr', 'names': ['a', 'e', 'f']},
         {'$': 'attr', 'names': ['a', 'e', 'g']},
-    ])
-
+    ]
     data = {
         'a': {
             'b': {
@@ -58,15 +52,15 @@ def test_attr_names():
             }
         },
     }
-    assert transformer.transform(data) == [1, 2, 3, 4]
+    result = [1, 2, 3, 4]
 
 
-def test_attr_dynamic():
-    transformer = Transformer({
+class AttrDynamicReferenceNames(base.BaseCase):
+    tags = ['attr:names']
+    template = {
         '$': 'attr',
         'names': {'$': 'attr', 'name': 'path'},
-    })
-
+    }
     data = {
         'a': {
             'b': {
@@ -80,11 +74,12 @@ def test_attr_dynamic():
         },
         'path': ['a', 'e', 'f']
     }
-    assert transformer.transform(data) == 3
+    result = 3
 
 
-def test_attr_dynamic_multiple():
-    transformer = Transformer({
+class AttrDynamicReferenceMultipleNames(base.BaseCase):
+    tags = ['attr:names', 'chain', 'set', 'get', 'map:item']
+    template = {
         '$': 'chain',
         'funcs': [
             {'$': 'set', 'name': 'root'},
@@ -103,8 +98,7 @@ def test_attr_dynamic_multiple():
                 }
             }
         ],
-    })
-
+    }
     data = {
         'a': {
             'b': {'c': 1, 'd': 2},
@@ -117,4 +111,4 @@ def test_attr_dynamic_multiple():
             ['a', 'e', 'f'],
         ]
     }
-    assert transformer.transform(data) == [2, 1, 4, 3]
+    result = [2, 1, 4, 3]
