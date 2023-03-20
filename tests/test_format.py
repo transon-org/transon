@@ -1,7 +1,10 @@
 from . import base
 
 
-class FormatFromSingleValue(base.BaseCase):
+class FormatFromSingleValue(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['map:item', 'format']
     template = {
         '$': 'map',
@@ -14,7 +17,10 @@ class FormatFromSingleValue(base.BaseCase):
     result = ['0.500', '0.333', '0.250', '0.200', '0.167', '0.143', '0.125', '0.111']
 
 
-class FormatFromDict(base.BaseCase):
+class FormatFromDict(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['map:item', 'format']
     template = {
         '$': 'map',
@@ -31,7 +37,10 @@ class FormatFromDict(base.BaseCase):
     result = ['a-1', 'b-2', 'c-3']
 
 
-class FormatFromList(base.BaseCase):
+class FormatFromList(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['map:item', 'format']
     template = {
         '$': 'map',
@@ -48,7 +57,10 @@ class FormatFromList(base.BaseCase):
     result = ['a-1', 'b-2', 'c-3']
 
 
-class FormatWithValue(base.BaseCase):
+class FormatWithValue(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['map:item', 'format:value', 'index']
     template = {
         '$': 'map',

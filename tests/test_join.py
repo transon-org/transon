@@ -79,7 +79,10 @@ class JoinTwoStrings(base_join.JoinTwoBase):
     result = 'hello world!'
 
 
-class JoinManyDynamicDicts(base.BaseCase):
+class JoinManyDynamicDicts(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['join', 'map:item', 'object']
     template = {
         '$': 'join',

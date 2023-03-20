@@ -1,8 +1,11 @@
 from . import base
 
 
-class JoinWithStaticBase(base.BaseCase):
-    tags = ['join']
+class JoinWithStaticBase(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
+    tags = ['join', 'this']
     template = {
         '$': 'join',
         'items': [
@@ -16,7 +19,10 @@ class JoinWithStaticBase(base.BaseCase):
     }
 
 
-class JoinTwoBase(base.BaseCase):
+class JoinTwoBase(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['join']
     template = {
         '$': 'join',

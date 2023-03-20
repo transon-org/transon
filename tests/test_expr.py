@@ -1,7 +1,10 @@
 from . import base
 
 
-class ExprSimpleMonads1(base.BaseCase):
+class ExprSimpleMonads1(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['expr:value']
     template = {
         '$': 'expr',
@@ -12,7 +15,10 @@ class ExprSimpleMonads1(base.BaseCase):
     result = 'value_suffix'
 
 
-class ExprSimpleMonads2(base.BaseCase):
+class ExprSimpleMonads2(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['chain', 'expr:value', 'parent']
     template = {
         '$': 'chain',
@@ -29,7 +35,10 @@ class ExprSimpleMonads2(base.BaseCase):
     result = 'prefix_value'
 
 
-class ExprMonadsComplex(base.BaseCase):
+class ExprMonadsComplex(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['chain', 'expr:value', 'parent']
     template = {
         '$': 'chain',
@@ -70,8 +79,11 @@ class ExprMonadsComplex(base.BaseCase):
     result = 25
 
 
-class ExprSimpleValues1(base.BaseCase):
-    tags = ['expr:values']
+class ExprSimpleValues1(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
+    tags = ['expr:values', 'this']
     template = {
         '$': 'expr',
         'op': '+',
@@ -84,8 +96,11 @@ class ExprSimpleValues1(base.BaseCase):
     result = 'value_suffix'
 
 
-class ExprSimpleValues2(base.BaseCase):
-    tags = ['expr:values']
+class ExprSimpleValues2(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
+    tags = ['expr:values', 'this']
     template = {
         '$': 'expr',
         'op': '+',
@@ -98,7 +113,10 @@ class ExprSimpleValues2(base.BaseCase):
     result = 'prefix_value'
 
 
-class ExprValuesComplex(base.BaseCase):
+class ExprValuesComplex(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['expr:values']
     template = {
         '$': 'expr',
@@ -129,7 +147,10 @@ class ExprValuesComplex(base.BaseCase):
     result = 25
 
 
-class ExprUnary1(base.BaseCase):
+class ExprUnary1(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['expr:op']
     template = {
         '$': 'expr',
@@ -139,7 +160,10 @@ class ExprUnary1(base.BaseCase):
     result = False
 
 
-class ExprUnary2(base.BaseCase):
+class ExprUnary2(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['expr:op']
     template = {
         '$': 'expr',

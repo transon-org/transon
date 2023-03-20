@@ -2,7 +2,10 @@ from . import base
 from . import base_attr
 
 
-class AttrSimpleFixedName(base.BaseCase):
+class AttrSimpleFixedName(base.TableDataBaseCase):
+    """
+    Gets value from input `dict` by the name of attribute defined in template as constant value.
+    """
     tags = ['attr:name']
     template = {
         '$': 'attr',
@@ -32,7 +35,10 @@ class AttrDynamicReferenceName2(base_attr.AttrDynamicReferenceName):
     result = 2
 
 
-class AttrSimpleFixedNames(base.BaseCase):
+class AttrSimpleFixedNames(base.TableDataBaseCase):
+    """
+    Gets a list of values with 4 elements discovered in nested input structure of dicts with paths defined in template.
+    """
     tags = ['attr:names']
     template = [
         {'$': 'attr', 'names': ['a', 'b', 'c']},
@@ -55,7 +61,10 @@ class AttrSimpleFixedNames(base.BaseCase):
     result = [1, 2, 3, 4]
 
 
-class AttrDynamicReferenceNames(base.BaseCase):
+class AttrDynamicReferenceNames(base.TableDataBaseCase):
+    """
+    Gets value from nested input structure of dicts with paths defined in different attribute of input data.
+    """
     tags = ['attr:names']
     template = {
         '$': 'attr',
@@ -77,7 +86,11 @@ class AttrDynamicReferenceNames(base.BaseCase):
     result = 3
 
 
-class AttrDynamicReferenceMultipleNames(base.BaseCase):
+class AttrDynamicReferenceMultipleNames(base.TableDataBaseCase):
+    """
+    Gets a list of values discovered in nested input structure of dicts with paths defined in input data.
+    List of paths may include any number of paths of any depth.
+    """
     tags = ['attr:names', 'chain', 'set', 'get', 'map:item']
     template = {
         '$': 'chain',

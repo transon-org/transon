@@ -1,7 +1,10 @@
 from . import base
 
 
-class ConvertValues(base.BaseCase):
+class ConvertValues(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['convert:values']
     template = {
         '$': 'convert',
@@ -15,7 +18,10 @@ class ConvertValues(base.BaseCase):
     result = 255
 
 
-class ConvertValue(base.BaseCase):
+class ConvertValue(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['convert:value']
     template = {
         '$': 'convert',
@@ -26,7 +32,10 @@ class ConvertValue(base.BaseCase):
     result = "123"
 
 
-class ConvertNoParameters(base.BaseCase):
+class ConvertNoParameters(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['convert']
     template = {
         '$': 'convert',

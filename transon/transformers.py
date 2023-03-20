@@ -86,32 +86,47 @@ class Transformer:
         return decorator
 
     @classmethod
-    def register_rule(cls, name: str):
+    def register_rule(cls, _rule_name: str, /, **params):
         def decorator(func):
-            cls._rules[name] = func
+            func.__rule_name__ = _rule_name
+            func.__rule_params__ = params
+            cls._rules[_rule_name] = func
             return func
         return decorator
 
-    def get_convertor(self, name):
-        for cls in self.__class__.mro():
-            convertor = getattr(cls, '_convertors', {})
+    @classmethod
+    def get_convertor(cls, name):
+        for c in cls.mro():
+            convertor = getattr(c, '_convertors', {})
             if name in convertor:
                 return convertor[name]
         raise DefinitionError(f'Invalid convertor `{name}`')
 
-    def get_operator(self, name):
-        for cls in self.__class__.mro():
-            operators = getattr(cls, '_operators', {})
+    @classmethod
+    def get_operator(cls, name):
+        for c in cls.mro():
+            operators = getattr(c, '_operators', {})
             if name in operators:
                 return operators[name]
         raise DefinitionError(f'Invalid operator `{name}`')
 
-    def get_rule(self, name):
-        for cls in self.__class__.mro():
-            rules = getattr(cls, '_rules', {})
+    @classmethod
+    def get_rule(cls, name):
+        for c in cls.mro():
+            rules = getattr(c, '_rules', {})
             if name in rules:
                 return rules[name]
         raise DefinitionError(f'Invalid rule `{name}`')
+
+    @classmethod
+    def get_rules(cls):
+        result = {}
+        for c in cls.mro():
+            rules = getattr(c, '_rules', {})
+            for name, rule in rules.items():
+                if name not in result:
+                    result[name] = rule
+        return list(result.values())
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)

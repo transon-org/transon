@@ -1,7 +1,10 @@
 from . import base
 
 
-class MapListToList(base.BaseCase):
+class MapListToList(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['chain', 'join', 'map:item', 'item']
     template = {
         '$': 'chain',
@@ -35,7 +38,10 @@ class MapListToList(base.BaseCase):
     ]
 
 
-class MapDictToList(base.BaseCase):
+class MapDictToList(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['map:item', 'key', 'value']
     template = {
         '$': 'map',
@@ -56,7 +62,10 @@ class MapDictToList(base.BaseCase):
     ]
 
 
-class MapDictToDictItems(base.BaseCase):
+class MapDictToDictItems(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['map:key', 'map:value', 'key', 'value']
     template = {
         '$': 'map',
@@ -75,7 +84,10 @@ class MapDictToDictItems(base.BaseCase):
     }
 
 
-class MapDictToListItems(base.BaseCase):
+class MapDictToListItems(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['map:items', 'key', 'value']
     template = {
         '$': 'map',
@@ -96,7 +108,10 @@ class MapDictToListItems(base.BaseCase):
     ]
 
 
-class MapListsToDict(base.BaseCase):
+class MapListsToDict(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['chain', 'zip', 'map:key', 'map:value', 'attr:name']
     template = {
         '$': 'chain',

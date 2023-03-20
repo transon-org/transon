@@ -1,7 +1,10 @@
 from . import base
 
 
-class ChainWithAttr(base.BaseCase):
+class ChainWithAttr(base.TableDataBaseCase):
+    """
+    TODO: Describe
+    """
     tags = ['map:item', 'chain']
     template = {
         '$': 'map',

@@ -39,7 +39,10 @@ def rule_value(_t: Transformer, _template, context: Context):
     return context.value
 
 
-@Transformer.register_rule('set')
+@Transformer.register_rule(
+    'set',
+    name="TODO: Describe",
+)
 def rule_set(t: Transformer, template, context: Context):
     t_name = t.require(template, 'name')
     name = t.walk(t_name, context)
@@ -47,14 +50,21 @@ def rule_set(t: Transformer, template, context: Context):
     return context.this
 
 
-@Transformer.register_rule('get')
+@Transformer.register_rule(
+    'get',
+    name="TODO: Describe",
+)
 def rule_get(t: Transformer, template, context: Context):
     t_name = t.require(template, 'name')
     name = t.walk(t_name, context)
     return context[name]
 
 
-@Transformer.register_rule('attr')
+@Transformer.register_rule(
+    'attr',
+    name="TODO: Describe",
+    names="TODO: Describe",
+)
 def rule_attr(t: Transformer, template, context: Context):
     if 'name' in template:
         t_name = template['name']
@@ -68,7 +78,11 @@ def rule_attr(t: Transformer, template, context: Context):
         raise DefinitionError('either `name` of `names` attribute is required for `attr` rule')
 
 
-@Transformer.register_rule('object')
+@Transformer.register_rule(
+    'object',
+    key="TODO: Describe",
+    value="TODO: Describe",
+)
 def rule_object(t: Transformer, template, context: Context):
     t_key = t.require(template, 'key')
     t_value = t.require(template, 'value')
@@ -81,7 +95,13 @@ def rule_object(t: Transformer, template, context: Context):
     return {key: value}
 
 
-@Transformer.register_rule('map')
+@Transformer.register_rule(
+    'map',
+    item="TODO: Describe",
+    items="TODO: Describe",
+    key="TODO: Describe",
+    value="TODO: Describe",
+)
 def rule_map(t: Transformer, template, context: Context):
     def iter_contexts(data):
         if isinstance(data, list):
@@ -129,7 +149,10 @@ def rule_map(t: Transformer, template, context: Context):
     )
 
 
-@Transformer.register_rule('zip')
+@Transformer.register_rule(
+    'zip',
+    items="TODO: Describe",
+)
 def rule_zip(t: Transformer, template, context: Context):
     if 'items' in template:
         t_items = template['items']
@@ -138,7 +161,11 @@ def rule_zip(t: Transformer, template, context: Context):
     raise DefinitionError('`items` attribute is  required for `zip` rule')
 
 
-@Transformer.register_rule('file')
+@Transformer.register_rule(
+    'file',
+    name="TODO: Describe",
+    content="TODO: Describe",
+)
 def rule_file(t: Transformer, template, context: Context):
     def write_file(_name, _content):
         if _name is t.NO_CONTENT:
@@ -167,7 +194,11 @@ def _is_dict(x):
     return isinstance(x, dict)
 
 
-@Transformer.register_rule('join')
+@Transformer.register_rule(
+    'join',
+    items="TODO: Describe",
+    sep="TODO: Describe",
+)
 def rule_join(t: Transformer, template, context: Context):
     t_items = t.require(template, 'items')
     items = t.walk(t_items, context)
@@ -184,7 +215,10 @@ def rule_join(t: Transformer, template, context: Context):
     raise TransformationError("Can't join items")
 
 
-@Transformer.register_rule('chain')
+@Transformer.register_rule(
+    'chain',
+    funcs="TODO: Describe",
+)
 def rule_chain(t: Transformer, template, context: Context):
     t_funcs = t.require(template, 'funcs')
     local_context = context
@@ -194,7 +228,12 @@ def rule_chain(t: Transformer, template, context: Context):
     return local_context.this
 
 
-@Transformer.register_rule('expr')
+@Transformer.register_rule(
+    'expr',
+    op="TODO: Describe",
+    value="TODO: Describe",
+    values="TODO: Describe",
+)
 def rule_expr(t: Transformer, template, context: Context):
     op_code = t.require(template, 'op')
     op = t.get_operator(op_code)
@@ -211,7 +250,12 @@ def rule_expr(t: Transformer, template, context: Context):
         return op(context.this)
 
 
-@Transformer.register_rule('convert')
+@Transformer.register_rule(
+    'convert',
+    name="TODO: Describe",
+    value="TODO: Describe",
+    values="TODO: Describe",
+)
 def rule_convert(t: Transformer, template, context: Context):
     name = t.require(template, 'name')
     convertor = t.get_convertor(name)
@@ -228,7 +272,11 @@ def rule_convert(t: Transformer, template, context: Context):
         return convertor(context.this)
 
 
-@Transformer.register_rule('format')
+@Transformer.register_rule(
+    'format',
+    pattern="TODO: Describe",
+    value="TODO: Describe",
+)
 def rule_format(t: Transformer, template, context: Context):
     pattern = t.require(template, 'pattern')
     value = context.this
