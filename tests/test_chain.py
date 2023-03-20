@@ -3,7 +3,7 @@ from . import base
 
 class ChainWithAttr(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Searching for values in nested structure with sequence of `attr` operations chained together.
     """
     tags = ['map:item', 'chain']
     template = {

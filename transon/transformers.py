@@ -36,6 +36,10 @@ class Context:
     def index(self):
         return self._data['index']
 
+    def __contains__(self, key: str):
+        assert key not in ('this', 'item', 'key', 'value', 'index')
+        return key in self._data
+
     def __getitem__(self, key: str):
         assert key not in ('this', 'item', 'key', 'value', 'index')
         return self._data[key]
@@ -54,7 +58,8 @@ class TransformationError(Exception):
 
 
 class NoContent:
-    pass
+    def __getitem__(self, _):
+        return self
 
 
 FileWriterType = Callable[[str, any], NoReturn]
@@ -66,6 +71,7 @@ def no_file_writer(name, data):  # pragma: no cover
 
 
 class Transformer:
+    DEFAULT_MARKER = '$'
     NO_CONTENT = NoContent()
     _convertors: dict[str, Callable] = {}
     _operators: dict[str, Callable] = {}
@@ -134,7 +140,7 @@ class Transformer:
         cls._rules = {}
         cls._convertors = {}
 
-    def __init__(self, template, *, file_writer: FileWriterType = no_file_writer, marker: str = '$'):
+    def __init__(self, template, *, file_writer: FileWriterType = no_file_writer, marker: str = DEFAULT_MARKER):
         self.template = template
         self.file_writer = file_writer
         self.marker = marker
@@ -182,4 +188,7 @@ class Transformer:
 
     def transform(self, data):
         context = Context(this=data)
-        return self.walk(self.template, context)
+        result = self.walk(self.template, context)
+        if result is self.NO_CONTENT:
+            return None
+        return result

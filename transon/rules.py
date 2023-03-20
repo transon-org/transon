@@ -12,7 +12,9 @@ from transon import (
 @Transformer.register_rule('this')
 def rule_this(_t: Transformer, _template, context: Context):
     """
-    TODO: Describe
+    Returns the value stored in current transformation context.
+    The root context has the value equals to input of transformation.
+    Each operation creates new context with value of its result.
     """
     return context.this
 
@@ -20,7 +22,7 @@ def rule_this(_t: Transformer, _template, context: Context):
 @Transformer.register_rule('parent')
 def rule_parent(_t: Transformer, _template, context: Context):
     """
-    TODO: Describe
+    Returns the value stored in previous context.
     """
     return context.parent.this
 
@@ -28,7 +30,8 @@ def rule_parent(_t: Transformer, _template, context: Context):
 @Transformer.register_rule('item')
 def rule_item(_t: Transformer, _template, context: Context):
     """
-    TODO: Describe
+    Works inside `map` operation when iterating over lists.
+    Returns current item.
     """
     return context.item
 
@@ -36,7 +39,8 @@ def rule_item(_t: Transformer, _template, context: Context):
 @Transformer.register_rule('key')
 def rule_key(_t: Transformer, _template, context: Context):
     """
-    TODO: Describe
+    Works inside `map` operation when iterating over dicts.
+    Returns the key of current element.
     """
     return context.key
 
@@ -44,7 +48,8 @@ def rule_key(_t: Transformer, _template, context: Context):
 @Transformer.register_rule('index')
 def rule_index(_t: Transformer, _template, context: Context):
     """
-    TODO: Describe
+    Works inside `map` operation.
+    Returns 0-based index of iteration.
     """
     return context.index
 
@@ -52,18 +57,21 @@ def rule_index(_t: Transformer, _template, context: Context):
 @Transformer.register_rule('value')
 def rule_value(_t: Transformer, _template, context: Context):
     """
-    TODO: Describe
+    Works inside `map` operation when iterating over dicts.
+    Returns the value of current element.
     """
     return context.value
 
 
 @Transformer.register_rule(
     'set',
-    name="TODO: Describe",  # TODO: Describe
+    name="Name of the variable. Can be dynamic.",
 )
 def rule_set(t: Transformer, template, context: Context):
     """
-    TODO: Describe
+    Stores in the context value under given name.
+    You can presume that as variable assignment.
+    Variable will be accessible under that name in all underlying contexts.
     """
     t_name = t.require(template, 'name')
     name = t.walk(t_name, context)
@@ -73,15 +81,18 @@ def rule_set(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'get',
-    name="TODO: Describe",  # TODO: Describe
+    name="Name of the variable. Can be dynamic.",
 )
 def rule_get(t: Transformer, template, context: Context):
     """
-    TODO: Describe
+    Returns the value stored under given name.
+    Value may be stored in current context or in any previous contexts.
     """
     t_name = t.require(template, 'name')
     name = t.walk(t_name, context)
-    return context[name]
+    if name in context:
+        return context[name]
+    return t.NO_CONTENT
 
 
 @Transformer.register_rule(
@@ -119,9 +130,9 @@ def rule_object(t: Transformer, template, context: Context):
     key = t.walk(t_key, context)
     value = t.walk(t_value, context)
     if key is t.NO_CONTENT:
-        return {}  # TODO: cover
+        return {}
     if value is t.NO_CONTENT:
-        return {}  # TODO: cover
+        return {}
     return {key: value}
 
 
@@ -159,7 +170,7 @@ def rule_map(t: Transformer, template, context: Context):
         for sub_context in iter_contexts(context.this):
             for item in t.walk(t_items, sub_context):
                 if item is t.NO_CONTENT:
-                    continue  # TODO: cover
+                    continue
                 result.append(item)
         return result
     elif 'key' in template and 'value' in template:
@@ -170,9 +181,9 @@ def rule_map(t: Transformer, template, context: Context):
             key = t.walk(t_key, sub_context)
             value = t.walk(t_value, sub_context)
             if key is t.NO_CONTENT:
-                continue  # TODO: cover
+                continue
             if value is t.NO_CONTENT:
-                continue  # TODO: cover
+                continue
             result[key] = value
         return result
 
@@ -208,9 +219,9 @@ def rule_file(t: Transformer, template, context: Context):
     """
     def write_file(_name, _content):
         if _name is t.NO_CONTENT:
-            return  # TODO: cover
+            return
         if _content is t.NO_CONTENT:
-            return  # TODO: cover
+            return
         t.write_file(_name, _content)
 
     t_name = t.require(template, 'name')

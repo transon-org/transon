@@ -54,3 +54,25 @@ def test_write_single_file():
     assert file_writer.call_args_list == [
         call('test.json', 'my-data')
     ]
+
+
+def test_file_no_name():
+    file_writer = Mock()
+    transformer = Transformer({
+        '$': 'file',
+        'name': {'$': 'get', 'name': 'foo'},
+        'content': 'bar'
+    }, file_writer=file_writer)
+    transformer.transform({})
+    assert file_writer.call_args_list == []
+
+
+def test_file_no_content():
+    file_writer = Mock()
+    transformer = Transformer({
+        '$': 'file',
+        'name': 'foo',
+        'content': {'$': 'get', 'name': 'bar'},
+    }, file_writer=file_writer)
+    transformer.transform({})
+    assert file_writer.call_args_list == []

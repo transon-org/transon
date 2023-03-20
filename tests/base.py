@@ -3,14 +3,17 @@ import unittest
 from transon import Transformer
 
 
+undefined = object()
+
+
 class TableDataBaseCase(unittest.TestCase):
     """
     TBD: This is base class for all test cases with table data.
     """
     _test_cases = []
-    template = None
-    data = None
-    result = None
+    template = undefined
+    data = undefined
+    result = undefined
     tags = []
 
     @classmethod
@@ -28,11 +31,11 @@ class TableDataBaseCase(unittest.TestCase):
 
     @classmethod
     def is_valid(cls):
-        if cls.template is None:
+        if cls.template is undefined:
             raise unittest.SkipTest("no template")
-        if cls.data is None:
+        if cls.data is undefined:
             raise unittest.SkipTest("no data")
-        if cls.result is None:
+        if cls.result is undefined:
             raise unittest.SkipTest("no result")
 
     def test(self):

@@ -22,6 +22,17 @@ def test_invalid_rule(template):
         transformer.transform(0)
 
 
+def test_get_rules():
+    assert {
+        rule.__rule_name__
+        for rule in Transformer.get_rules()
+    } == {
+        'this', 'parent', 'item', 'key', 'index', 'value', 'set', 'get',
+        'attr', 'object', 'map', 'zip', 'file', 'join', 'chain', 'expr',
+        'convert', 'format'
+    }
+
+
 def test_extension():
     class ExtendedTransformer(Transformer):
         pass
