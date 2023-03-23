@@ -3,14 +3,14 @@ from collections import defaultdict
 import inspect
 
 import unittest
-from functools import cache
+from functools import lru_cache
 
 import transon
 from transon.tests.base import TableDataBaseCase
 from transon.transformers import Transformer
 
 
-@cache
+@lru_cache(maxsize=None)
 def get_test_cases_by_tags():
     project_root = os.path.dirname(os.path.dirname(transon.__file__))
     unittest.defaultTestLoader.discover(project_root)
