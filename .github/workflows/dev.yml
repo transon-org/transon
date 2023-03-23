@@ -3,18 +3,28 @@ name: Run Tests
 on: [push]
 
 jobs:
-  run-tests:
+  tests:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python_version: ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11"]
+
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python_version }}
       - uses: Gr1N/setup-poetry@v8
       - run: |
           poetry install --with dev
       - run: |
           poetry run pytest -v --cov=transon --cov-config=.coveragerc --cov-report term-missing --cov-report=xml .
+
+  coverage:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
       - uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
