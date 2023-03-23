@@ -1,5 +1,6 @@
 from typing import (
     Callable,
+    Dict,
     NoReturn,
 )
 
@@ -73,8 +74,8 @@ def no_file_writer(name, data):  # pragma: no cover
 class Transformer:
     DEFAULT_MARKER = '$'
     NO_CONTENT = NoContent()
-    _convertors: dict[str, Callable] = {}
-    _operators: dict[str, Callable] = {}
+    _convertors: Dict[str, Callable] = {}
+    _operators: Dict[str, Callable] = {}
     _rules = {}
 
     @classmethod
