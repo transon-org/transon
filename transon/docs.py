@@ -97,6 +97,6 @@ def get_all_docs(cls=Transformer):
     }
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     import json
     print(json.dumps(get_all_docs(), indent=4))
