@@ -11,7 +11,10 @@ class Context:
         self._data = data or {}
 
     def derive(self, **props):
-        return Context(self, **(self._data | props))
+        new_props = {}
+        new_props.update(self._data)
+        new_props.update(props)
+        return Context(self, **new_props)
 
     @property
     def parent(self):
