@@ -14,7 +14,7 @@ jobs:
       - run: |
           poetry install --with dev
       - run: |
-          poetry run pytest -v --cov=transon --cov-config=.coveragerc --cov-report term-missing .
+          poetry run pytest -v --cov=transon --cov-config=.coveragerc --cov-report term-missing --cov-report=xml .
       - uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
