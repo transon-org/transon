@@ -6,7 +6,7 @@ from typing import (
 
 
 class Context:
-    def __init__(self, parent=None, /, **data):
+    def __init__(self, parent=None, **data):
         self._parent = parent
         self._data = data or {}
 
@@ -93,7 +93,7 @@ class Transformer:
         return decorator
 
     @classmethod
-    def register_rule(cls, _rule_name: str, /, **params):
+    def register_rule(cls, _rule_name: str, **params):
         def decorator(func):
             func.__rule_name__ = _rule_name
             func.__rule_params__ = params
