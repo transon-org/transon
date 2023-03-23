@@ -10,10 +10,8 @@ python = "^3.7"
 
 
 [tool.poetry.group.dev.dependencies]
-pytest = [
-    { version = "^7", python = "^3.11" },
-    { version = "<7", python = "<3.11" },
-]
+exceptiongroup = { version = "*", python = "<3.11" }
+pytest = "*"
 pytest-subtests = "*"
 pytest-cov = "*"
 
