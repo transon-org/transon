@@ -19,13 +19,8 @@ jobs:
           poetry install --with dev
       - run: |
           poetry run pytest -v --cov=transon --cov-config=.coveragerc --cov-report term-missing --cov-report=xml .
-
-  coverage:
-    needs: tests
-    runs-on: ubuntu-latest
-
-    steps:
       - uses: codecov/codecov-action@v3
+        if: matrix.python_version == '3.11'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
