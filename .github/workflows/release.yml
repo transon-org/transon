@@ -1,0 +1,30 @@
+name: Publish Package to PyPI
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - uses: Gr1N/setup-poetry@v8
+      - name: Check Package Version
+        run: |
+          version=$(poetry version --no-interaction | awk '{print $2}')
+          tag=${GITHUB_REF#refs/tags/}  # Get the tag name without the 'refs/tags/' prefix
+          tag=${tag#"v"}  # Remove the leading 'v' from the tag, if it exists
+          if [[ "${tag}" != "${version}" ]]; then
+            echo "Error: Package version ${version} does not match repository tag ${tag}"
+            exit 1
+          fi
+      - run: poetry install
+      - run: poetry build
+      - uses: pypa/gh-action-pypi-publish@v1
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}
