@@ -85,7 +85,7 @@ class Transformer:
     output_data = transformer.transform(input_data)
     ```
 
-    Template could be any JSON structure. It will be reflected as is in output except of `rules` structures.
+    Template could be any JSON structure. It will be reflected as-is in output, except of `rules` structures.
     Rules are json objects with special attribute named `$` (this is called marker and can be changed).
     If the rule has nested template the same applies to it as well. For example
 
