@@ -75,11 +75,89 @@ def no_file_writer(name, data):  # pragma: no cover
 
 
 class Transformer:
+    """
+    Transformer class interpolates template with input data.
+    Format of output is defined by template.
+    Input is used to fill values into template placeholders.
+
+    ```python
+    transformer = Transformer(template)
+    output_data = transformer.transform(input_data)
+    ```
+
+    Template could be any JSON structure. It will be reflected as is in output except of `rules` structures.
+    Rules are json objects with special attribute named `$` (this is called marker and can be changed).
+    If the rule has nested template the same applies to it as well. For example
+
+    ```json
+    {
+        "test": {
+            "$": "map",
+            "item": [
+                {
+                    "x": {
+                        "$": item
+                    }
+                }
+            ]
+        }
+    }
+    ```
+
+    At the top level output will just copy template `{"test": ...}`.
+    Then the `map` rule will be applied to the input executing sub-template, defined by `item` attribute,
+    for each item in input collection.
+    Let's assume that our input is `[1, 2, 3]`.
+    Inner template contains another rule `{"$": "item"}` which points to value of items of the input.
+    So the final result will be:
+
+    ```json
+        {
+        "test": [
+            [{"x": 1}],
+            [{"x": 2}],
+            [{"x": 3}],
+        ]
+    }
+    ```
+
+    Note that each item preserves its template definition (including list around object).
+
+    All rules are pluggable. There is a list of rules available out of the box.
+    However, you can easily add your own rules with their own attributes.
+
+    ```python
+    @Transformer.register_rule('my_rule')
+    def my_rule(t: Transformer, template, context: Context):
+        ...
+    ```
+
+    You can also inherit `Transformer` class and add rules to subclass to avoid functionality collision.
+
+    ```python
+    class Transformer1(Transformer):
+        pass
+
+    class Transformer2(Transformer):
+        pass
+
+    @Transformer1.register_rule('my_rule')
+    def my_rule1(t: Transformer, template, context: Context):
+        ...
+
+    @Transformer2.register_rule('my_rule')
+    def my_rule2(t: Transformer, template, context: Context):
+        ...
+    ```
+
+    Note that `my_rule` can be used with both transformers but may behave differently.
+    """
+
     DEFAULT_MARKER = '$'
     NO_CONTENT = NoContent()
     _convertors: Dict[str, Callable] = {}
     _operators: Dict[str, Callable] = {}
-    _rules = {}
+    _rules: Dict[str, Callable] = {}
 
     @classmethod
     def register_convertor(cls, name: str):

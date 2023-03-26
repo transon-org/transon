@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "transon"
 version = "0.0.2"
-description = ""
+description = "Homogenous JSON template engine"
 authors = ["Eugene Chernyshov <chernyshov.eugene@gmail.com>"]
 readme = "README.md"
 

@@ -74,6 +74,7 @@ def get_test_cases_for_rule_param(rule_name, param_name):
 
 def get_all_docs(cls=Transformer):
     return {
+        'doc': inspect.getdoc(cls),
         'rules': [
             {
                 'rule': rule_doc,

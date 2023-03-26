@@ -97,12 +97,18 @@ def rule_get(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'attr',
-    name="TODO: Describe",  # TODO: Describe
-    names="TODO: Describe",  # TODO: Describe
+    name="""
+Name of attribute to search. 
+It is possible to use a number as the name for items in arrays. 
+Can be dynamic.
+""",
+    names="List of attribute names to search in nested structure. Can be dynamic.",
 )
 def rule_attr(t: Transformer, template, context: Context):
     """
-    TODO: Describe
+    Returns values of attribute or item from current value in context.
+    Can search in deeply nested structures with path.
+    If attribute is not present an exception will be thrown.
     """
     if 'name' in template:
         t_name = template['name']
@@ -138,14 +144,14 @@ def rule_object(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'map',
-    item="TODO: Describe",  # TODO: Describe
-    items="TODO: Describe",  # TODO: Describe
-    key="TODO: Describe",  # TODO: Describe
-    value="TODO: Describe",  # TODO: Describe
+    item="Defines template for items when producing the `list`",
+    items="Defines templates for series of items when producing the `list`",
+    key="Defines template for key when producing the `dict`",
+    value="Defines template for value when producing the `dict`",
 )
 def rule_map(t: Transformer, template, context: Context):
     """
-    TODO: Describe
+    Iterates over `list` or `dict` and produces new `dict` or `list` with items based on template.
     """
     def iter_contexts(data):
         if isinstance(data, list):
@@ -195,11 +201,14 @@ def rule_map(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'zip',
-    items="TODO: Describe",  # TODO: Describe
+    items="Defines the list of lists",
 )
 def rule_zip(t: Transformer, template, context: Context):
     """
-    TODO: Describe
+    Works exactly like `zip` function in python.
+    Converts collection of lists into list of items.
+    Another way to think of `zip` is that it turns rows into columns, and columns into rows.
+    This is similar to transposing a matrix.
     """
     if 'items' in template:
         t_items = template['items']
@@ -210,12 +219,14 @@ def rule_zip(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'file',
-    name="TODO: Describe",  # TODO: Describe
-    content="TODO: Describe",  # TODO: Describe
+    name="Defines template for file name",
+    content="Defines template for file content. File content always has JSON formatted data",
 )
 def rule_file(t: Transformer, template, context: Context):
     """
-    TODO: Describe
+    Writes a file using `write_file` delegate (a parameter to `Transformer` constructor).
+    This rule produces no result.
+    File will not be written if `name` or `content` returns no result.
     """
     def write_file(_name, _content):
         if _name is t.NO_CONTENT:
@@ -246,12 +257,13 @@ def _is_dict(x):
 
 @Transformer.register_rule(
     'join',
-    items="TODO: Describe",  # TODO: Describe
-    sep="TODO: Describe",  # TODO: Describe
+    items="List of values to concatenate.",
+    sep="Defines separator for strings concatenation.",
 )
 def rule_join(t: Transformer, template, context: Context):
     """
-    TODO: Describe
+    Joins (concatenates) together several dicts, lists of strings.
+    If items to be concatenated have different types an exception will be thrown.
     """
     t_items = t.require(template, 'items')
     items = t.walk(t_items, context)
@@ -293,6 +305,25 @@ def rule_chain(t: Transformer, template, context: Context):
 def rule_expr(t: Transformer, template, context: Context):
     """
     TODO: Describe
+
+    #### Operators:
+
+    | operator             | alternative | kind   | types             | result            |
+    |----------------------|-------------|--------|-------------------|-------------------|
+    | `<`                  | `lt`        | binary | any               | boolean           |
+    | `<=`                 | `le`        | binary | any               | boolean           |
+    | `==`                 | `eq`        | binary | any               | boolean           |
+    | `!=`                 | `ne`        | binary | any               | boolean           |
+    | `>=`                 | `ge`        | binary | any               | boolean           |
+    | `>`                  | `gt`        | binary | any               | boolean           |
+    | `+`                  | `add`       | binary | string<br/>number | string<br/>number |
+    | `-`                  | `sub`       | binary | number            | number            |
+    | `*`                  | `mul`       | binary | number            | number            |
+    | `/`                  | `div`       | binary | number            | number            |
+    | `%`                  | `mod`       | binary | number            | number            |
+    | `&&`                 | `and`       | binary | boolean           | boolean           |
+    | <code>&#8214;</code> | `or`        | binary | boolean           | boolean           |
+    | `!`                  | `not`       | unary  | boolean           | boolean           |
     """
     op_code = t.require(template, 'op')
     op = t.get_operator(op_code)
