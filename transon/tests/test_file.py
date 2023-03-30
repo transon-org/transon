@@ -19,7 +19,7 @@ def test_write_many_files():
                 'items': [
                     'file_name_',
                     {
-                        '$': 'convert',
+                        '$': 'call',
                         'name': 'str',
                         'value': {'$': 'index'}
                     },

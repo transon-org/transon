@@ -5,9 +5,9 @@ class ConvertValues(base.TableDataBaseCase):
     """
     TODO: Describe
     """
-    tags = ['convert:values']
+    tags = ['call:values']
     template = {
-        '$': 'convert',
+        '$': 'call',
         'name': 'int',
         'values': [
             {'$': 'this'},
@@ -22,9 +22,9 @@ class ConvertValue(base.TableDataBaseCase):
     """
     TODO: Describe
     """
-    tags = ['convert:value']
+    tags = ['call:value']
     template = {
-        '$': 'convert',
+        '$': 'call',
         'name': 'str',
         'value': {'$': 'this'}
     }
@@ -36,9 +36,9 @@ class ConvertNoParameters(base.TableDataBaseCase):
     """
     TODO: Describe
     """
-    tags = ['convert']
+    tags = ['call']
     template = {
-        '$': 'convert',
+        '$': 'call',
         'name': 'str',
     }
     data = 123

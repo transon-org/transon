@@ -76,7 +76,7 @@ def no_file_writer(name, data):  # pragma: no cover
 
 class Transformer:
     """
-    Transformer class interpolates template with input data.
+    `Transformer` class interpolates template with input data.
     Format of output is defined by template.
     Input is used to fill values into template placeholders.
 
@@ -151,18 +151,22 @@ class Transformer:
     ```
 
     Note that `my_rule` can be used with both transformers but may behave differently.
+
+    In same fashion you can also add addition operators for expressions (`expr`) calculations
+    and function (`call`) using decorators
+    `register_operator` and `register_function`.
     """
 
     DEFAULT_MARKER = '$'
     NO_CONTENT = NoContent()
-    _convertors: Dict[str, Callable] = {}
+    _functions: Dict[str, Callable] = {}
     _operators: Dict[str, Callable] = {}
     _rules: Dict[str, Callable] = {}
 
     @classmethod
-    def register_convertor(cls, name: str):
+    def register_function(cls, name: str):
         def decorator(func):
-            cls._convertors[name] = func
+            cls._functions[name] = func
             return func
         return decorator
 
@@ -183,12 +187,12 @@ class Transformer:
         return decorator
 
     @classmethod
-    def get_convertor(cls, name):
+    def get_function(cls, name):
         for c in cls.mro():
-            convertor = getattr(c, '_convertors', {})
-            if name in convertor:
-                return convertor[name]
-        raise DefinitionError(f'Invalid convertor `{name}`')
+            functions = getattr(c, '_functions', {})
+            if name in functions:
+                return functions[name]
+        raise DefinitionError(f'Invalid function `{name}`')
 
     @classmethod
     def get_operator(cls, name):
@@ -220,7 +224,7 @@ class Transformer:
         super().__init_subclass__(**kwargs)
         cls._operators = {}
         cls._rules = {}
-        cls._convertors = {}
+        cls._functions = {}
 
     def __init__(self, template, *, file_writer: FileWriterType = no_file_writer, marker: str = DEFAULT_MARKER):
         self.template = template

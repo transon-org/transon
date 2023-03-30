@@ -37,7 +37,7 @@ def get_rule_parameter_docs(rule_name, cls=Transformer):
     return [
         {
             'name': param_name,
-            'doc': param_docs,
+            'doc': inspect.cleandoc(param_docs),
         }
         for param_name, param_docs in rule.__rule_params__.items()
     ]

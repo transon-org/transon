@@ -29,7 +29,7 @@ def test_get_rules():
     } == {
         'this', 'parent', 'item', 'key', 'index', 'value', 'set', 'get',
         'attr', 'object', 'map', 'zip', 'file', 'join', 'chain', 'expr',
-        'convert', 'format'
+        'call', 'format'
     }
 
 
@@ -37,17 +37,17 @@ def test_extension():
     class ExtendedTransformer(Transformer):
         pass
 
-    @ExtendedTransformer.register_convertor('xxx')
+    @ExtendedTransformer.register_function('xxx')
     def xxx(value):
         return f'-=xxx={value}=xxx=-'
 
     transformer = Transformer({
-        '$': 'convert',
+        '$': 'call',
         'name': 'xxx',
     })
 
     transformer_ex = ExtendedTransformer({
-        '$': 'convert',
+        '$': 'call',
         'name': 'xxx',
     })
 

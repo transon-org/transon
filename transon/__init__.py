@@ -6,4 +6,4 @@ from .transformers import (
 )
 from . import operators
 from . import rules
-from . import convertors
+from . import functions
