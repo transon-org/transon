@@ -3,7 +3,8 @@ from . import base
 
 class ExprSimpleMonads1(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Adds suffix to input string.
+    Illustrates functionality of `expr` rule in form of monad.
     """
     tags = ['expr:value']
     template = {
@@ -17,7 +18,8 @@ class ExprSimpleMonads1(base.TableDataBaseCase):
 
 class ExprSimpleMonads2(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Adds prefix to input string.
+    Illustrates functionality of `expr` rule in form of monad and usage of `parent` rule.
     """
     tags = ['chain', 'expr:value', 'parent']
     template = {
@@ -37,7 +39,8 @@ class ExprSimpleMonads2(base.TableDataBaseCase):
 
 class ExprMonadsComplex(base.TableDataBaseCase):
     """
-    TODO: Describe
+    For input dictionary containing two integers returns sum of squares.
+    Illustrates functionality of `expr` rule in form of monad.
     """
     tags = ['chain', 'expr:value', 'parent']
     template = {
@@ -81,7 +84,8 @@ class ExprMonadsComplex(base.TableDataBaseCase):
 
 class ExprSimpleValues1(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Adds suffix to input string.
+    Illustrates functionality of `expr` rule with direct parameters.
     """
     tags = ['expr:values', 'this']
     template = {
@@ -98,7 +102,8 @@ class ExprSimpleValues1(base.TableDataBaseCase):
 
 class ExprSimpleValues2(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Adds prefix to input string.
+    Illustrates functionality of `expr` rule with direct parameters.
     """
     tags = ['expr:values', 'this']
     template = {
@@ -115,7 +120,8 @@ class ExprSimpleValues2(base.TableDataBaseCase):
 
 class ExprValuesComplex(base.TableDataBaseCase):
     """
-    TODO: Describe
+    For input dictionary containing two integers returns sum of squares.
+    Illustrates functionality of `expr` rule with direct parameters.
     """
     tags = ['expr:values']
     template = {
@@ -149,7 +155,7 @@ class ExprValuesComplex(base.TableDataBaseCase):
 
 class ExprUnary1(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Calculates negation of input using `expr` rule with unary operator as monad.
     """
     tags = ['expr:op']
     template = {
@@ -162,7 +168,7 @@ class ExprUnary1(base.TableDataBaseCase):
 
 class ExprUnary2(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Calculates negation of input using `expr` rule with unary operator in alternative form.
     """
     tags = ['expr:op']
     template = {

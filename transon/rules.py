@@ -433,7 +433,7 @@ def rule_call(t: Transformer, template, context: Context):
 @Transformer.register_rule(
     'format',
     pattern="Defines pattern for string formatting. This is always a constant.",
-    value="Defines template for templating input. Optional.",
+    value="Defines template for input data. Optional.",
 )
 def rule_format(t: Transformer, template, context: Context):
     """

@@ -3,7 +3,7 @@ from . import base
 
 class FormatFromSingleValue(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Iterates list with floats and produces list of strings by formatting each item.
     """
     tags = ['map:item', 'format']
     template = {
@@ -19,7 +19,7 @@ class FormatFromSingleValue(base.TableDataBaseCase):
 
 class FormatFromDict(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Iterates over list of dicts and produces list of string using items for filling pattern slots.
     """
     tags = ['map:item', 'format']
     template = {
@@ -39,7 +39,7 @@ class FormatFromDict(base.TableDataBaseCase):
 
 class FormatFromList(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Iterates over list of lists and produces list of string using items for filling pattern slots.
     """
     tags = ['map:item', 'format']
     template = {
@@ -59,9 +59,11 @@ class FormatFromList(base.TableDataBaseCase):
 
 class FormatWithValue(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Iterates over list of values.
+    For formatting value creates dict with dynamically calculated values.
+    Produces list of strings using formatting.
     """
-    tags = ['map:item', 'format:value', 'index']
+    tags = ['map:item', 'format:value', 'index', 'expr:values']
     template = {
         '$': 'map',
         'item': {

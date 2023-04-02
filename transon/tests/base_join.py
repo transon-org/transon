@@ -3,7 +3,7 @@ from . import base
 
 class JoinWithStaticBase(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Enriches input dict with default value.
     """
     tags = ['join', 'this']
     template = {
@@ -21,7 +21,7 @@ class JoinWithStaticBase(base.TableDataBaseCase):
 
 class JoinTwoBase(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Joins two dicts taken from separate attributes of input into one dict.
     """
     tags = ['join']
     template = {

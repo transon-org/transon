@@ -3,7 +3,9 @@ from . import base
 
 class NoContentForAttr(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Gets variable names `foo` that does not exist from context.
+    Then tries to get attribute named `bar` of non-existing value.
+    This results into no value which translates into `None`.
     """
     tags = ['attr:name', 'chain', 'get']
     template = {
@@ -19,7 +21,8 @@ class NoContentForAttr(base.TableDataBaseCase):
 
 class NoContentForObjectKey(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Creates a dict with item key that has no value.
+    It results with empty object.
     """
     tags = ['object:key', 'get']
     template = {
@@ -33,7 +36,8 @@ class NoContentForObjectKey(base.TableDataBaseCase):
 
 class NoContentForObjectValue(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Creates a dict with item value that has no value.
+    It results with empty object.
     """
     tags = ['object:value', 'get']
     template = {
@@ -47,7 +51,7 @@ class NoContentForObjectValue(base.TableDataBaseCase):
 
 class NoContentForMappingList(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Demonstrates skipping of items in `list` generation by `map` rule when they have no value.
     """
     tags = ['map:items', 'get', 'index', 'item']
     template = {
@@ -76,9 +80,9 @@ class NoContentForMappingList(base.TableDataBaseCase):
 
 class NoContentForMappingDict(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Demonstrates skipping of items in `dict` generation by `map` rule when they have no value.
     """
-    tags = ['map:items', 'get', 'index', 'item']
+    tags = ['map:key', 'map:value', 'get']
     template = {
         '$': 'chain',
         'funcs': [

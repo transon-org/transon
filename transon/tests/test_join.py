@@ -74,7 +74,11 @@ class JoinTwoStrings(base_join.JoinTwoBase):
 
 class JoinManyDynamicDicts(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Iterates over input list twice.
+    First time produces list of `dicts` with keys and values defined in separate attributes of input items.
+    Second time produces list of `dicts` but with keys and values swapped.
+    Joins together results of two iteration into single list.
+    Then joins together items of the list into single resulting object.
     """
     tags = ['join', 'map:item', 'object']
     template = {

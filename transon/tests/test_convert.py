@@ -3,7 +3,7 @@ from . import base
 
 class ConvertValues(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Converts input string into integer in base-16.
     """
     tags = ['call:values']
     template = {
@@ -20,21 +20,26 @@ class ConvertValues(base.TableDataBaseCase):
 
 class ConvertValue(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Adds 100 to input integer and converts result into string.
+    Illustrates usage of `call` attribute `value`.
     """
-    tags = ['call:value']
+    tags = ['call:value', 'expr:value']
     template = {
         '$': 'call',
         'name': 'str',
-        'value': {'$': 'this'}
+        'value': {
+            '$': 'expr',
+            'op': 'add',
+            'value': 100,
+        }
     }
     data = 123
-    result = "123"
+    result = "223"
 
 
 class ConvertNoParameters(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Converts input integer into string.
     """
     tags = ['call']
     template = {

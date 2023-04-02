@@ -3,25 +3,37 @@ from . import base
 
 class MapListToList(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Maps two lists obtained from different attributes of input.
+    Then joins two obtained lists into single resulting list.
     """
     tags = ['chain', 'join', 'map:item', 'item']
     template = {
-        '$': 'chain',
-        'funcs': [
+        '$': 'join',
+        'items': [
             {
-                '$': 'join',
-                'items': [
+                '$': 'chain',
+                'funcs': [
                     {'$': 'attr', 'name': 'first'},
-                    {'$': 'attr', 'name': 'second'},
+                    {
+                        '$': 'map',
+                        'item': {
+                            'first': {'$': 'item'}
+                        }
+                    }
                 ]
             },
             {
-                '$': 'map',
-                'item': {
-                    'value': {'$': 'item'}
-                }
-            }
+                '$': 'chain',
+                'funcs': [
+                    {'$': 'attr', 'name': 'second'},
+                    {
+                        '$': 'map',
+                        'item': {
+                            'second': {'$': 'item'}
+                        }
+                    }
+                ]
+            },
         ]
     }
     data = {
@@ -29,18 +41,18 @@ class MapListToList(base.TableDataBaseCase):
         'second': [4, 5, 6],
     }
     result = [
-        {'value': 1},
-        {'value': 2},
-        {'value': 3},
-        {'value': 4},
-        {'value': 5},
-        {'value': 6},
+        {'first': 1},
+        {'first': 2},
+        {'first': 3},
+        {'second': 4},
+        {'second': 5},
+        {'second': 6},
     ]
 
 
 class MapDictToList(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Iterates over input dict and produces list of dicts with corresponding fields for keys and values.
     """
     tags = ['map:item', 'key', 'value']
     template = {
@@ -64,7 +76,7 @@ class MapDictToList(base.TableDataBaseCase):
 
 class MapDictToDictItems(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Iterates over input dictionary and produces dictionary with keys and values swapped.
     """
     tags = ['map:key', 'map:value', 'key', 'value']
     template = {
@@ -86,7 +98,7 @@ class MapDictToDictItems(base.TableDataBaseCase):
 
 class MapDictToListItems(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Iterates over input dictionary and produces interlaced list of both keys and values.
     """
     tags = ['map:items', 'key', 'value']
     template = {
@@ -110,7 +122,8 @@ class MapDictToListItems(base.TableDataBaseCase):
 
 class MapListsToDict(base.TableDataBaseCase):
     """
-    TODO: Describe
+    Zips two lists containing keys and values together into pairs.
+    Then iterates over list of pairs and produces resulting dict.
     """
     tags = ['chain', 'zip', 'map:key', 'map:value', 'attr:name']
     template = {
