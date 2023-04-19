@@ -274,7 +274,4 @@ class Transformer:
 
     def transform(self, data):
         context = Context(this=data)
-        result = self.walk(self.template, context)
-        if result is self.NO_CONTENT:
-            return None
-        return result
+        return self.walk(self.template, context)

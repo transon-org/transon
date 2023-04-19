@@ -43,4 +43,7 @@ class TableDataBaseCase(unittest.TestCase):
         assert self.tags
 
         transformer = Transformer(self.template)
-        assert transformer.transform(self.data) == self.result
+        output = transformer.transform(self.data)
+        if output is transformer.NO_CONTENT:
+            output = None
+        assert output == self.result
