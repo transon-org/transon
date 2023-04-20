@@ -33,6 +33,14 @@ def get_test_case_by_name(name: str):
             return case
 
 
+def template_loader(name: str):
+    case = get_test_case_by_name(name)
+    return Transformer(
+        case.template,
+        template_loader=template_loader,
+    )
+
+
 def get_rules_docs(cls=Transformer):
     return [
         {

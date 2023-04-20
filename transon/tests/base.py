@@ -40,13 +40,8 @@ class TableDataBaseCase(unittest.TestCase):
             raise unittest.SkipTest("no result")
 
     def template_loader(self, name: str):
-        from transon.docs import get_test_case_by_name
-
-        case = get_test_case_by_name(name)
-        return Transformer(
-            case.template,
-            template_loader=self.template_loader,
-        )
+        from transon.docs import template_loader
+        return template_loader(name)
 
     def test(self):
         self.is_valid()
