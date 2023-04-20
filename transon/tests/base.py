@@ -14,7 +14,7 @@ class TableDataBaseCase(unittest.TestCase):
     template = undefined
     data = undefined
     result = undefined
-    tags = []
+    tags: list[str] = None
 
     @classmethod
     def iterate_valid_cases(cls):
@@ -49,7 +49,7 @@ class TableDataBaseCase(unittest.TestCase):
 
     def test(self):
         self.is_valid()
-        assert self.tags
+        assert self.tags is not None
 
         transformer = Transformer(
             self.template,

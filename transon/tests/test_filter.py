@@ -9,7 +9,7 @@ from transon import (
 
 class FilterDict(base.TableDataBaseCase):
     """
-    Iterates over input dict and filters out items with even value.
+    Iterates over input `dict` and filters out items with even value.
     """
     tags = ['filter', 'expr']
     template = {
@@ -40,7 +40,7 @@ class FilterDict(base.TableDataBaseCase):
 
 class FilterList(base.TableDataBaseCase):
     """
-    Iterates over input list and filters out items with even value.
+    Iterates over input `list` and filters out items with even value.
     """
     tags = ['filter', 'expr']
     template = {
@@ -56,6 +56,34 @@ class FilterList(base.TableDataBaseCase):
     }
     data = [1, 2, 3, 4, 5, 6]
     result = [1, 3, 5]
+
+
+class FilterListNoContent(base.TableDataBaseCase):
+    """
+    Sets some names to context, one with `true` value and one with `false`.
+    Iterates over input `list` of string and filters out items with name that is not set to `true` in the context.
+    """
+    tags = ['chain', 'filter', 'set', 'get']
+    template = {
+        '$': 'chain',
+        'funcs': [
+            {'$': 'set', 'name': 'current'},
+            True,
+            {'$': 'set', 'name': 'a'},
+            False,
+            {'$': 'set', 'name': 'b'},
+            {'$': 'get', 'name': 'current'},
+            {
+                '$': 'filter',
+                'cond': {
+                    '$': 'get',
+                    'name': {'$': 'item'},
+                }
+            }
+        ]
+    }
+    data = ['a', 'b', 'c']
+    result = ['a']
 
 
 def test_invalid_value():

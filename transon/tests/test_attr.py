@@ -32,6 +32,32 @@ class AttrSimpleNameDoesNotExist(base.TableDataBaseCase):
     result = None
 
 
+class AttrSimplePathDoesNotExist1(base.TableDataBaseCase):
+    tags = []
+    template = {
+        '$': 'attr',
+        'names': ['a', 'x', 'c'],
+    }
+    data = {
+        'a': {
+            'b': {
+                'c': 1
+            }
+        }
+    }
+    result = None
+
+
+class AttrSimplePathDoesNotExist2(base.TableDataBaseCase):
+    tags = []
+    template = {
+        '$': 'attr',
+        'names': [0, 1, 0],
+    }
+    data = [[[1]]]
+    result = None
+
+
 class AttrSimpleFixedIndex(base.TableDataBaseCase):
     """
     Gets value from input `list` by the index defined in template as constant value.
