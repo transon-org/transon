@@ -1,9 +1,9 @@
 import os.path
-from collections import defaultdict
 import inspect
 
 import unittest
 from functools import lru_cache
+import importlib.metadata
 
 import transon
 from transon.tests.base import TableDataBaseCase
@@ -83,6 +83,7 @@ def get_test_cases_for_rule_param(rule_name, param_name):
 
 def get_all_docs(cls=Transformer):
     return {
+        'version': importlib.metadata.version('transon'),
         'doc': inspect.getdoc(cls),
         'rules': [
             {
