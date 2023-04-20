@@ -160,6 +160,18 @@ def rule_object(t: Transformer, template, context: Context):
     return {key: value}
 
 
+def _iter_contexts(context: Context):
+    data = context.this
+    if isinstance(data, list):
+        for index, _item in enumerate(data):
+            yield context.derive(this=_item, index=index, item=_item)
+    elif isinstance(data, dict):
+        for index, (_key, _value) in enumerate(data.items()):
+            yield context.derive(this=_value, index=index, key=_key, value=_value)
+    else:
+        raise TransformationError(f"value is not iterable: {data!r}")
+
+
 @Transformer.register_rule(
     'map',
     item="Defines template for items when producing the `list`",
@@ -171,18 +183,10 @@ def rule_map(t: Transformer, template, context: Context):
     """
     Iterates over `list` or `dict` and produces new `dict` or `list` with items based on template.
     """
-    def iter_contexts(data):
-        if isinstance(data, list):
-            for index, _item in enumerate(data):
-                yield context.derive(this=_item, index=index, item=_item)
-        elif isinstance(data, dict):
-            for index, (_key, _value) in enumerate(data.items()):
-                yield context.derive(this=_value, index=index, key=_key, value=_value)
-
     if 'item' in template:
         t_item = template['item']
         result = []
-        for sub_context in iter_contexts(context.this):
+        for sub_context in _iter_contexts(context):
             item = t.walk(t_item, sub_context)
             if item is t.NO_CONTENT:
                 continue
@@ -191,7 +195,7 @@ def rule_map(t: Transformer, template, context: Context):
     elif 'items' in template:
         t_items = template['items']
         result = []
-        for sub_context in iter_contexts(context.this):
+        for sub_context in _iter_contexts(context):
             for item in t.walk(t_items, sub_context):
                 if item is t.NO_CONTENT:
                     continue
@@ -201,7 +205,7 @@ def rule_map(t: Transformer, template, context: Context):
         t_key = template['key']
         t_value = template['value']
         result = {}
-        for sub_context in iter_contexts(context.this):
+        for sub_context in _iter_contexts(context):
             key = t.walk(t_key, sub_context)
             value = t.walk(t_value, sub_context)
             if key is t.NO_CONTENT:
@@ -215,6 +219,41 @@ def rule_map(t: Transformer, template, context: Context):
         'either `item` or `items` or `key/value` properties '
         'are required for `map` rule'
     )
+
+
+@Transformer.register_rule(
+    'filter',
+    cond="Defines template for condition",
+)
+def rule_filter(t: Transformer, template, context: Context):
+    """
+    Iterates over `list` or `dict` and filters out items regarding condition calculation.
+    """
+
+    t_cond = t.require(template, 'cond')
+
+    def _iterate_with_condition(_context: Context):
+        for _sub_context in _iter_contexts(_context):
+            cond = t.walk(t_cond, _sub_context)
+            if cond is t.NO_CONTENT:
+                continue
+            if not cond:
+                continue
+            yield _sub_context
+
+    data = context.this
+    if isinstance(data, list):
+        return [
+            sub_context.item
+            for sub_context in _iterate_with_condition(context)
+        ]
+    elif isinstance(data, dict):
+        return {
+            sub_context.key: sub_context.value
+            for sub_context in _iterate_with_condition(context)
+        }
+    else:
+        raise TransformationError(f"value is not iterable: {data!r}")
 
 
 @Transformer.register_rule(

@@ -11,6 +11,7 @@ from transon import (
     {'$': 'join'},
     {'$': 'attr'},
     {'$': 'map'},
+    {'$': 'filter'},
     {'$': 'zip'},
     {'$': 'expr', 'op': 'xxx'},
     {'$': 'convert', 'name': 'xxx'},
@@ -27,9 +28,25 @@ def test_get_rules():
         rule.__rule_name__
         for rule in Transformer.get_rules()
     } == {
-        'this', 'parent', 'item', 'key', 'index', 'value', 'set', 'get',
-        'attr', 'object', 'map', 'zip', 'file', 'join', 'chain', 'expr',
-        'call', 'format'
+        'this',
+        'parent',
+        'item',
+        'key',
+        'index',
+        'value',
+        'set',
+        'get',
+        'attr',
+        'object',
+        'map',
+        'filter',
+        'zip',
+        'file',
+        'join',
+        'chain',
+        'expr',
+        'call',
+        'format',
     }
 
 
