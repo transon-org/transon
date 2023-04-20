@@ -119,7 +119,7 @@ def rule_attr(t: Transformer, template, context: Context):
         t_name = template['name']
         name = t.walk(t_name, context)
         try:
-        return context.this[name]
+            return context.this[name]
         except KeyError:
             return t.NO_CONTENT
         except IndexError:
@@ -128,7 +128,7 @@ def rule_attr(t: Transformer, template, context: Context):
         t_names = template['names']
         names = t.walk(t_names, context)
         try:
-        return reduce(operator.getitem, names, context.this)
+            return reduce(operator.getitem, names, context.this)
         except KeyError:
             return t.NO_CONTENT
         except IndexError:
