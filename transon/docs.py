@@ -3,7 +3,12 @@ import inspect
 
 import unittest
 from functools import lru_cache
-import importlib.metadata
+
+try:
+    from importlib.metadata import version
+except ImportError:
+    # noinspection PyUnresolvedReferences
+    from importlib_metadata import version
 
 import transon
 from transon.tests.base import TableDataBaseCase
@@ -91,7 +96,7 @@ def get_test_cases_for_rule_param(rule_name, param_name):
 
 def get_all_docs(cls=Transformer):
     return {
-        'version': importlib.metadata.version('transon'),
+        'version': version('transon'),
         'doc': inspect.getdoc(cls),
         'rules': [
             {
