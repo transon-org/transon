@@ -77,7 +77,7 @@ def no_file_writer(name: str, data):  # pragma: no cover
 
 # noinspection PyUnusedLocal
 def no_template_loader(name: str) -> 'Transformer':   # pragma: no cover
-    raise RuntimeError(f'template {name=} was not found')
+    raise RuntimeError(f'template with name `{name}` was not found')
 
 
 class Transformer:
