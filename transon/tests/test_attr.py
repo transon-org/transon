@@ -17,6 +17,47 @@ class AttrSimpleFixedName(base.TableDataBaseCase):
     result = 1
 
 
+class AttrSimpleNameDoesNotExist(base.TableDataBaseCase):
+    """
+    Attempts to get a value from input `dict` by the name that does not exist.
+    """
+    tags = ['attr:name']
+    template = {
+        '$': 'attr',
+        'name': 'b',
+    }
+    data = {
+        'a': 1
+    }
+    result = None
+
+
+class AttrSimpleFixedIndex(base.TableDataBaseCase):
+    """
+    Gets value from input `list` by the index defined in template as constant value.
+    """
+    tags = ['attr:name']
+    template = {
+        '$': 'attr',
+        'name': 0,
+    }
+    data = [1]
+    result = 1
+
+
+class AttrSimpleIndexDoesNotExist(base.TableDataBaseCase):
+    """
+    Attempts to get a value from input `list` by the index that does not exist.
+    """
+    tags = ['attr:name']
+    template = {
+        '$': 'attr',
+        'name': 2,
+    }
+    data = [1]
+    result = None
+
+
 class AttrDynamicReferenceName1(base_attr.AttrDynamicReferenceName):
     data = {
         'a': 1,

@@ -111,18 +111,28 @@ def rule_attr(t: Transformer, template, context: Context):
     """
     Returns values of attribute or item from current value in context.
     Can search in deeply nested structures with path.
-    If attribute is not present an exception will be thrown.
+    If attribute is not present returns no value.
 
     Parameters are mutually exclusive.
     """
     if 'name' in template:
         t_name = template['name']
         name = t.walk(t_name, context)
+        try:
         return context.this[name]
+        except KeyError:
+            return t.NO_CONTENT
+        except IndexError:
+            return t.NO_CONTENT
     elif 'names' in template:
         t_names = template['names']
         names = t.walk(t_names, context)
+        try:
         return reduce(operator.getitem, names, context.this)
+        except KeyError:
+            return t.NO_CONTENT
+        except IndexError:
+            return t.NO_CONTENT
     else:
         raise DefinitionError('either `name` of `names` attribute is required for `attr` rule')
 
