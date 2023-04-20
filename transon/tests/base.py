@@ -1,4 +1,5 @@
 import unittest
+from typing import List
 
 from transon import Transformer
 
@@ -14,7 +15,7 @@ class TableDataBaseCase(unittest.TestCase):
     template = undefined
     data = undefined
     result = undefined
-    tags: list[str] = None
+    tags: List[str] = None
 
     @classmethod
     def iterate_valid_cases(cls):
