@@ -15,6 +15,7 @@ from transon import (
     {'$': 'zip'},
     {'$': 'expr', 'op': 'xxx'},
     {'$': 'convert', 'name': 'xxx'},
+    {'$': 'include'},
 ])
 def test_invalid_rule(template):
     transformer = Transformer(template)
@@ -47,6 +48,7 @@ def test_get_rules():
         'expr',
         'call',
         'format',
+        'include',
     }
 
 

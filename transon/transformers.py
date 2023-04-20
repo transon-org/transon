@@ -67,11 +67,17 @@ class NoContent:
 
 
 FileWriterType = Callable[[str, any], NoReturn]
+TemplateLoaderType = Callable[[str], 'Transformer']
 
 
 # noinspection PyUnusedLocal
-def no_file_writer(name, data):  # pragma: no cover
+def no_file_writer(name: str, data):  # pragma: no cover
     return
+
+
+# noinspection PyUnusedLocal
+def no_template_loader(name: str) -> 'Transformer':   # pragma: no cover
+    raise RuntimeError(f'template {name=} was not found')
 
 
 class Transformer:
@@ -226,9 +232,17 @@ class Transformer:
         cls._rules = {}
         cls._functions = {}
 
-    def __init__(self, template, *, file_writer: FileWriterType = no_file_writer, marker: str = DEFAULT_MARKER):
+    def __init__(
+            self,
+            template,
+            *,
+            file_writer: FileWriterType = no_file_writer,
+            template_loader: TemplateLoaderType = no_template_loader,
+            marker: str = DEFAULT_MARKER,
+    ):
         self.template = template
         self.file_writer = file_writer
+        self.template_loader = template_loader
         self.marker = marker
 
     def walk_list(self, template, context):

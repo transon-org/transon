@@ -508,3 +508,15 @@ def rule_format(t: Transformer, template, context: Context):
         return pattern.format(**value)
     else:
         return pattern.format(value)
+
+
+@Transformer.register_rule(
+    'include',
+    name="Name or path to template. Can be dynamic. Meaning of this depends of provided template loader.",
+)
+def rule_include(t: Transformer, template, context: Context):
+    t_name = t.require(template, 'name')
+    name = t.walk(t_name, context)
+    sub_transformer = t.template_loader(name)
+    result = sub_transformer.transform(context.this)
+    return t.NO_CONTENT if result is sub_transformer.NO_CONTENT else result

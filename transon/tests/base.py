@@ -38,11 +38,23 @@ class TableDataBaseCase(unittest.TestCase):
         if cls.result is undefined:
             raise unittest.SkipTest("no result")
 
+    def template_loader(self, name: str):
+        from transon.docs import get_test_case_by_name
+
+        case = get_test_case_by_name(name)
+        return Transformer(
+            case.template,
+            template_loader=self.template_loader,
+        )
+
     def test(self):
         self.is_valid()
         assert self.tags
 
-        transformer = Transformer(self.template)
+        transformer = Transformer(
+            self.template,
+            template_loader=self.template_loader,
+        )
         output = transformer.transform(self.data)
         if output is transformer.NO_CONTENT:
             output = None
