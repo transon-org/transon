@@ -1,7 +1,5 @@
-import os.path
 import inspect
 
-import unittest
 from functools import lru_cache
 
 try:
@@ -10,15 +8,14 @@ except ImportError:
     # noinspection PyUnresolvedReferences
     from importlib_metadata import version
 
-import transon
-from transon.tests.base import TableDataBaseCase
 from transon.transformers import Transformer
 
 
 @lru_cache(maxsize=None)
 def get_test_cases():
-    project_root = os.path.dirname(os.path.dirname(transon.__file__))
-    unittest.defaultTestLoader.discover(project_root)
+    # noinspection PyUnresolvedReferences
+    import transon.tests
+    from transon.tests.base import TableDataBaseCase
     return list(TableDataBaseCase.iterate_valid_cases())
 
 
