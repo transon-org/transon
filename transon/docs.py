@@ -1,21 +1,24 @@
+import os.path
 import inspect
 
+import unittest
 from functools import lru_cache
 
-try:
+try:  # pragma: no cover
     from importlib.metadata import version
-except ImportError:
+except ImportError:  # pragma: no cover
     # noinspection PyUnresolvedReferences
     from importlib_metadata import version
 
-from transon.transformers import Transformer
+import transon
+from transon import Transformer
 
 
 @lru_cache(maxsize=None)
 def get_test_cases():
-    # noinspection PyUnresolvedReferences
-    import transon.tests
     from transon.tests.base import TableDataBaseCase
+    project_root = os.path.dirname(os.path.dirname(transon.__file__))
+    unittest.defaultTestLoader.discover(project_root)
     return list(TableDataBaseCase.iterate_valid_cases())
 
 
