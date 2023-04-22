@@ -4,6 +4,7 @@ import pkgutil
 
 from functools import lru_cache
 from types import ModuleType
+from typing import Union
 
 try:  # pragma: no cover
     from importlib.metadata import version
@@ -14,7 +15,7 @@ except ImportError:  # pragma: no cover
 from transon import Transformer
 
 
-def import_submodules(package: ModuleType | str, recursive=True):  # pragma: no cover
+def import_submodules(package: Union[ModuleType, str], recursive=True):  # pragma: no cover
     if isinstance(package, str):
         try:
             package = importlib.import_module(package)
