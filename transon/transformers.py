@@ -82,18 +82,26 @@ def no_template_loader(name: str) -> 'Transformer':   # pragma: no cover
 
 class Transformer:
     """
+    ## Usage
+
     `Transformer` class interpolates template with input data.
     Format of output is defined by template.
     Input is used to fill values into template placeholders.
 
     ```python
+    from transon import Transformer
+
     transformer = Transformer(template)
     output_data = transformer.transform(input_data)
     ```
 
+    ## Templates
+
     Template could be any JSON structure. It will be reflected as-is in output, except of `rules` structures.
     Rules are json objects with special attribute named `$` (this is called marker and can be changed).
-    If the rule has nested template the same applies to it as well. For example
+    If the rule has nested template the same applies to it as well.
+
+    Example template:
 
     ```json
     {
@@ -115,10 +123,11 @@ class Transformer:
     for each item in input collection.
     Let's assume that our input is `[1, 2, 3]`.
     Inner template contains another rule `{"$": "item"}` which points to value of items of the input.
+
     So the final result will be:
 
     ```json
-        {
+    {
         "test": [
             [{"x": 1}],
             [{"x": 2}],
@@ -128,6 +137,8 @@ class Transformer:
     ```
 
     Note that each item preserves its template definition (including list around object).
+
+    ## Extending
 
     All rules are pluggable. There is a list of rules available out of the box.
     However, you can easily add your own rules with their own attributes.

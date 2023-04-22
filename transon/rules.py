@@ -512,7 +512,7 @@ def rule_format(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'include',
-    name="Name or path to template. Can be dynamic. Meaning of this depends of provided template loader.",
+    name="Name or path to template. Can be dynamic. Meaning of this `name` depends on provided template loader.",
 )
 def rule_include(t: Transformer, template, context: Context):
     t_name = t.require(template, 'name')

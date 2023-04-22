@@ -33,6 +33,11 @@ class AttrSimpleNameDoesNotExist(base.TableDataBaseCase):
 
 
 class AttrSimplePathDoesNotExist1(base.TableDataBaseCase):
+    """
+    Tries to get a value from nested input structure of `dicts` with paths defined in different attribute of input data.
+    Actual path is not correct at its second component.
+    Template results with no value.
+    """
     tags = []
     template = {
         '$': 'attr',
@@ -49,6 +54,11 @@ class AttrSimplePathDoesNotExist1(base.TableDataBaseCase):
 
 
 class AttrSimplePathDoesNotExist2(base.TableDataBaseCase):
+    """
+    Tries to get a value from nested input structure of `lists` with paths defined in different attribute of input data.
+    Actual path is not correct at its second component.
+    Template results with no value.
+    """
     tags = []
     template = {
         '$': 'attr',
@@ -104,7 +114,7 @@ class AttrDynamicReferenceName2(base_attr.AttrDynamicReferenceName):
 
 class AttrSimpleFixedNames(base.TableDataBaseCase):
     """
-    Gets a list of values with 4 elements discovered in nested input structure of dicts with paths defined in template.
+    Gets a `list` of values with 4 elements discovered in nested input structure of `dicts` with paths defined in template.
     """
     tags = ['attr:names']
     template = [
@@ -130,7 +140,7 @@ class AttrSimpleFixedNames(base.TableDataBaseCase):
 
 class AttrDynamicReferenceNames(base.TableDataBaseCase):
     """
-    Gets value from nested input structure of dicts with paths defined in different attribute of input data.
+    Gets value from nested input structure of `dicts` with paths defined in different attribute of input data.
     """
     tags = ['attr:names']
     template = {
@@ -155,7 +165,7 @@ class AttrDynamicReferenceNames(base.TableDataBaseCase):
 
 class AttrDynamicReferenceMultipleNames(base.TableDataBaseCase):
     """
-    Gets a list of values discovered in nested input structure of dicts with paths defined in input data.
+    Gets a `list` of values discovered in nested input structure of `dicts` with paths defined in input data.
     List of paths may include any number of paths of any depth.
     """
     tags = ['attr:names', 'chain', 'set', 'get', 'map:item']
