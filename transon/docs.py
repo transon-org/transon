@@ -14,7 +14,7 @@ except ImportError:  # pragma: no cover
 from transon import Transformer
 
 
-def import_submodules(package: ModuleType | str, recursive=True):
+def import_submodules(package: ModuleType | str, recursive=True):  # pragma: no cover
     if isinstance(package, str):
         try:
             package = importlib.import_module(package)
