@@ -1,10 +1,10 @@
 [tool.poetry]
 name = "transon"
-version = "0.0.6"
+version = "0.0.7"
 description = "Homogenous JSON template engine"
 authors = ["Eugene Chernyshov <chernyshov.eugene@gmail.com>"]
 readme = "README.md"
-homepage = "https://github.com/transon-org/transon"
+repository = "https://github.com/transon-org/transon"
 documentation = "https://transon-org.github.io/"
 license = "MIT"
 classifiers = [
