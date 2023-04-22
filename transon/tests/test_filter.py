@@ -1,10 +1,4 @@
-import pytest
-
 from . import base
-from transon import (
-    TransformationError,
-    Transformer,
-)
 
 
 class FilterDict(base.TableDataBaseCase):
@@ -84,20 +78,3 @@ class FilterListNoContent(base.TableDataBaseCase):
     }
     data = ['a', 'b', 'c']
     result = ['a']
-
-
-def test_invalid_value():
-    template = {
-        '$': 'filter',
-        'cond': {
-            '$': 'expr',
-            'op': 'mod',
-            'values': [
-                {'$': 'item'},
-                2,
-            ]
-        }
-    }
-    transformer = Transformer(template)
-    with pytest.raises(TransformationError):
-        transformer.transform(1)

@@ -1,8 +1,9 @@
-import os.path
+import importlib
 import inspect
+import pkgutil
 
-import unittest
 from functools import lru_cache
+from types import ModuleType
 
 try:  # pragma: no cover
     from importlib.metadata import version
@@ -10,15 +11,32 @@ except ImportError:  # pragma: no cover
     # noinspection PyUnresolvedReferences
     from importlib_metadata import version
 
-import transon
 from transon import Transformer
+
+
+def import_submodules(package: ModuleType | str, recursive=True):
+    if isinstance(package, str):
+        try:
+            package = importlib.import_module(package)
+        except Exception:
+            return {}
+    results = {}
+    for loader, name, is_pkg in pkgutil.walk_packages(package.__path__):
+        full_name = package.__name__ + '.' + name
+        try:
+            results[full_name] = importlib.import_module(full_name)
+        except Exception:
+            pass
+        else:
+            if recursive and is_pkg:
+                results.update(import_submodules(full_name))
+    return results
 
 
 @lru_cache(maxsize=None)
 def get_test_cases():
     from transon.tests.base import TableDataBaseCase
-    project_root = os.path.dirname(os.path.dirname(transon.__file__))
-    unittest.defaultTestLoader.discover(project_root)
+    import_submodules('transon.tests')
     return list(TableDataBaseCase.iterate_valid_cases())
 
 
@@ -124,3 +142,8 @@ def get_all_docs(cls=Transformer):
 if __name__ == '__main__':  # pragma: no cover
     import json
     print(json.dumps(get_all_docs(), indent=4))
+    for case in get_test_cases():
+        doc = inspect.getdoc(case)
+        if 'TBD' in doc:
+            print(f'no doc in {case}: {doc}')
+    print(len(get_test_cases()))

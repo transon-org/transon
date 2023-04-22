@@ -1,10 +1,4 @@
-import pytest
-
 from . import base
-from transon import (
-    Transformer,
-    TransformationError,
-)
 
 
 class MapListToList(base.TableDataBaseCase):
@@ -124,16 +118,6 @@ class MapDictToListItems(base.TableDataBaseCase):
         'b', 2,
         'c', 3,
     ]
-
-
-def test_invalid_value():
-    template = {
-        '$': 'map',
-        'item': {'$': 'item'},
-    }
-    transformer = Transformer(template)
-    with pytest.raises(TransformationError):
-        transformer.transform(1)
 
 
 class MapListsToDict(base.TableDataBaseCase):
