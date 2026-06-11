@@ -1,0 +1,42 @@
+---
+description: Table-driven test case conventions for the transon example corpus
+globs: transon/tests/*.py,tests/*.py
+alwaysApply: false
+---
+
+# Testing conventions
+
+Two test trees, both run with `pytest .` from the repo root:
+
+- `transon/tests/` — table-driven example corpus. Every case doubles as a documentation
+  example on the docs site (harvested by `transon/docs.py` via tags).
+- `tests/` — plain pytest for engine mechanics: error raising, registry extension,
+  `file_writer` mocks, docs smoke test. Use this tree for anything that doesn't fit
+  the template/data/result table format.
+
+## Example-corpus case format
+
+```python
+from . import base
+
+class SwapKeysAndValues(base.TableDataBaseCase):
+    """
+    One-paragraph, user-facing description of what this example demonstrates.
+    """
+    tags = ['map:key', 'map:value', 'key', 'value']
+    template = {'$': 'map', 'key': {'$': 'value'}, 'value': {'$': 'key'}}
+    data = {'a': 'd', 'b': 'e'}
+    result = {'d': 'a', 'e': 'b'}
+```
+
+- `tags` is mandatory: `"<rule>"` attaches the case to a rule's examples,
+  `"<rule>:<param>"` to a specific parameter's examples. Tag every rule the template
+  meaningfully demonstrates.
+- The docstring is published documentation — write it for template authors, never
+  leave `TBD` (checked by `python -m transon.docs`).
+- A class omitting `template`/`data`/`result` is an abstract base (auto-skipped);
+  use it to share one template across several data/result variants
+  (see `base_attr.py`, `base_join.py`).
+- Expected `NO_CONTENT` top-level results are written as `result = None`.
+- Class names must be unique across the corpus — they are also `include`-able
+  template names via `docs.template_loader`.

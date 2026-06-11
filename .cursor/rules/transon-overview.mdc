@@ -1,0 +1,38 @@
+---
+description: Project map and core invariants for the transon JSON template engine
+alwaysApply: true
+---
+
+# transon — project overview
+
+Homogeneous JSON-to-JSON template engine: `Transformer(template).transform(data)`.
+Full engine specification: `docs/SPECIFICATION.md` — read it before non-trivial changes.
+
+## Map
+
+- `transon/transformers.py` — engine core (`Transformer`, `Context`, `NoContent`, errors)
+- `transon/rules.py` — all built-in rules (`@Transformer.register_rule`)
+- `transon/operators.py` / `transon/functions.py` — `expr` operators / `call` functions
+- `transon/docs.py` — generates docs JSON from docstrings + test corpus
+- `transon/tests/` — table-driven example cases that ARE the documentation examples
+- `tests/` — plain pytest tests for engine mechanics and error paths
+
+## Invariants (do not break)
+
+- Templates are pure JSON; a dict containing the marker key (default `"$"`) is a rule
+  invocation, everything else is copied literally. No string-embedded DSLs.
+- Rule parameters are templates themselves — evaluate dynamic params with `t.walk()`.
+- `t.NO_CONTENT` is the "no value" sentinel: produced by `attr`/`get` misses, skipped
+  by `map`/`object`/`file`/`filter`. Preserve these skipping semantics.
+- `DefinitionError` = malformed template; `TransformationError` = incompatible data.
+- Registries (`_rules`, `_operators`, `_functions`) are MRO-resolved; subclassing
+  `Transformer` resets them, so subclass registrations never affect the base class.
+- `transform()` must never mutate the input data or the template.
+- Code must stay compatible with Python 3.7 (CI matrix 3.7–3.11). Stdlib only —
+  no new runtime dependencies.
+
+## Known quirks
+
+Quirky-but-current behaviors (bitwise `and`/`or`, `NO_CONTENT` leaks, etc.) are
+catalogued in `docs/SPECIFICATION.md` §12. Never change them silently — they need an
+explicit decision since published templates may rely on them.

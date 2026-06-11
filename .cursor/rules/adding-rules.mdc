@@ -1,0 +1,46 @@
+---
+description: Checklist and conventions for adding or modifying transon rules, operators, and functions
+globs: transon/*.py
+alwaysApply: false
+---
+
+# Adding/modifying rules
+
+Rule docstrings and `register_rule` param kwargs are user-facing documentation
+(rendered as markdown on the docs site). Examples come from tagged test cases.
+
+## Pattern
+
+```python
+@Transformer.register_rule(
+    'my_rule',
+    param="Markdown doc for `param`. State whether it can be dynamic.",
+)
+def rule_my_rule(t: Transformer, template, context: Context):
+    """
+    Markdown docstring — this IS the rule's documentation page.
+    """
+    t_param = t.require(template, 'param')   # raises DefinitionError if missing
+    param = t.walk(t_param, context)          # dynamic params are templates
+    ...
+```
+
+- Return `t.NO_CONTENT` for "no value"; honor `NO_CONTENT` inputs where skipping makes sense.
+- Raise `DefinitionError` for template mistakes, `TransformationError` for bad data.
+- Derive child scopes with `context.derive(this=..., item=..., index=...)` — never mutate
+  `context.this` props directly.
+
+## Checklist for a new rule
+
+1. Implement in `transon/rules.py` with docstring + param docs (above).
+2. Add example cases in `transon/tests/test_<rule>.py` (see testing-conventions rule):
+   at least one tagged `"<rule>"`, plus one per parameter tagged `"<rule>:<param>"`.
+3. Add error-path tests in `tests/` if applicable.
+4. Update the expected set in `tests/test_transformers.py::test_get_rules`.
+5. Verify docs render: `python -m transon.docs` (requires `pip install -e .`); no `TBD` reported.
+6. Run full suite: `pytest .`
+
+## Operators / functions
+
+Register in `transon/operators.py` / `transon/functions.py`; also update the markdown
+tables embedded in the `expr` `op` / `call` `name` parameter docs in `transon/rules.py`.
