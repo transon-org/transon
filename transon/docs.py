@@ -7,10 +7,10 @@ from types import ModuleType
 from typing import Union
 
 try:  # pragma: no cover
-    from importlib.metadata import version
+    import importlib.metadata as importlib_metadata
 except ImportError:  # pragma: no cover
     # noinspection PyUnresolvedReferences
-    from importlib_metadata import version
+    import importlib_metadata
 
 from transon import Transformer
 
@@ -115,7 +115,7 @@ def get_test_cases_for_rule_param(rule_name, param_name):
 
 def get_all_docs(cls=Transformer):
     return {
-        'version': version('transon'),
+        'version': importlib_metadata.version('transon'),
         'doc': inspect.getdoc(cls),
         'rules': [
             {
@@ -141,10 +141,12 @@ def get_all_docs(cls=Transformer):
 
 
 if __name__ == '__main__':  # pragma: no cover
-    import json
-    print(json.dumps(get_all_docs(), indent=4))
-    for case in get_test_cases():
-        doc = inspect.getdoc(case)
-        if 'TBD' in doc:
-            print(f'no doc in {case}: {doc}')
-    print(len(get_test_cases()))
+    def main():
+        import json
+        print(json.dumps(get_all_docs(), indent=4))
+        for case in get_test_cases():
+            doc = inspect.getdoc(case)
+            if 'TBD' in doc:
+                print(f'no doc in {case}: {doc}')
+        print(len(get_test_cases()))
+    main()
