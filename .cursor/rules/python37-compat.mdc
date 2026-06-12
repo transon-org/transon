@@ -1,0 +1,35 @@
+---
+description: Python 3.7 compatibility constraints — forbidden syntax and stdlib features
+globs: **/*.py
+alwaysApply: false
+---
+
+# Python 3.7 compatibility
+
+CI matrix runs 3.7–3.11. All code must parse and run on Python 3.7. Stdlib only.
+
+## Forbidden syntax (added after 3.7)
+
+- Walrus operator `if (n := len(x)) > 5:` (3.8) — assign on a separate line
+- Positional-only `def f(a, /, b):` (3.8)
+- f-string self-documenting `f"{x=}"` (3.8)
+- Builtin generics in annotations `list[int]`, `dict[str, int]` (3.9) — use `typing.List`, `typing.Dict`
+- Union syntax `int | None` in annotations (3.10) — use `typing.Optional` / `typing.Union`
+- `match`/`case` statements (3.10) — use `if`/`elif`
+- Parenthesized context managers `with (open(a), open(b)):` (3.10)
+- `except*` groups (3.11)
+
+## Forbidden stdlib additions
+
+- `functools.cache`, `functools.cached_property` (3.8/3.9) — use `functools.lru_cache(maxsize=None)` on functions
+- `str.removeprefix` / `str.removesuffix` (3.9) — slice manually
+- `importlib.metadata` (3.8), `zoneinfo` (3.9), `itertools.pairwise` (3.10)
+- `typing.Protocol`, `typing.Literal`, `typing.TypedDict` (3.8) — avoid or guard
+- `dict` union operators `d1 | d2`, `d |= d2` (3.9) — use `{**d1, **d2}` or `.update()`
+
+## Allowed (3.7 has them)
+
+`dataclasses`, ordered dicts by default, f-strings, `__future__.annotations`,
+`contextlib.nullcontext`, `time.perf_counter_ns`.
+
+When in doubt, check "Changed in version" / "New in version" notes in the Python docs.

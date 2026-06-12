@@ -1,0 +1,6 @@
+# Agent skills installed from the skills.sh registry (one `owner/repo@skill` per line).
+# Install/update with: ./scripts/install-skills.sh
+# Browse the registry: https://skills.sh
+wshobson/agents@python-testing-patterns
+wshobson/agents@python-code-style
+github/awesome-copilot@pytest-coverage

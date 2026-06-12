@@ -99,3 +99,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Agent skills (installed via scripts/install-skills.sh from scripts/skills-manifest.txt)
+.agents/skills/
