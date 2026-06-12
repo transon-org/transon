@@ -2,8 +2,8 @@
 
 > **Audience**: developers (human or AI) maintaining and extending the `transon` library itself.
 > **Status**: descriptive — this document specifies the engine *as implemented* (v0.0.7).
-> Deliberate design questions and suspected accidental behaviors are collected in
-> [§12 Known issues & design questions](#12-known-issues--design-questions).
+> Deliberate design questions and suspected accidental behaviors are tracked in
+> [`docs/ROADMAP.md`](ROADMAP.md) (see [§12](#12-known-issues--design-questions)).
 
 `transon` is a homogeneous JSON-to-JSON template engine. A `Transformer` is constructed
 from a *template* (itself a valid JSON structure) and applied to JSON *input data*,
@@ -110,8 +110,8 @@ of a value (distinct from JSON `null`/Python `None`). Semantics:
   - `object`: returns `{}` if key or value is `NO_CONTENT`.
   - `file`: skips writing if name or content is `NO_CONTENT`.
   - `filter`: a condition evaluating to `NO_CONTENT` excludes the element.
-- **No special handling elsewhere** — see §12 for places where the sentinel leaks
-  (top-level result, `format`, `join`, comparisons).
+- **No special handling elsewhere** — the sentinel leaks at the top-level result,
+  into `format`, `join`, and comparisons (tracked as R-06…R-09 in `docs/ROADMAP.md`).
 
 In the documentation/test corpus, a top-level `NO_CONTENT` result is treated as `None`
 (see `transon/tests/base.py::TableDataBaseCase.test`).
@@ -260,7 +260,7 @@ Each operator has a mnemonic and a code-style alias mapping to the same Python
 |---|---|---|---|
 | `lt le eq ne ge gt` | `< <= == != >= >` | `operator.lt` … | comparisons |
 | `add sub mul div mod` | `+ - * / %` | `operator.add` …, `truediv` for `div` | `+` also concatenates strings/lists |
-| `and or not` | `&& \|\| !` | `operator.and_`, `or_`, `not_` | **bitwise**, not logical — see §12 |
+| `and or not` | `&& \|\| !` | `operator.and_`, `or_`, `not_` | **bitwise**, not logical — see R-01 in `docs/ROADMAP.md` |
 
 ### 4.8 Built-in functions (`call`)
 
@@ -448,39 +448,10 @@ names indexes the tuple → output `{"a": 1, "b": 2}`.
 
 ## 12. Known issues & design questions
 
-Current behavior is documented above; the items below look accidental or unresolved.
-**Do not "fix" silently** — each needs a deliberate decision (and a changelog entry,
-since templates in the wild may rely on current behavior).
+Suspected accidental behaviors and open design questions are tracked exclusively in
+[`docs/ROADMAP.md`](ROADMAP.md) (items `R-01`…`R-22`), each with impact analysis,
+fix options, and a decision status. This document describes current behavior only.
 
-1. **`and`/`or`/`&&`/`||` are bitwise, not logical.** They map to `operator.and_`/
-   `or_` (`&`/`|`). On `bool` inputs the result is correct; on ints it's bitwise
-   (`6 and 3` → `2`), and on other types it may `TypeError`. No short-circuiting either
-   (irrelevant for pre-evaluated values, but semantically surprising).
-2. **`NO_CONTENT` leaks at the top level.** `transform()` can return the raw
-   `NoContent` instance to callers (the test harness maps it to `None`; library users
-   get the sentinel object, which is not JSON-serializable).
-3. **`NO_CONTENT` leaks into `format`** — formatting a missing value interpolates the
-   object repr (`<transon.transformers.NoContent object at …>`) instead of skipping.
-4. **`join` with a `NO_CONTENT` item** raises `TransformationError` instead of skipping
-   the item (inconsistent with `map`/`object` semantics).
-5. **`join` of an empty `items` list returns `""`** even when lists/dicts were intended
-   (the all-strings branch wins vacuously).
-6. **`attr` only catches `KeyError`/`IndexError`** — e.g. string-indexing a string
-   raises a raw `TypeError`; arguably should be `NO_CONTENT` or `TransformationError`.
-7. **Iteration accessors outside `map` raise raw `KeyError`**; reserved-name violations
-   in `set`/`get` raise `AssertionError`. Both bypass the transon error model.
-8. **`zip` emits Python tuples**, not lists — JSON-serializable via `json.dumps` but
-   not round-trippable as JSON arrays in strict pipelines.
-9. **No literal-`$` escape**: data containing the marker key as a plain key cannot be
-   expressed in a template except via the `object` rule (or changing the marker).
-10. **`expr` with `values` ignores `context.this`** — documented, but easy to misuse;
-    the rule doc says "current context value is ignored" so this is intended.
-11. **`include` rule has no docstring** — the only rule missing user-facing docs
-    (`get_rules_docs` returns `doc: null` for it).
-12. **`set` mutates the shared context** — whether a variable is visible to sibling
-    templates depends on the exact context object the `set` executed in (e.g. directly
-    at a dict key or as the *first* `chain` func: visible to later siblings; inside a
-    later `chain` step or a `map` item: not). Subtle and undocumented for template
-    authors.
-13. **No template validation phase** — `DefinitionError` surfaces only when the faulty
-    branch is actually walked; dead branches with typos pass silently.
+**Do not "fix" quirky behavior silently** — every behavior change needs an explicit
+decision recorded in the roadmap (flip the item's status) and a changelog entry,
+since templates in the wild may rely on current behavior.

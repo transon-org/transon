@@ -15,6 +15,16 @@ packages exist that could replace domain knowledge):
 | `adding-rules.mdc` | rules/operators/functions | How to add engine rules correctly |
 | `python37-compat.mdc` | `**/*.py` | Forbidden post-3.7 syntax and stdlib features |
 
+## Commands (`.cursor/commands/`)
+
+| Command | Purpose |
+|---|---|
+| `/fix-roadmap-item R-xx` | Implement one item from `docs/ROADMAP.md` with the full decision/test/docs/changelog discipline |
+
+The improvement backlog lives in `docs/ROADMAP.md` (statuses, impact analysis,
+fix options per item) — it is the single home for known issues and open design
+questions; `docs/SPECIFICATION.md` describes current behavior only.
+
 ## Skills (`.agents/skills/`)
 
 External, community-maintained skills are installed as packages from the

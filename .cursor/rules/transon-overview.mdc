@@ -34,5 +34,6 @@ Full engine specification: `docs/SPECIFICATION.md` — read it before non-trivia
 ## Known quirks
 
 Quirky-but-current behaviors (bitwise `and`/`or`, `NO_CONTENT` leaks, etc.) are
-catalogued in `docs/SPECIFICATION.md` §12. Never change them silently — they need an
-explicit decision since published templates may rely on them.
+catalogued in `docs/ROADMAP.md` (items `R-01`…`R-22`, with fix options and decision
+status). Never change them silently — they need an explicit decision recorded there,
+since published templates may rely on them.
