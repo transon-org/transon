@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
-"""Validate status-tracking consistency in ``docs/ROADMAP.md``.
+"""Validate status-tracking consistency in the project's roadmap files.
 
-The roadmap records each item's status in several places that must stay aligned —
-the recurring "did we update the status everywhere?" question, made mechanical:
+Two roadmaps are tracked, each with its own item-ID prefix:
+
+- ``docs/ROADMAP.md`` — engine semantics, IDs ``R-xx`` (cross-checked against
+  ``CHANGELOG.md`` references like ``(Roadmap R-01, option 1)``).
+- ``docs/DOCS_SITE_ROADMAP.md`` — docs-site / playground content, IDs ``D-xx``
+  (no changelog cross-check: content items are not tracked in ``CHANGELOG.md``).
+
+Each roadmap records every item's status in several places that must stay aligned:
 
 1. the **Checklist** table (the ``Status`` column),
 2. each item's ``**Status**:`` header line,
 3. inline strikethrough mentions like ``~~R-01~~ (done)``,
-4. ``CHANGELOG.md`` references like ``(Roadmap R-01, option 1)``.
+4. (engine roadmap only) ``CHANGELOG.md`` references like ``(Roadmap R-01, option 1)``.
 
 The whole point of this list is that *once an item carries a status, it carries it
 everywhere*. A "mixed" state — present in the table but not the section, struck
@@ -15,8 +21,10 @@ through while still ``needs-decision``, shipped in the changelog but still
 ``accepted`` — is exactly the drift this checker catches.
 
 Run it three ways:
-  - directly: ``python scripts/check_roadmap.py`` (exit 1 on any problem);
-  - from pytest: ``tests/test_roadmap_consistency.py`` (blocks CI);
+  - directly: ``python scripts/check_roadmap.py`` (checks every roadmap; exit 1 on any
+    problem). Pass a single file path to check just that one;
+  - from pytest: ``tests/test_roadmap_consistency.py`` (blocks CI; parametrized over
+    every roadmap);
   - from the ``stop`` hook: ``.cursor/hooks/check-roadmap-status.py`` (nudges the
     agent to self-correct before the human ever has to ask).
 
@@ -27,9 +35,9 @@ from __future__ import annotations
 import re
 import sys
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, NamedTuple, Optional, Tuple
 
-#: Allowed status vocabulary, declared once in ROADMAP.md's "Statuses" legend.
+#: Allowed status vocabulary, declared once in each roadmap's "Statuses" legend.
 STATUSES = ("needs-decision", "accepted", "in-progress", "done", "rejected")
 
 #: A struck-through item is, by convention, resolved.
@@ -38,17 +46,55 @@ RESOLVED = {"done", "rejected"}
 #: A changelog reference means the change shipped (or is shipping).
 SHIPPED = {"done", "in-progress"}
 
+#: Default item-ID prefix when none is supplied or detectable.
+DEFAULT_PREFIX = "R"
+
 _STATUS_TOKEN = re.compile(
     r"(?<![\w-])(" + "|".join(STATUSES) + r")(?![\w-])"
 )
 _TABLE_ROW = re.compile(r"^\s*\|.*\|\s*$")
-_ITEM_ID = re.compile(r"R-\d{2,}")
-_SECTION_HEADER = re.compile(r"^###\s+(R-\d{2,})\.", re.MULTILINE)
-_STRIKETHROUGH = re.compile(r"~~\s*(R-\d{2,})\s*~~")
-_CHANGELOG_REF = re.compile(r"Roadmap\s+(R-\d{2,})")
+#: Detect the item-ID prefix from the first ``### <PREFIX>-NN.`` section header.
+_ANY_SECTION_HEADER = re.compile(r"^###\s+([A-Za-z]+)-\d{2,}\.", re.MULTILINE)
 
-DEFAULT_ROADMAP = Path(__file__).resolve().parent.parent / "docs" / "ROADMAP.md"
-DEFAULT_CHANGELOG = Path(__file__).resolve().parent.parent / "CHANGELOG.md"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_CHANGELOG = PROJECT_ROOT / "CHANGELOG.md"
+
+
+class _Patterns(NamedTuple):
+    item_id: re.Pattern
+    section_header: re.Pattern
+    strikethrough: re.Pattern
+    changelog_ref: re.Pattern
+
+
+class RoadmapSpec(NamedTuple):
+    """A roadmap file the checker knows how to validate."""
+
+    rel: str                       # path relative to the repo root
+    changelog_rel: Optional[str]   # changelog to cross-check, or None
+    id_prefix: str                 # item-ID prefix (e.g. "R", "D")
+
+
+#: Every roadmap guarded by this checker. Add new roadmaps here.
+ROADMAPS: Tuple[RoadmapSpec, ...] = (
+    RoadmapSpec("docs/ROADMAP.md", "CHANGELOG.md", "R"),
+    RoadmapSpec("docs/DOCS_SITE_ROADMAP.md", None, "D"),
+)
+
+
+def _build_patterns(prefix: str) -> _Patterns:
+    p = re.escape(prefix)
+    return _Patterns(
+        item_id=re.compile(rf"{p}-\d{{2,}}"),
+        section_header=re.compile(rf"^###\s+({p}-\d{{2,}})\.", re.MULTILINE),
+        strikethrough=re.compile(rf"~~\s*({p}-\d{{2,}})\s*~~"),
+        changelog_ref=re.compile(rf"Roadmap\s+({p}-\d{{2,}})"),
+    )
+
+
+def _detect_prefix(text: str, default: str = DEFAULT_PREFIX) -> str:
+    match = _ANY_SECTION_HEADER.search(text)
+    return match.group(1) if match else default
 
 
 def _first_status(text: str) -> Optional[str]:
@@ -56,7 +102,7 @@ def _first_status(text: str) -> Optional[str]:
     return match.group(1) if match else None
 
 
-def parse_table(text: str) -> dict:
+def parse_table(text: str, patterns: _Patterns) -> tuple:
     """Map item id -> status from the Checklist table, plus malformed-row notes.
 
     Returns ``(statuses, problems)``. A row whose status cell is empty or outside
@@ -71,7 +117,7 @@ def parse_table(text: str) -> dict:
         cells = [c.strip() for c in raw.strip().strip("|").split("|")]
         if not cells:
             continue
-        id_match = _ITEM_ID.search(cells[0])
+        id_match = patterns.item_id.search(cells[0])
         if not id_match:
             continue  # header, separator, or a non-item row
         item = id_match.group(0)
@@ -92,11 +138,11 @@ def parse_table(text: str) -> dict:
     return statuses, problems
 
 
-def parse_sections(text: str) -> dict:
-    """Map item id -> status from each ``### R-xx.`` section header block."""
+def parse_sections(text: str, patterns: _Patterns) -> tuple:
+    """Map item id -> status from each ``### <id>.`` section header block."""
     statuses: dict = {}
     problems: List[str] = []
-    headers = list(_SECTION_HEADER.finditer(text))
+    headers = list(patterns.section_header.finditer(text))
     for index, header in enumerate(headers):
         item = header.group(1)
         start = header.end()
@@ -116,30 +162,43 @@ def parse_sections(text: str) -> dict:
     return statuses, problems
 
 
-def parse_strikethroughs(text: str) -> List[Tuple[str, Optional[str]]]:
-    """Find ``~~R-xx~~`` mentions and any status keyword within the next ~24 chars."""
+def parse_strikethroughs(text: str, patterns: _Patterns) -> List[Tuple[str, Optional[str]]]:
+    """Find ``~~<id>~~`` mentions and any status keyword within the next ~24 chars."""
     found: List[Tuple[str, Optional[str]]] = []
-    for match in _STRIKETHROUGH.finditer(text):
+    for match in patterns.strikethrough.finditer(text):
         window = text[match.end():match.end() + 24]
         found.append((match.group(1), _first_status(window)))
     return found
 
 
-def parse_changelog_refs(text: str) -> List[str]:
-    return _CHANGELOG_REF.findall(text)
+def parse_changelog_refs(text: str, patterns: _Patterns) -> List[str]:
+    return patterns.changelog_ref.findall(text)
 
 
-def check(roadmap_text: str, changelog_text: Optional[str] = None) -> List[str]:
-    """Return a list of human-readable consistency problems (empty == all good)."""
+def check(
+    roadmap_text: str,
+    changelog_text: Optional[str] = None,
+    *,
+    id_prefix: Optional[str] = None,
+) -> List[str]:
+    """Return a list of human-readable consistency problems (empty == all good).
+
+    ``id_prefix`` selects the item-ID family (``"R"``/``"D"``/…); when ``None`` it is
+    auto-detected from the first ``### <PREFIX>-NN.`` section header.
+    """
+    prefix = id_prefix or _detect_prefix(roadmap_text)
+    patterns = _build_patterns(prefix)
     problems: List[str] = []
 
-    table, table_problems = parse_table(roadmap_text)
-    sections, section_problems = parse_sections(roadmap_text)
+    table, table_problems = parse_table(roadmap_text, patterns)
+    sections, section_problems = parse_sections(roadmap_text, patterns)
     problems.extend(table_problems)
     problems.extend(section_problems)
 
     if not table:
-        problems.append("no checklist table rows found — is the table present?")
+        problems.append(
+            f"no {prefix}-NN checklist table rows found — is the table present?"
+        )
 
     # Table <-> section coverage and agreement.
     for item in sorted(set(table) - set(sections)):
@@ -154,7 +213,7 @@ def check(roadmap_text: str, changelog_text: Optional[str] = None) -> List[str]:
             )
 
     # Inline strikethrough mentions must reference resolved items consistently.
-    for item, inline_status in parse_strikethroughs(roadmap_text):
+    for item, inline_status in parse_strikethroughs(roadmap_text, patterns):
         if item not in table:
             problems.append(f"~~{item}~~ is struck through but {item} is not in the checklist table")
             continue
@@ -170,7 +229,7 @@ def check(roadmap_text: str, changelog_text: Optional[str] = None) -> List[str]:
 
     # Changelog references imply the item shipped.
     if changelog_text is not None:
-        for item in sorted(set(parse_changelog_refs(changelog_text))):
+        for item in sorted(set(parse_changelog_refs(changelog_text, patterns))):
             if item not in table:
                 problems.append(f"CHANGELOG references {item}, which is not in the roadmap table")
             elif table[item] is not None and table[item] not in SHIPPED:
@@ -182,8 +241,10 @@ def check(roadmap_text: str, changelog_text: Optional[str] = None) -> List[str]:
 
 
 def check_files(
-    roadmap_path: Path = DEFAULT_ROADMAP,
+    roadmap_path: Path,
     changelog_path: Optional[Path] = DEFAULT_CHANGELOG,
+    *,
+    id_prefix: Optional[str] = None,
 ) -> List[str]:
     roadmap_path = Path(roadmap_path)
     if not roadmap_path.exists():
@@ -191,21 +252,42 @@ def check_files(
     changelog_text = None
     if changelog_path is not None and Path(changelog_path).exists():
         changelog_text = Path(changelog_path).read_text(encoding="utf-8")
-    return check(roadmap_path.read_text(encoding="utf-8"), changelog_text)
+    return check(
+        roadmap_path.read_text(encoding="utf-8"),
+        changelog_text,
+        id_prefix=id_prefix,
+    )
+
+
+def check_spec(spec: RoadmapSpec, root: Path = PROJECT_ROOT) -> List[str]:
+    """Run the checker for a registered :class:`RoadmapSpec`."""
+    changelog = root / spec.changelog_rel if spec.changelog_rel else None
+    return check_files(root / spec.rel, changelog, id_prefix=spec.id_prefix)
 
 
 def main(argv: Optional[List[str]] = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
-    roadmap = Path(argv[0]) if len(argv) >= 1 else DEFAULT_ROADMAP
-    changelog = Path(argv[1]) if len(argv) >= 2 else DEFAULT_CHANGELOG
-    problems = check_files(roadmap, changelog)
-    if problems:
-        print(f"ROADMAP status inconsistencies ({len(problems)}):")
-        for problem in problems:
-            print(f"  - {problem}")
-        return 1
-    print("ROADMAP status tracking is consistent.")
-    return 0
+
+    if argv:
+        # Single-file mode: explicit roadmap (+ optional changelog). Prefix is
+        # auto-detected from the file's section headers.
+        roadmap = Path(argv[0])
+        changelog = Path(argv[1]) if len(argv) >= 2 else None
+        runs = [(str(roadmap), check_files(roadmap, changelog))]
+    else:
+        runs = [(spec.rel, check_spec(spec)) for spec in ROADMAPS]
+
+    total = 0
+    for label, problems in runs:
+        if problems:
+            total += len(problems)
+            print(f"{label}: status inconsistencies ({len(problems)}):")
+            for problem in problems:
+                print(f"  - {problem}")
+        else:
+            print(f"{label}: status tracking is consistent.")
+
+    return 1 if total else 0
 
 
 if __name__ == "__main__":
