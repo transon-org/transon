@@ -37,8 +37,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   Migration: templates that relied on `join` raising when an item was missing now get
   partial joins instead; use explicit validation if raising is required.
 
-- CI test matrix drops Python 3.7 (now 3.8–3.11). Declared package support remains
-  `^3.7` until a follow-up release. (Roadmap R-20, partial)
+- CI test matrix drops Python 3.7 (now 3.8–3.13, including 3.12 and 3.13). Declared
+  package support remains `^3.7` until a follow-up release. (Roadmap R-20, partial)
 
 ## [0.0.8] - 2026-06-13
 

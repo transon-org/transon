@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Python 3.7 compatibility
 
-CI matrix runs 3.8–3.11. All code must parse and run on Python 3.7. Stdlib only.
+CI matrix runs 3.8–3.13. All code must parse and run on Python 3.7. Stdlib only.
 
 ## Forbidden syntax (added after 3.7)
 
