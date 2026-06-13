@@ -28,7 +28,7 @@ Full engine specification: `docs/SPECIFICATION.md` — read it before non-trivia
 - Registries (`_rules`, `_operators`, `_functions`) are MRO-resolved; subclassing
   `Transformer` resets them, so subclass registrations never affect the base class.
 - `transform()` must never mutate the input data or the template.
-- Code must stay compatible with Python 3.7 (CI matrix 3.7–3.11). Stdlib only —
+- Code must stay compatible with Python 3.7 (CI matrix 3.8–3.11). Stdlib only —
   no new runtime dependencies.
 
 ## Known quirks
