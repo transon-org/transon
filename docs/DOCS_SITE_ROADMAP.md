@@ -45,7 +45,7 @@
 | D-12 | Parameters rendered with no example | C. Completeness | medium | done |
 | D-08 | Operators and functions are not discoverable | C. Completeness | medium | done |
 | D-07 | No install / getting-started / outbound links | D. Discoverability | medium | done |
-| D-09 | No rule index, table of contents, or anchors | D. Discoverability | medium | needs-decision |
+| D-09 | No rule index, table of contents, or anchors | D. Discoverability | medium | done |
 | D-10 | No conceptual framing (what/why/analogues) | D. Discoverability | low | needs-decision |
 | D-13 | Thin page `<title>` and `<meta description>` | D. Discoverability | low | needs-decision |
 | D-14 | Blank gray screen during Pyodide load | E. First impression | medium | needs-decision |
@@ -286,7 +286,7 @@ the library.
 
 ### D-09. No rule index, table of contents, or anchors
 
-**Status**: needs-decision · **Severity**: medium · **Source**: page structure (`Rule.tsx` renders rules as `<dt>`)
+**Status**: done · **Severity**: medium · **Source**: page structure (`Rule.tsx` renders rules as `<dt>`) · **Decision**: option 1 (anchored headings + compact reference index/TOC at the top, ungrouped — category grouping deferred to D-10) · **Shipped**: site repo (`transon-org.github.io`) — each rule/operator/function `<dl>` now carries a stable `id` (`rule-<name>`/`operator-<alt>`/`function-<name>`) and its heading is a self-linking `heading-anchor` for deep links; new `TableOfContents.tsx` renders a compact "Reference" index (flat, ungrouped) above the Rules section linking every rule/operator/function plus the `#rules`/`#operators`/`#functions` section anchors (moved onto the `<h3>`s); supporting CSS in `App.css` (`.toc*`, `.heading-anchor`, `scroll-margin-top`). Build verified green via `npm run build`
 
 Rules render as `<dt>` definition terms, not headings, on one long page of 20 rules.
 There is no table of contents, no per-rule anchor, and no way to deep-link to a rule
