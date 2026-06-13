@@ -342,6 +342,9 @@ class Transformer:
             )
         return stack
 
-    def transform(self, data):
+    def transform(self, data, no_content=None):
         context = Context(this=data)
-        return self.walk(self.template, context)
+        result = self.walk(self.template, context)
+        if result is self.NO_CONTENT and no_content is not self.NO_CONTENT:
+            return no_content
+        return result

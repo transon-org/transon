@@ -9,7 +9,7 @@
 > Sources: the spec's former §12 "Known issues" list — **fully migrated into this
 > file**; per-item `Spec: §12.N` labels record which original entry an item came
 > from — plus an engine-semantics audit (2026-06, labeled `Source: audit`). All
-> described behaviors are verified against the implementation (v0.0.8).
+> described behaviors are verified against the implementation (v0.0.9).
 
 **Statuses**: `needs-decision` (maintainer must pick an option) ·
 `accepted` (option chosen, ready to implement) · `in-progress` · `done` ·
@@ -20,7 +20,7 @@
 1. **Compatibility**: pre-1.0 freedom — behavior-changing fixes may change defaults
    directly, with a changelog entry and a minor version bump. No opt-in flags
    required for compatibility's sake alone. This unblocks the breaking-change
-   concern in ~~R-01~~ (done), ~~R-02~~ (done), R-06, R-07, R-11 (each still needs its per-item option
+   concern in ~~R-01~~ (done), ~~R-02~~ (done), ~~R-06~~ (done), ~~R-07~~ (done), R-11 (each still needs its per-item option
    chosen, but "is breaking acceptable" is settled: yes, with changelog).
 2. **Python versions**: R-20 option 1 accepted — add 3.12/3.13 to CI now; in the
    next minor release require ≥3.8 (or ≥3.9), drop the `importlib-metadata`
@@ -35,11 +35,11 @@
 | [R-03](#r-03-reserved-name-guard-is-an-assert-vanishes-under--o) | Reserved-name guard is an `assert` — vanishes under `-O` | high | done |
 | [R-04](#r-04-no-template-validation-phase-typos-and-ambiguity-pass-silently) | No template validation; typos and ambiguity pass silently | high | needs-decision |
 | [R-05](#r-05-error-messages-carry-no-template-location) | Error messages carry no template location | medium | needs-decision |
-| [R-06](#r-06-no_content-leaks-to-the-caller-at-top-level) | `NO_CONTENT` leaks to the caller at top level | high | needs-decision |
-| [R-07](#r-07-no_content-leaks-into-format-output) | `NO_CONTENT` leaks into `format` output | high | needs-decision |
-| [R-08](#r-08-join-is-inconsistent-with-no_content-items) | `join` is inconsistent with `NO_CONTENT` items | medium | needs-decision |
+| [R-06](#r-06-no_content-leaks-to-the-caller-at-top-level) | `NO_CONTENT` leaks to the caller at top level | high | done |
+| [R-07](#r-07-no_content-leaks-into-format-output) | `NO_CONTENT` leaks into `format` output | high | done |
+| [R-08](#r-08-join-is-inconsistent-with-no_content-items) | `join` is inconsistent with `NO_CONTENT` items | medium | done |
 | [R-09](#r-09-no_content-as-a-dynamic-name-attrsetget) | `NO_CONTENT` as a dynamic name (`attr`/`set`/`get`) | medium | done |
-| [R-10](#r-10-no-default-value-mechanism) | No default-value mechanism | medium | needs-decision |
+| [R-10](#r-10-no-default-value-mechanism) | No default-value mechanism | medium | done |
 | [R-11](#r-11-zip-emits-python-tuples-and-inherits-python-zip-quirks) | `zip` emits Python tuples and inherits Python `zip` quirks | medium | needs-decision |
 | [R-12](#r-12-join-of-an-empty-list-returns-) | `join` of an empty list returns `""` | low | needs-decision |
 | [R-13](#r-13-output-aliases-input-data-shared-mutable-structures) | Output aliases input data (shared mutable structures) | medium | needs-decision |
@@ -209,7 +209,7 @@ hand. Pain grows with template size — exactly where the engine is most useful.
 
 ### R-06. `NO_CONTENT` leaks to the caller at top level
 
-**Status**: needs-decision · **Severity**: high · **Spec**: §12.2
+**Status**: done (option 2) · **Severity**: high · **Spec**: §12.2
 
 `transform()` can return the raw `NoContent` sentinel. It is not JSON-serializable;
 `json.dumps` crashes, comparisons behave by identity, and the object’s repr leaks
@@ -232,9 +232,16 @@ a production `TypeError` in `json.dumps`.
    nothing” un-representable as a value — probably too aggressive, `file`-only
    templates legitimately end with `NO_CONTENT`.
 
+**Decision (2026-06-13)**: option 2 — `transform(data, no_content=None)`; callers choose
+the substitute (`None` by default, a marker string, or pass `Transformer.NO_CONTENT` to
+receive the raw sentinel).
+
+**Shipped**: option 2 — `transform(data, no_content=None)`; default maps to `None`;
+changelog entry added.
+
 ### R-07. `NO_CONTENT` leaks into `format` output
 
-**Status**: needs-decision · **Severity**: high · **Spec**: §12.3
+**Status**: done (option 1) · **Severity**: high · **Spec**: §12.3
 
 `format` interpolates the sentinel’s repr:
 `"<transon.transformers.NoContent object at 0x…>"` ends up in output strings
@@ -253,9 +260,15 @@ a silent-corruption bug, worse than a crash because nothing fails.
 3. Substitute `""` for missing values. Convenient but lossy — can’t distinguish
    “missing” from “empty” downstream; not recommended.
 
+**Decision (2026-06-13)**: option 1 — `format` returns `NO_CONTENT` when the value (or any
+unpacked list element or dict key/value) is `NO_CONTENT`.
+
+**Shipped**: option 1 — `format` propagates `NO_CONTENT`; optional `default` param;
+changelog entry added.
+
 ### R-08. `join` is inconsistent with `NO_CONTENT` items
 
-**Status**: needs-decision · **Severity**: medium · **Spec**: §12.4
+**Status**: done (option 1) · **Severity**: medium · **Spec**: §12.4
 
 A `NO_CONTENT` item in `join.items` falls through all type checks and raises
 `TransformationError: Can't join items` — unlike `map`/`object`/`file`/`filter`,
@@ -272,6 +285,10 @@ a redundant `filter`/`map` pass.
    (all-items-missing → empty-list case hits the `""` quirk).
 2. Keep raising, but with a precise message (“item 2 is NO_CONTENT”). Honest but
    keeps `join` the odd one out.
+
+**Decision (2026-06-13)**: option 1 — filter `NO_CONTENT` items out before type dispatch.
+
+**Shipped**: option 1 — `join` skips `NO_CONTENT` items; changelog entry added.
 
 ### R-09. `NO_CONTENT` as a dynamic name (`attr`/`set`/`get`)
 
@@ -305,7 +322,7 @@ name (or any path segment) is `NO_CONTENT`; `set`/`get` raise `TransformationErr
 
 ### R-10. No default-value mechanism
 
-**Status**: needs-decision · **Severity**: medium · **Source**: audit (feature gap)
+**Status**: done (option 1) · **Severity**: medium · **Source**: audit (feature gap)
 
 There is no way to say “this value, or X if missing”. Every `NO_CONTENT` consumer
 problem (R-06/07/08) is partially a symptom: authors have no tool to stop sentinel
@@ -325,6 +342,13 @@ over real-world sparse JSON get brittle.
    of N parameters. Slightly more verbose at use sites.
 3. Both (parameter for the common case, rule for composition). Defensible since
    both are small.
+
+**Decision (2026-06-13)**: option 1 — optional dynamic `default` parameter on `attr`, `get`,
+`format`, and `include`; returned instead of `NO_CONTENT` when the lookup/format/include
+would otherwise produce no value.
+
+**Shipped**: option 1 — `default` on `attr`, `get`, `format`, `include`; changelog
+entry added.
 
 ---
 
@@ -601,7 +625,7 @@ large collections. Irrelevant for small documents — measure before optimizing.
 2. **Error-model batch** (one minor release, loud changelog): ~~R-01~~ (done), ~~R-02~~ (done), ~~R-09~~ (done),
    ~~R-16~~ (done), ~~R-17~~ (done) — all convert crashes/silent wrongness into documented
    errors.
-3. **NO_CONTENT batch**: R-06, R-07, R-08, R-10 — decide together, semantics
-   interlock.
+3. **NO_CONTENT batch**: ~~R-06~~ (done), ~~R-07~~ (done), ~~R-08~~ (done), ~~R-10~~ (done) — semantics
+   interlock; shipped together.
 4. **Feature work**: R-04 (validation), R-05 (error paths), R-11, R-12, R-14.
 5. **Policy/long-term**: R-13, R-15, R-20, R-22.

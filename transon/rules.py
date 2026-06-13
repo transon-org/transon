@@ -18,6 +18,26 @@ def _require_variable_name(name):
         )
 
 
+def _apply_default(t, template, context, value):
+    if value is t.NO_CONTENT and 'default' in template:
+        return t.walk(template['default'], context)
+    return value
+
+
+def _format_value_contains_no_content(value, no_content):
+    if value is no_content:
+        return True
+    if isinstance(value, list):
+        for item in value:
+            if item is no_content:
+                return True
+    elif isinstance(value, dict):
+        for key, item in value.items():
+            if key is no_content or item is no_content:
+                return True
+    return False
+
+
 def _attr_lookup(container, names):
     no_content = Transformer.NO_CONTENT
     if names is no_content:
@@ -123,6 +143,8 @@ def rule_set(t: Transformer, template, context: Context):
          "The names `this`, `item`, `key`, `value` and `index` are reserved "
          "and cannot be used as variable names. "
          "Raises `TransformationError` if the name evaluates to `NO_CONTENT`.",
+    default="Optional template for value returned when the variable is undefined. "
+            "Can be dynamic.",
 )
 def rule_get(t: Transformer, template, context: Context):
     """
@@ -134,7 +156,7 @@ def rule_get(t: Transformer, template, context: Context):
     _require_variable_name(name)
     if name in context:
         return context[name]
-    return t.NO_CONTENT
+    return _apply_default(t, template, context, t.NO_CONTENT)
 
 
 @Transformer.register_rule(
@@ -148,6 +170,8 @@ Can be dynamic.
 List of attribute names or indexes to search in nested structure. 
 Can be dynamic.
 """,
+    default="Optional template for value returned when the attribute or path is "
+            "missing. Can be dynamic.",
 )
 def rule_attr(t: Transformer, template, context: Context):
     """
@@ -162,13 +186,14 @@ def rule_attr(t: Transformer, template, context: Context):
     if 'name' in template:
         t_name = template['name']
         name = t.walk(t_name, context)
-        return _attr_lookup(context.this, name)
+        result = _attr_lookup(context.this, name)
     elif 'names' in template:
         t_names = template['names']
         names = t.walk(t_names, context)
-        return _attr_lookup(context.this, names)
+        result = _attr_lookup(context.this, names)
     else:
         raise DefinitionError('either `name` of `names` attribute is required for `attr` rule')
+    return _apply_default(t, template, context, result)
 
 
 @Transformer.register_rule(
@@ -361,9 +386,11 @@ def rule_join(t: Transformer, template, context: Context):
     """
     Joins (concatenates) together several dicts, lists of strings.
     If items to be concatenated have different types an exception will be thrown.
+    Items that evaluate to `NO_CONTENT` are omitted before concatenation.
     """
     t_items = t.require(template, 'items')
     items = t.walk(t_items, context)
+    items = [item for item in items if item is not t.NO_CONTENT]
     if all(map(_is_str, items)):
         sep = ''
         if 'sep' in template:
@@ -567,6 +594,8 @@ def rule_call(t: Transformer, template, context: Context):
     pattern="Defines pattern for string formatting. Can be dynamic. "
             "Must evaluate to a string (raises `TransformationError` otherwise).",
     value="Defines template for input data. Optional.",
+    default="Optional template for value returned when the formatting value (or any "
+            "unpacked list element or dict key/value) is `NO_CONTENT`. Can be dynamic.",
 )
 def rule_format(t: Transformer, template, context: Context):
     """
@@ -580,6 +609,9 @@ def rule_format(t: Transformer, template, context: Context):
     If value for formatting is `dict` it will be unpacked to separate names.
     If value is list if will be unpacked to separate items.
     Otherwise while value will be passed to formatting.
+
+    Returns no value when the formatting value (or any unpacked list element or dict
+    key/value) is `NO_CONTENT`, unless `default` is provided.
     """
     t_pattern = t.require(template, 'pattern')
     pattern = t.walk(t_pattern, context)
@@ -591,6 +623,8 @@ def rule_format(t: Transformer, template, context: Context):
     if 'value' in template:
         t_value = template['value']
         value = t.walk(t_value, context)
+    if _format_value_contains_no_content(value, t.NO_CONTENT):
+        return _apply_default(t, template, context, t.NO_CONTENT)
     try:
         if isinstance(value, list):
             return pattern.format(*value)
@@ -607,6 +641,8 @@ def rule_format(t: Transformer, template, context: Context):
 @Transformer.register_rule(
     'include',
     name="Name or path to template. Can be dynamic. Meaning of this `name` depends on provided template loader.",
+    default="Optional template for value returned when the included template produces "
+            "no result. Can be dynamic.",
 )
 def rule_include(t: Transformer, template, context: Context):
     """
@@ -619,7 +655,8 @@ def rule_include(t: Transformer, template, context: Context):
     Nested includes are limited by `max_include_depth` on `Transformer` (default 50).
     Exceeding the limit raises `TransformationError` with the include name chain.
 
-    If the included template produces no result, this rule produces no result.
+    If the included template produces no result, this rule produces no result unless
+    `default` is provided.
     """
     t_name = t.require(template, 'name')
     name = t.walk(t_name, context)
@@ -627,5 +664,10 @@ def rule_include(t: Transformer, template, context: Context):
     sub_transformer = t.template_loader(name)
     sub_transformer._include_stack = stack
     sub_transformer.max_include_depth = t.max_include_depth
-    result = sub_transformer.transform(context.this)
-    return t.NO_CONTENT if result is sub_transformer.NO_CONTENT else result
+    result = sub_transformer.transform(
+        context.this,
+        no_content=sub_transformer.NO_CONTENT,
+    )
+    if result is sub_transformer.NO_CONTENT:
+        return _apply_default(t, template, context, t.NO_CONTENT)
+    return result

@@ -13,9 +13,17 @@ def test_attr_type_error_on_invalid_index():
         transformer.transform('hello')
 
 
-def test_attr_missing_key_still_returns_no_content():
+def test_attr_missing_key_returns_none_at_top_level():
     transformer = Transformer({'$': 'attr', 'name': 'missing'})
-    assert transformer.transform({'a': 1}) is transformer.NO_CONTENT
+    assert transformer.transform({'a': 1}) is None
+
+
+def test_attr_missing_key_returns_raw_no_content_when_requested():
+    transformer = Transformer({'$': 'attr', 'name': 'missing'})
+    assert transformer.transform(
+        {'a': 1},
+        no_content=transformer.NO_CONTENT,
+    ) is transformer.NO_CONTENT
 
 
 def test_zip_non_iterable_items():
@@ -83,7 +91,7 @@ def test_attr_no_content_name_on_list():
         '$': 'attr',
         'name': {'$': 'get', 'name': 'missing'},
     })
-    assert transformer.transform([1, 2, 3]) is transformer.NO_CONTENT
+    assert transformer.transform([1, 2, 3]) is None
 
 
 def test_attr_no_content_path_segment():
@@ -91,7 +99,7 @@ def test_attr_no_content_path_segment():
         '$': 'attr',
         'names': [{'$': 'get', 'name': 'missing'}, 'b'],
     })
-    assert transformer.transform({'a': {'b': 1}}) is transformer.NO_CONTENT
+    assert transformer.transform({'a': {'b': 1}}) is None
 
 
 def test_set_no_content_name():

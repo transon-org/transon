@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.0.9] - 2026-06-13
+
+### Added
+
+- Optional dynamic `default` parameter on `attr`, `get`, `format`, and `include` —
+  returned instead of `NO_CONTENT` when a lookup, format, or include would otherwise
+  produce no value. (Roadmap R-10, option 1)
+
+### Changed
+
+- `transform(data, no_content=None)` — callers choose the substitute when the template
+  produces `NO_CONTENT` (`None` by default; pass `Transformer.NO_CONTENT` to receive
+  the raw sentinel). (Roadmap R-06, option 2)
+
+  Migration: code that compared `transform(...)` against `Transformer.NO_CONTENT` must
+  pass `no_content=Transformer.NO_CONTENT` or check for `None` with the default.
+
+- `format` returns `NO_CONTENT` when the formatting value (or any unpacked list
+  element or dict key/value) is `NO_CONTENT`, instead of interpolating the sentinel
+  repr into the output string. Use `default` for a fallback. (Roadmap R-07, option 1)
+
+  Migration: templates that accidentally produced garbage strings from missing values
+  now get `NO_CONTENT` (mapped to `None` at `transform()` by default); add `default`
+  where a substitute string is needed.
+
+- `join` omits `NO_CONTENT` items before concatenation, aligning with `map`/`object`/
+  `filter` skip semantics. (Roadmap R-08, option 1)
+
+  Migration: templates that relied on `join` raising when an item was missing now get
+  partial joins instead; use explicit validation if raising is required.
+
 ## [0.0.8] - 2026-06-13
 
 ### Changed

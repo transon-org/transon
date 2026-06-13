@@ -1,7 +1,7 @@
 # transon — Engine Specification
 
 > **Audience**: developers (human or AI) maintaining and extending the `transon` library itself.
-> **Status**: descriptive — this document specifies the engine *as implemented* (v0.0.8).
+> **Status**: descriptive — this document specifies the engine *as implemented* (v0.0.9).
 > Deliberate design questions and suspected accidental behaviors are tracked in
 > [`docs/ROADMAP.md`](ROADMAP.md) (see [§12](#12-known-issues--design-questions)).
 
@@ -103,7 +103,8 @@ check against them, so they cannot be used as variable names with `set`/`get`
 of a value (distinct from JSON `null`/Python `None`). Semantics:
 
 - **Producers**: `attr` (missing key/index), `get` (undefined variable), `file` (always),
-  `include` (when the included template yields `NO_CONTENT`).
+  `include` (when the included template yields `NO_CONTENT`). Optional `default` on
+  `attr`, `get`, `format`, and `include` returns a substitute instead of `NO_CONTENT`.
 - **Absorption**: `NoContent.__getitem__` returns `self`, so further `attr` lookups on
   a missing value stay `NO_CONTENT` instead of raising.
 - **Consumers (skip/filter behavior)**:
@@ -111,11 +112,12 @@ of a value (distinct from JSON `null`/Python `None`). Semantics:
   - `object`: returns `{}` if key or value is `NO_CONTENT`.
   - `file`: skips writing if name or content is `NO_CONTENT`.
   - `filter`: a condition evaluating to `NO_CONTENT` excludes the element.
-- **No special handling elsewhere** — the sentinel leaks at the top-level result,
-  into `format`, `join`, and comparisons (tracked as R-06…R-09 in `docs/ROADMAP.md`).
-
-In the documentation/test corpus, a top-level `NO_CONTENT` result is treated as `None`
-(see `transon/tests/base.py::TableDataBaseCase.test`).
+  - `join`: items that evaluate to `NO_CONTENT` are omitted before concatenation.
+- **`format`**: returns `NO_CONTENT` when the formatting value (or any unpacked list
+  element or dict key/value) is `NO_CONTENT`, unless `default` is provided.
+- **Top-level `transform()`**: by default maps a top-level `NO_CONTENT` result to
+  `None` via the `no_content` parameter (see §3.1). Pass `Transformer.NO_CONTENT`
+  as `no_content` to receive the raw sentinel.
 
 ### 2.4 Error model
 
@@ -142,8 +144,14 @@ Transformer(
     marker='$',                    # rule marker key
     max_include_depth=50,          # nested `include` depth limit (see `include` rule)
 )
-transformer.transform(data) -> output   # may return Transformer.NO_CONTENT
+transformer.transform(data, no_content=None) -> output
 ```
+
+`no_content` controls the value returned when the template produces `NO_CONTENT`.
+The default is `None` (JSON-friendly). Pass any other value as a substitute (e.g. a
+marker string), or pass `Transformer.NO_CONTENT` to receive the raw sentinel.
+Inside rule evaluation, rules still produce and compare `Transformer.NO_CONTENT` as
+before; substitution applies only at the `transform()` boundary.
 
 The default `template_loader` raises `DefinitionError`; the default `file_writer` silently
 discards writes.
@@ -216,7 +224,7 @@ raises `DefinitionError`.
 | Rule | Parameters | Semantics |
 |---|---|---|
 | `set` | `name` (dynamic) | Stores `context.this` under `name` in the *current* context; returns `context.this` (pass-through, usable as a tap inside `chain`). Raises `TransformationError` if `name` evaluates to `NO_CONTENT`. |
-| `get` | `name` (dynamic) | Returns the stored value or `NO_CONTENT` if undefined. Raises `TransformationError` if `name` evaluates to `NO_CONTENT`. |
+| `get` | `name` (dynamic), `default` (optional, dynamic) | Returns the stored value or `NO_CONTENT` if undefined. Raises `TransformationError` if `name` evaluates to `NO_CONTENT`. When `default` is provided, returns its evaluation instead of `NO_CONTENT`. |
 
 ### 4.3 Data access — `attr`
 
@@ -224,8 +232,10 @@ Parameters (mutually exclusive; one required, else `DefinitionError`):
 
 - `name` (dynamic): single key or numeric index into `context.this`.
 - `names` (dynamic): list of keys/indexes, applied sequentially (deep path).
+- `default` (optional, dynamic): returned instead of `NO_CONTENT` when the lookup misses.
 
-Missing key (`KeyError`) or index out of range (`IndexError`) → `NO_CONTENT`.
+Missing key (`KeyError`) or index out of range (`IndexError`) → `NO_CONTENT` (or
+`default` when provided).
 When `name` or any path segment in `names` evaluates to `NO_CONTENT` → `NO_CONTENT`
 (uniform regardless of container type).
 Other lookup failures (e.g. `TypeError` indexing a string with a string) →
@@ -239,7 +249,7 @@ Other lookup failures (e.g. `TypeError` indexing a string with a string) →
 | `map` | exactly one of: `item` \| `items` \| `key`+`value` | Iterates `context.this` (list or dict). `item`: one output element per input element → list. `items`: template yields a *list* of elements per input element, concatenated → list. `key`+`value`: → dict. `NO_CONTENT` results are skipped. Each iteration derives a sub-context with `this`=element plus iteration props. |
 | `filter` | `cond` (required, dynamic) | Keeps elements where `cond` is truthy (and not `NO_CONTENT`). Preserves container type: list→list, dict→dict. |
 | `zip` | `items` (required, dynamic) | `list(zip(*items))` — transposes a list of lists. Produces Python **tuples** in the output. |
-| `join` | `items` (required, dynamic), `sep` (dynamic, strings only, default `""`) | Type-homogeneous concatenation: all-strings → `sep.join`; all-lists → flatten one level; all-dicts → merged dict (later keys win). Mixed types → `TransformationError`. `sep` must evaluate to a string when joining strings. |
+| `join` | `items` (required, dynamic), `sep` (dynamic, strings only, default `""`) | Type-homogeneous concatenation: all-strings → `sep.join`; all-lists → flatten one level; all-dicts → merged dict (later keys win). Items that evaluate to `NO_CONTENT` are omitted before concatenation. Mixed types → `TransformationError`. `sep` must evaluate to a string when joining strings. |
 | `chain` | `funcs` (required; list of templates) | Function composition: walks each template in order, each result becomes `this` of a derived context for the next. `chain(f1, f2, f3)(x) == f3(f2(f1(x)))`. |
 
 ### 4.5 Computation
@@ -248,14 +258,14 @@ Other lookup failures (e.g. `TypeError` indexing a string with a string) →
 |---|---|---|
 | `expr` | `op` (required, constant), optionally `value` (dynamic) or `values` (dynamic) | No param → unary `op(this)`. `value` → binary `op(this, value)`. `values` → `reduce(op, values)` (**`this` is ignored**). |
 | `call` | `name` (required, constant), optionally `value` or `values` (dynamic) | No param → `fn(this)`. `value` → `fn(value)`. `values` → `fn(*values)`. `this` is ignored when params given. |
-| `format` | `pattern` (required, dynamic), `value` (optional, dynamic; defaults to `this`) | Python `str.format`. `pattern` must evaluate to a string. List value → positional unpack `pattern.format(*v)`; dict value → keyword unpack `pattern.format(**v)`; otherwise single argument. |
+| `format` | `pattern` (required, dynamic), `value` (optional, dynamic; defaults to `this`), `default` (optional, dynamic) | Python `str.format`. `pattern` must evaluate to a string. Returns `NO_CONTENT` when the formatting value (or any unpacked list element or dict key/value) is `NO_CONTENT`, unless `default` is provided. List value → positional unpack `pattern.format(*v)`; dict value → keyword unpack `pattern.format(**v)`; otherwise single argument. |
 
 ### 4.6 Side effects & composition
 
 | Rule | Parameters | Semantics |
 |---|---|---|
 | `file` | `name`, `content` (both required, dynamic) | Calls the configured `file_writer(name, content)`. Skipped if either is `NO_CONTENT`. Always returns `NO_CONTENT` (so `map` over `file` yields `[]`). |
-| `include` | `name` (required, dynamic) | Loads a sub-`Transformer` via the configured `template_loader` and runs it against `context.this`. Variables/context do **not** cross the boundary — only the value. Sub-result `NO_CONTENT` is propagated as this transformer's `NO_CONTENT`. Nested includes are tracked by name; exceeding `max_include_depth` (constructor parameter, default 50) raises `TransformationError` with the include chain in the message. |
+| `include` | `name` (required, dynamic), `default` (optional, dynamic) | Loads a sub-`Transformer` via the configured `template_loader` and runs it against `context.this`. Variables/context do **not** cross the boundary — only the value. Sub-result `NO_CONTENT` is propagated as this transformer's `NO_CONTENT` (or `default` when provided). Nested includes are tracked by name; exceeding `max_include_depth` (constructor parameter, default 50) raises `TransformationError` with the include chain in the message. |
 
 ### 4.7 Built-in operators (`expr`)
 
