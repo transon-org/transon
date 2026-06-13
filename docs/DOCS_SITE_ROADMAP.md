@@ -46,9 +46,13 @@
 | D-08 | Operators and functions are not discoverable | C. Completeness | medium | done |
 | D-07 | No install / getting-started / outbound links | D. Discoverability | medium | done |
 | D-09 | No rule index, table of contents, or anchors | D. Discoverability | medium | done |
-| D-10 | No conceptual framing (what/why/analogues) | D. Discoverability | low | needs-decision |
+| D-10 | No conceptual framing (what/why/analogues) | D. Discoverability | low | done |
 | D-13 | Thin page `<title>` and `<meta description>` | D. Discoverability | low | needs-decision |
 | D-14 | Blank gray screen during Pyodide load | E. First impression | medium | needs-decision |
+| D-15 | Examples are minimal — no composition / realistic cases | F. Depth & learnability | medium | needs-decision |
+| D-16 | No task-oriented recipes / common-patterns section | F. Depth & learnability | medium | needs-decision |
+| D-17 | Error model described but never shown | F. Depth & learnability | low | needs-decision |
+| D-18 | Core semantics documented only in the spec, not on-page | F. Depth & learnability | medium | needs-decision |
 
 ---
 
@@ -304,7 +308,7 @@ scale with the rule count.
 
 ### D-10. No conceptual framing (what / why / analogues)
 
-**Status**: needs-decision · **Severity**: low · **Source**: README/spec vs. page
+**Status**: done · **Severity**: low · **Source**: README/spec vs. page · **Decision**: option 1 (add a condensed "What is transon / inspired by / compared to" block near the top of the class docstring, grouped with the D-07 intro) · **Shipped**: new `## What is transon?` section at the top of the `Transformer` class docstring — one-line problem statement, "inspired by" (XSLT / JsonLogic), the design principles (valid-JSON templates, composable nested rules / no DSL, configurable `$` marker), and a "Compared to alternatives" list (jsonnet, jsonata, jolt, json-templates), condensed from the README; appears on the live site after the next PyPI release
 
 The README and spec carry framing the page omits: a one-line problem statement,
 "inspired by XSLT / JsonLogic", the design principles, and the analogues comparison
@@ -365,6 +369,104 @@ for a landing page.
 
 ---
 
+## Theme F — Depth & learnability (reference is complete, but shallow as a tutorial)
+
+> After D-08/D-11/D-12 closed the *coverage* gaps (every rule, parameter, operator, and
+> function now has a doc block and at least one executable example), the remaining
+> weakness is **depth**: the page is an excellent flat reference but a thin learning
+> resource. These items add worked depth, not word count — the prose density is already
+> about right; the fixes below are structural (more examples, task framing, shown
+> errors, the mental model), so resist solving any of them by writing longer paragraphs.
+
+### D-15. Examples are minimal — no composition or realistic cases
+
+**Status**: needs-decision · **Severity**: medium · **Source**: `transon/tests/` corpus audit + page review
+
+Almost every rule renders a single, minimal example over toy data (e.g. `["a", "b"]`).
+Two things are never shown: (a) **rule composition** — rules nested inside rules, which
+is transon's headline strength (the intro and README assert "arithmetic via nested
+rules, no DSL", but no example demonstrates it), and (b) a **realistic record-shaping**
+transform (a non-trivial input object reshaped into a different output object).
+
+**Impact if not fixed**: the differentiator (composability) is asserted but never
+demonstrated; visitors can't see how primitives combine into real transformations.
+
+**Options**:
+
+1. **(Recommended)** Add a few `TableDataBaseCase` corpus cases that demonstrate
+   composition (e.g. nested `expr` arithmetic; `map` + `object` + `attr` reshaping a
+   list of records) and at least one realistic input→output example, tagged so they
+   render under the relevant rules. Executable, so they double as regression tests.
+2. Add a single dedicated "worked example" doc block (corpus- or docstring-backed)
+   instead of spreading cases across rules. Less discoverable per-rule.
+
+### D-16. No task-oriented recipes / common-patterns section
+
+**Status**: needs-decision · **Severity**: medium · **Source**: page structure (organized by primitive)
+
+The docs are organized strictly by primitive (rule-by-rule, then operators/functions).
+There is no goal-oriented entry point: a visitor who wants to "rename keys", "flatten a
+nested list", "conditionally include a field", or "build a dict from a list" must first
+know which rule(s) map to that goal.
+
+**Impact if not fixed**: newcomers have to reverse-map their task onto primitives;
+the page answers "what does rule X do?" but never "how do I do Y?".
+
+**Options**:
+
+1. **(Recommended)** Add a short "Recipes" / "Common patterns" section: a handful of
+   task→template snippets. Best sourced from tagged corpus cases (executable, can't
+   rot) surfaced as a new docs block, or as static site content if the team prefers to
+   maintain it there.
+2. Lighter touch: a cross-reference list in the intro that maps common tasks to the
+   relevant rules, with anchor links (leans on the D-09 anchors). No new examples.
+
+### D-17. Error model described but never shown
+
+**Status**: needs-decision · **Severity**: low · **Source**: `Transformer` class docstring ("What you can do") vs. page
+
+The intro advertises the error model — `DefinitionError` vs `TransformationError`, with
+messages that include the template path (`at template → …`) — but **no actual error
+message string appears anywhere on the page**. Someone debugging a real failure can't
+match the message they see against the docs.
+
+**Impact if not fixed**: the error-path UX (a genuine selling point: located, typed
+errors) is claimed but undocumented by example; debugging users get no anchor.
+
+**Options**:
+
+1. **(Recommended)** Show a concrete example of each error — the literal message text
+   including the `at template → …` location — in the intro error section and/or the
+   relevant rule docstrings. (Could be backed by an error-path corpus/doc case so the
+   shown text can't drift from the engine.)
+2. Quote one representative message inline in the intro. Minimal; covers the shape but
+   not both error types.
+
+### D-18. Core semantics documented only in the spec, not on-page
+
+**Status**: needs-decision · **Severity**: medium · **Source**: `docs/SPECIFICATION.md` vs. on-page intro
+
+The page names the key semantics — tree walk / marker-based rule detection, context and
+scope nesting, and `NO_CONTENT` skip *propagation* through container rules — but their
+mechanics live only in `docs/SPECIFICATION.md`, which the site does not load. A reader
+on the site can learn the surface API (rules, params, examples) but not the **mental
+model** needed to predict how a non-trivial template evaluates.
+
+**Impact if not fixed**: the page teaches vocabulary without grammar; users compose
+rules by trial and error instead of from an understood evaluation model.
+
+**Options**:
+
+1. **(Recommended)** Add a short "How evaluation works" section to the `Transformer`
+   class docstring (engine repo): the recursive walk, rule detection via the marker,
+   context/scoping for iteration accessors, and `NO_CONTENT` skip propagation — a few
+   tight paragraphs, linking to the spec for exhaustive detail. Renders on-site after
+   the next PyPI release.
+2. Link to the spec from the intro only (closer to status quo). Lowest effort; the
+   model still isn't readable on the page itself.
+
+---
+
 ## Suggested sequencing
 
 1. **Quick correctness wins** (one engine-repo pass, no decisions needed beyond
@@ -374,3 +476,7 @@ for a landing page.
 4. **Discoverability / framing** (mostly site repo): D-07, D-09, D-10, D-13.
 5. **First impression**: D-14 (content stopgap first; engineering fix tracked
    separately).
+6. **Depth & learnability** (after coverage is complete; mostly additive corpus +
+   intro prose): D-15 (composition/realistic examples) and D-18 (evaluation model)
+   first, since they unblock D-16 (recipes can cite the new examples) and D-17 (shown
+   errors).

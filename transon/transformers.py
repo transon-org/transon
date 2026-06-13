@@ -158,6 +158,33 @@ def no_template_loader(name: str) -> 'Transformer':   # pragma: no cover
 
 class Transformer:
     """
+    ## What is transon?
+
+    `transon` reshapes one JSON document into another using a template that is
+    itself plain JSON. Instead of writing imperative glue code to walk and rebuild
+    data, you describe the *shape* of the output once and let the engine fill it in
+    from the input — there is no separate template language and no string-embedded
+    DSL to learn.
+
+    It is **inspired by** [XSLT](https://en.wikipedia.org/wiki/XSLT) (declarative,
+    tree-to-tree transformation) and [JsonLogic](https://jsonlogic.com/) (logic
+    expressed as data), applying those ideas to JSON-to-JSON transformation.
+
+    **Design principles:** templates are always valid JSON; rules are composable and
+    nest arbitrarily (so even arithmetic is expressed as nested rules, with no DSL);
+    and a single configurable `$` marker is what distinguishes a rule from literal
+    data.
+
+    **Compared to alternatives:**
+
+    - [jsonnet](https://github.com/google/jsonnet) and
+      [jsonata](https://github.com/jsonata-js/jsonata) define their own
+      domain-specific languages; `transon` templates stay valid JSON.
+    - [jolt](https://github.com/bazaarvoice/jolt) is also JSON-to-JSON, but drives
+      transformations with fixed operation specs; `transon` rules compose and nest.
+    - [json-templates](https://github.com/datavis-tech/json-templates) does simple
+      placeholder substitution; `transon` adds rules, expressions, and functions.
+
     ## Install & get started
 
     Install from [PyPI](https://pypi.org/project/transon/):
@@ -171,7 +198,7 @@ class Transformer:
     ```python
     from transon import Transformer
 
-    template = {"items": {"$": "map", "item": {"$": "item"}}
+    template = {"items": {"$": "map", "item": {"$": "item"}}}
     Transformer(template).transform(["a", "b"])  # => {"items": ["a", "b"]}
     ```
 
@@ -200,13 +227,6 @@ class Transformer:
     I -right-> E
     E -right-> O
     @enduml
-    ```
-
-    ```python
-    from transon import Transformer
-
-    transformer = Transformer(template)
-    output_data = transformer.transform(input_data)
     ```
 
     ## Templates
