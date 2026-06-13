@@ -158,6 +158,27 @@ def no_template_loader(name: str) -> 'Transformer':   # pragma: no cover
 
 class Transformer:
     """
+    ## Install & get started
+
+    Install from [PyPI](https://pypi.org/project/transon/):
+
+    ```shell
+    pip install transon
+    ```
+
+    Run your first transform:
+
+    ```python
+    from transon import Transformer
+
+    template = {"items": {"$": "map", "item": {"$": "item"}}
+    Transformer(template).transform(["a", "b"])  # => {"items": ["a", "b"]}
+    ```
+
+    **Links:** [GitHub](https://github.com/transon-org/transon) ·
+    [Specification](https://github.com/transon-org/transon/blob/main/docs/SPECIFICATION.md) ·
+    [Changelog](https://github.com/transon-org/transon/blob/main/CHANGELOG.md)
+
     ## Usage
 
     `transon` is a homogeneous JSON-to-JSON template engine: templates are themselves

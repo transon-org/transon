@@ -44,7 +44,7 @@
 | D-11 | `file` rule has zero examples | C. Completeness | high | done |
 | D-12 | Parameters rendered with no example | C. Completeness | medium | done |
 | D-08 | Operators and functions are not discoverable | C. Completeness | medium | done |
-| D-07 | No install / getting-started / outbound links | D. Discoverability | medium | needs-decision |
+| D-07 | No install / getting-started / outbound links | D. Discoverability | medium | done |
 | D-09 | No rule index, table of contents, or anchors | D. Discoverability | medium | needs-decision |
 | D-10 | No conceptual framing (what/why/analogues) | D. Discoverability | low | needs-decision |
 | D-13 | Thin page `<title>` and `<meta description>` | D. Discoverability | low | needs-decision |
@@ -267,7 +267,7 @@ type conversion) is effectively hidden two levels deep.
 
 ### D-07. No install / getting-started / outbound links
 
-**Status**: needs-decision · **Severity**: medium · **Source**: page audit
+**Status**: done · **Severity**: medium · **Source**: page audit · **Decision**: option 1 (Install & get started block in class docstring) · **Shipped**: new `## Install & get started` section at the top of the `Transformer` class docstring — `pip install transon`, a runnable 3-line transform snippet, and outbound links to PyPI, GitHub, the spec, and the changelog
 
 The page has no `pip install transon`, no "your first transform" snippet beyond the
 abstract usage block, and no in-content links to PyPI, the GitHub repo, the spec, or
