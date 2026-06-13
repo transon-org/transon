@@ -48,6 +48,7 @@
 | D-09 | No rule index, table of contents, or anchors | D. Discoverability | medium | done |
 | D-10 | No conceptual framing (what/why/analogues) | D. Discoverability | low | done |
 | D-13 | Thin page `<title>` and `<meta description>` | D. Discoverability | low | done |
+| D-19 | No "when to pick what" comparison table vs. other tools | D. Discoverability | medium | done |
 | D-14 | Blank gray screen during Pyodide load | E. First impression | medium | needs-decision |
 | D-15 | Examples are minimal — no composition / realistic cases | F. Depth & learnability | medium | needs-decision |
 | D-16 | No task-oriented recipes / common-patterns section | F. Depth & learnability | medium | needs-decision |
@@ -341,6 +342,53 @@ previews.
    basic Open Graph/Twitter meta. Static edit in the site repo's `index.html`.
 2. Title/description only, skip social cards. Minimal.
 
+### D-19. No "when to pick what" comparison table vs. other tools
+
+**Status**: done · **Severity**: medium · **Source**: README "Analogues" prose + page audit · **Decision**: option 1 (README comparison table + dedicated docs-site "transon vs alternatives" page + side-by-side JSONata-vs-transon snippet) · **Shipped**: engine repo (`transon`) — replaced the README "Analogues" prose with a "## Comparison" section: a "best when" decision table (transon, JSONata, jq, JSLT, Jolt, JsonLogic, JSON-e, Jsonnet, json-templates), an explicit "where transon is _not_ the best pick" list (expression conciseness; maturity/Python-only), and a side-by-side "same transform in JSONata vs transon" snippet (verified to evaluate to `[6, 35]`). Site repo (`transon-org.github.io`) — new `src/Comparison.tsx` renders the same content via the existing GFM `Markdown` component as an anchored `#comparison` section, wired into `App.tsx` above the Rules section, with a "Comparison" link added to `TableOfContents.tsx`; `npm run build` green. Static React content, so it does not depend on the next PyPI release. · **Relates to**: D-10 (shipped a condensed prose analogues list — jsonnet/jsonata/jolt/json-templates — in the class docstring)
+
+The category is crowded (jq, JSONata, JSLT, Jolt, JsonLogic, JSON-e, Jsonnet,
+json-templates), and the single hardest question a newcomer asks is *"why this over
+the tool I already know?"*. The project answers it only in prose: the README has an
+"Analogues" paragraph (`README.md`), and D-10 condensed that into the class docstring.
+Neither is **scannable or decision-oriented** — there is no side-by-side table that
+lets an evaluator place transon against the alternatives on the axes that actually
+drive the choice (template format, extensibility, dependencies/footprint, language/
+runtime, conciseness, maturity). A good comparison is also a promotion lever: "X vs Y
+vs Z" pages are searched, and an honest table pulls in discovery traffic.
+
+**Impact if not fixed**: in a crowded field the differentiator stays implicit. A
+visitor can't tell in 10 seconds when transon is the right pick, so the project relies
+on them inferring positioning from the mechanics — the weakest part of the funnel for
+a niche tool competing with entrenched alternatives.
+
+**Caveat (why this is `needs-decision`, not auto-accept)**: a self-comparison only
+helps if it reads as **credibly honest**. A checkmark grid where transon wins every
+row is discounted on sight and can backfire with the exact engineers it targets. The
+table must (a) use decision-driving axes, not vanity features, (b) include rows where
+transon *loses* (conciseness for arithmetic-heavy expressions; ecosystem maturity /
+adoption), and (c) never misrepresent a competitor (people from those projects will
+read it). Framing as "best when …" rather than "feature X: ✅/❌" keeps it honest and
+more useful.
+
+**Options**:
+
+1. **(Recommended)** Add a "when to pick what" comparison block in two places: a
+   compact table in the **README** (upgrading the existing "Analogues" prose) and a
+   dedicated **docs-site page** ("transon vs alternatives") for SEO/discovery. Prefer a
+   *"best when"* column over a boolean grid; include at least one row where transon
+   loses. Pair it with a single **side-by-side "same transformation in JSONata vs
+   transon"** snippet — one concrete example persuades more than the table, and it
+   honestly shows the verbosity trade-off. Site page is mostly site-repo work; the
+   table content can be authored once and reused in both places.
+2. **Lighter touch**: upgrade only the README "Analogues" prose into a table (and,
+   via the class docstring, the on-site intro that D-10 already populates). No dedicated
+   comparison page. Cheaper, but forfeits the SEO landing-page value.
+3. **On-page only**: extend the D-10 "Compared to alternatives" list in the
+   `Transformer` class docstring into a small table so it renders on the site after the
+   next PyPI release. Single source of truth (docstring), but a docstring table is
+   harder to keep rich/formatted than dedicated content, and there's still no
+   README/standalone comparison for evaluators arriving via GitHub.
+
 ---
 
 ## Theme E — First impression
@@ -473,7 +521,8 @@ rules by trial and error instead of from an understood evaluation model.
    wording): D-01, D-02, D-03, D-04, D-06.
 2. **Freshness**: D-05 (intro rewrite) — unblocks reusable copy for D-07, D-10, D-14.
 3. **Completeness via corpus** (additive, also tests): D-11, D-12; then D-08.
-4. **Discoverability / framing** (mostly site repo): D-07, D-09, D-10, D-13.
+4. **Discoverability / framing** (mostly site repo): D-07, D-09, D-10, D-13, D-19
+   (positioning/comparison — can build on D-10's analogues content).
 5. **First impression**: D-14 (content stopgap first; engineering fix tracked
    separately).
 6. **Depth & learnability** (after coverage is complete; mostly additive corpus +
