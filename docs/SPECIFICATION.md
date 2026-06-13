@@ -123,11 +123,15 @@ of a value (distinct from JSON `null`/Python `None`). Semantics:
 
 | Exception | Meaning | Raised when |
 |---|---|---|
-| `DefinitionError` | The template is malformed | Unknown rule/operator/function name; missing required rule parameter (`Transformer.require`); `attr` with neither `name` nor `names`; `map` with no valid parameter combination; reserved variable name (`this`, `item`, `key`, `value`, `index`) used with `set`/`get`; iteration accessors (`item`, `key`, `value`, `index`) or `parent` used outside their valid scope; `expr`/`call` with a non-list or empty `values` parameter; `include` with no configured `template_loader` (default loader) |
+| `DefinitionError` | The template is malformed | Unknown rule/operator/function name; missing required rule parameter (`Transformer.require` or `Transformer.validate()`); unknown rule parameters; ambiguous or incomplete mutually-exclusive parameter groups (`validate()`); `attr` with neither `name` nor `names`; `map` with no valid parameter combination; reserved variable name (`this`, `item`, `key`, `value`, `index`) used with `set`/`get`; iteration accessors (`item`, `key`, `value`, `index`) or `parent` used outside their valid scope; `expr`/`call` with a non-list or empty `values` parameter; non-list `chain.funcs` (`validate()`); `include` with no configured `template_loader` (default loader) |
 | `TransformationError` | The template is valid but input data is incompatible | `map`/`filter` over a non-iterable (not list/dict); `join` over mixed-type items; `attr` lookup with an incompatible index type; `zip` over non-iterable items; `expr` operator applied to incompatible operand types; `call` with incompatible argument types; `format` pattern referencing a missing key or index; `set`/`get` when a dynamic `name` evaluates to `NO_CONTENT`; `include` depth limit exceeded (nested include chain too deep) |
 
-Both are exported from the package root. Errors are raised lazily during
-`transform()` — there is no template validation phase.
+Both are exported from the package root. By default, errors are raised lazily during
+`transform()` — there is no automatic validation. Opt in with `Transformer.validate()`
+or `Transformer(..., validate=True)` for a static walk that raises `DefinitionError`
+for unknown rules, unknown rule parameters, missing required parameters, ambiguous
+mutually-exclusive parameter combinations, and invalid literal operator/function names
+(see §3.4).
 
 ---
 
@@ -139,12 +143,14 @@ Both are exported from the package root. Errors are raised lazily during
 Transformer(
     template,                      # JSON-like structure
     *,
+    validate=False,                # if True, run validate() before use
     file_writer=no_file_writer,    # Callable[[str, Any], None] — used by the `file` rule
     template_loader=no_template_loader,  # Callable[[str], Transformer] — used by `include`
     marker='$',                    # rule marker key
     max_include_depth=50,          # nested `include` depth limit (see `include` rule)
 )
 transformer.transform(data, no_content=None) -> output
+transformer.validate()            # static template check; raises DefinitionError
 ```
 
 `no_content` controls the value returned when the template produces `NO_CONTENT`.
@@ -166,9 +172,11 @@ Three registries exist, all class-level dicts with decorator-based registration:
 | `_operators` | `register_operator(name)` | `expr` | unary `(a)` or binary `(a, b)` |
 | `_functions` | `register_function(name)` | `call` | `(*args) -> Any` |
 
-`register_rule` attaches metadata to the function: `__rule_name__` (the rule name) and
-`__rule_params__` (a `dict[str, str]` of parameter-name → markdown documentation). This
-metadata feeds the documentation pipeline (§5).
+`register_rule` attaches metadata to the function: `__rule_name__` (the rule name),
+`__rule_params__` (a `dict[str, str]` of parameter-name → markdown documentation),
+and `__rule_schema__` (`required` parameter names and `modes` tuples for mutually
+exclusive parameter groups). This metadata feeds the documentation pipeline (§5) and
+static validation (§3.4).
 
 **Subclass isolation**: `Transformer.__init_subclass__` resets `_rules`, `_operators`,
 `_functions` to empty dicts on every subclass. Lookup (`get_rule`/`get_operator`/
@@ -180,12 +188,45 @@ subclasses. `get_rules()` returns all rules visible to a class with MRO-based de
 ```python
 class MyTransformer(Transformer): pass
 
-@MyTransformer.register_rule('my_rule', param="Docs for `param`.")
+@MyTransformer.register_rule(
+    'my_rule',
+    _required=('param',),
+    param="Docs for `param`.",
+)
 def my_rule(t: Transformer, template, context: Context):
     """Markdown docstring — becomes the rule's documentation."""
     value = t.walk(t.require(template, 'param'), context)
     ...
 ```
+
+### 3.4 Static template validation
+
+`Transformer.validate()` walks the template without input data and raises
+`DefinitionError` when:
+
+- a rule name is not registered;
+- a rule invocation includes parameters not declared in `register_rule`;
+- required parameters are missing;
+- mutually exclusive parameter groups overlap (e.g. `attr` with both `name` and
+  `names`, `map` with both `item` and `key`/`value`, `expr`/`call` with both
+  `value` and `values`);
+- a parameter group is partially present (e.g. `map` with `key` but no `value`);
+- `chain.funcs` is not a list;
+- `expr.op` or `call.name` is a string literal naming an unknown operator/function.
+
+Pass `validate=True` to the constructor to validate at construction time. Validation
+is opt-in and non-breaking: `transform()` behavior is unchanged when validation is
+not used. Nested templates inside rule parameters are validated recursively; dynamic
+parameter values that are not rule invocations are not evaluated.
+
+Rule authors declare validation metadata via `register_rule` keyword arguments:
+
+- `_required=()` — parameter names that must always be present.
+- `_modes=((), ('value',), ('values',))` — exactly one mode must match; an empty
+  tuple is a mode with no mode-specific parameters (e.g. unary `expr`/`call`).
+
+Optional parameters need no flag — they are any declared parameter not covered by
+`_required` or `_modes`.
 
 ### 3.3 Rule-author helpers
 
@@ -380,7 +421,7 @@ Requires **Python 3.9+**.
 ## 7. Checklist: adding a new rule
 
 1. Implement in `transon/rules.py` (or a subclass for experimental work):
-   - decorate with `@Transformer.register_rule('<name>', <param>="<markdown doc>", ...)`;
+   - decorate with `@Transformer.register_rule('<name>', _required=(...), _modes=(...), <param>="<markdown doc>", ...)`;
    - write a markdown docstring (it *is* the documentation);
    - use `t.require()` for mandatory params, `t.walk()` for dynamic params;
    - return `t.NO_CONTENT` for "no value", raise `DefinitionError` for template

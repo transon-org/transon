@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Opt-in static template validation: `Transformer.validate()` and
+  `Transformer(..., validate=True)` raise `DefinitionError` for unknown rules,
+  unknown parameters, missing required parameters, ambiguous mutually-exclusive
+  parameter combinations, and invalid literal operator/function names. Rule schemas
+  are declared via `_required` and `_modes` on `register_rule`. (Roadmap R-04,
+  option 1)
+
 ## [0.0.10] - 2026-06-13
 
 ### Fixed

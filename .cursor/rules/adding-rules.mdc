@@ -14,6 +14,7 @@ Rule docstrings and `register_rule` param kwargs are user-facing documentation
 ```python
 @Transformer.register_rule(
     'my_rule',
+    _required=('param',),
     param="Markdown doc for `param`. State whether it can be dynamic.",
 )
 def rule_my_rule(t: Transformer, template, context: Context):
@@ -32,7 +33,8 @@ def rule_my_rule(t: Transformer, template, context: Context):
 
 ## Checklist for a new rule
 
-1. Implement in `transon/rules.py` with docstring + param docs (above).
+1. Implement in `transon/rules.py` with docstring + param docs and validation schema
+   (`_required`, `_modes` where applicable).
 2. Add example cases in `transon/tests/test_<rule>.py` (see testing-conventions rule):
    at least one tagged `"<rule>"`, plus one per parameter tagged `"<rule>:<param>"`.
 3. Add error-path tests in `tests/` if applicable.

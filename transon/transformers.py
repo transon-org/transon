@@ -224,10 +224,14 @@ class Transformer:
         return decorator
 
     @classmethod
-    def register_rule(cls, _rule_name: str, **params):
+    def register_rule(cls, _rule_name: str, *, _required=(), _modes=(), **params):
         def decorator(func):
             func.__rule_name__ = _rule_name
             func.__rule_params__ = params
+            func.__rule_schema__ = {
+                'required': tuple(_required),
+                'modes': tuple(tuple(mode) for mode in _modes),
+            }
             cls._rules[_rule_name] = func
             return func
         return decorator
@@ -276,6 +280,7 @@ class Transformer:
             self,
             template,
             *,
+            validate: bool = False,
             file_writer: FileWriterType = no_file_writer,
             template_loader: TemplateLoaderType = no_template_loader,
             marker: str = DEFAULT_MARKER,
@@ -287,6 +292,8 @@ class Transformer:
         self.marker = marker
         self.max_include_depth = max_include_depth
         self._include_stack = []
+        if validate:
+            self.validate()
 
     def walk_list(self, template, context):
         return [
@@ -328,6 +335,99 @@ class Transformer:
             rule = template[self.marker]
             raise DefinitionError(f'`{name}` property is required for `{rule}` rule')
         return template[name]
+
+    def validate(self):
+        """Validate the template statically without input data."""
+        self._validate_template(self.template)
+
+    def _validate_template(self, template):
+        if isinstance(template, list):
+            for item in template:
+                self._validate_template(item)
+        elif isinstance(template, dict):
+            if self.marker in template:
+                self._validate_rule(template)
+            else:
+                for value in template.values():
+                    self._validate_template(value)
+
+    def _validate_rule(self, template):
+        rule_name = template[self.marker]
+        rule = self.get_rule(rule_name)
+        self._validate_rule_params(rule_name, rule, template)
+        self._validate_rule_constants(rule_name, template)
+        for key, value in template.items():
+            if key != self.marker:
+                self._validate_template(value)
+
+    def _validate_rule_params(self, rule_name, rule, template):
+        known = set(getattr(rule, '__rule_params__', {}))
+        present = {key for key in template if key != self.marker}
+        unknown = present - known
+        if unknown:
+            names = ', '.join(f'`{name}`' for name in sorted(unknown))
+            raise DefinitionError(
+                f'unknown {names} for `{rule_name}` rule'
+            )
+
+        schema = getattr(rule, '__rule_schema__', {})
+        for param in schema.get('required', ()):
+            if param not in present:
+                raise DefinitionError(
+                    f'`{param}` property is required for `{rule_name}` rule'
+                )
+
+        modes = schema.get('modes', ())
+        if modes:
+            self._validate_rule_modes(rule_name, present, modes)
+
+    def _validate_rule_modes(self, rule_name, present, modes):
+        mode_sets = [frozenset(mode) for mode in modes]
+        all_mode_params = set().union(*mode_sets) if mode_sets else set()
+        non_empty_modes = [mode for mode in mode_sets if mode]
+        has_empty_mode = any(not mode for mode in mode_sets)
+
+        active_modes = [mode for mode in non_empty_modes if mode <= present]
+        for mode in non_empty_modes:
+            if mode & present and not mode <= present:
+                missing = sorted(mode - present)
+                raise DefinitionError(
+                    f'incomplete parameter set {sorted(mode)!r} for '
+                    f'`{rule_name}` rule (missing {missing!r})'
+                )
+
+        if len(active_modes) > 1:
+            params = sorted(set().union(*active_modes))
+            raise DefinitionError(
+                f'ambiguous mutually exclusive parameters for `{rule_name}` rule: '
+                f'{params!r}'
+            )
+
+        if active_modes:
+            return
+
+        if has_empty_mode and not (present & all_mode_params):
+            return
+
+        raise DefinitionError(
+            f'no valid parameter combination for `{rule_name}` rule'
+        )
+
+    def _validate_rule_constants(self, rule_name, template):
+        if rule_name == 'expr' and 'op' in template:
+            op = template['op']
+            if isinstance(op, str):
+                self.get_operator(op)
+        elif rule_name == 'call' and 'name' in template:
+            name = template['name']
+            if isinstance(name, str):
+                self.get_function(name)
+        elif rule_name == 'chain' and 'funcs' in template:
+            funcs = template['funcs']
+            if not isinstance(funcs, list):
+                raise DefinitionError(
+                    '`funcs` must be a list for `chain` rule'
+                )
 
     def _prepare_include(self, name):
         stack = list(self._include_stack)

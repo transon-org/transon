@@ -32,7 +32,7 @@
 | [R-01](#r-01-andor-operators-are-bitwise-not-logical) | `and`/`or` operators are bitwise, not logical | high | done |
 | [R-02](#r-02-raw-python-exceptions-escape-the-error-model) | Raw Python exceptions escape the error model | high | done |
 | [R-03](#r-03-reserved-name-guard-is-an-assert-vanishes-under--o) | Reserved-name guard is an `assert` — vanishes under `-O` | high | done |
-| [R-04](#r-04-no-template-validation-phase-typos-and-ambiguity-pass-silently) | No template validation; typos and ambiguity pass silently | high | needs-decision |
+| [R-04](#r-04-no-template-validation-phase-typos-and-ambiguity-pass-silently) | No template validation; typos and ambiguity pass silently | high | done |
 | [R-05](#r-05-error-messages-carry-no-template-location) | Error messages carry no template location | medium | needs-decision |
 | [R-06](#r-06-no_content-leaks-to-the-caller-at-top-level) | `NO_CONTENT` leaks to the caller at top level | high | done |
 | [R-07](#r-07-no_content-leaks-into-format-output) | `NO_CONTENT` leaks into `format` output | high | done |
@@ -150,7 +150,7 @@ changelog entry added.
 
 ### R-04. No template validation; typos and ambiguity pass silently
 
-**Status**: needs-decision · **Severity**: high · **Spec**: §12.13 + audit
+**Status**: done (option 1) · **Severity**: high · **Spec**: §3.4 + audit
 
 Errors surface only when a branch is walked; dead branches with typos pass forever.
 Two adjacent silent-failure modes confirmed by the audit:
@@ -179,6 +179,12 @@ the documented contract and real behavior disagree.
    params present). Much smaller; *breaking* for templates that today carry a
    redundant ignored param. Doesn’t catch dead-branch typos.
 3. Both: walk-time enforcement now, static `validate()` later. Reasonable sequencing.
+
+**Decision (2026-06-13)**: option 1 — opt-in `validate()` / `validate=True` with
+`_required` and `_modes` schema on `register_rule`.
+
+**Shipped**: option 1 — `Transformer.validate()` and `validate=True`; rule schemas on
+all built-in rules; changelog and spec §3.4 updated.
 
 ### R-05. Error messages carry no template location
 
@@ -493,8 +499,8 @@ surface as raw Python errors rather than evaluated templates or clear errors.
    dict containing the marker. Keeps semantics, fixes diagnostics.
 2. Make conservative parameters dynamic where harmless (`join.sep`,
    `format.pattern` could be walked). More uniform, but dynamic `expr.op` /
-   `call.name` would make static validation (R-04) impossible — at minimum keep
-   those constant.
+   `call.name` would make static validation impossible — at minimum keep
+   those constant (~~R-04~~, done).
 
 **Decision (2026-06-13)**: option 2 — walk `join.sep` and `format.pattern`; keep
 `expr.op`, `call.name`, and `chain.funcs` list structure constant.
@@ -632,5 +638,5 @@ large collections. Irrelevant for small documents — measure before optimizing.
    errors.
 3. **NO_CONTENT batch**: ~~R-06~~ (done), ~~R-07~~ (done), ~~R-08~~ (done), ~~R-10~~ (done) — semantics
    interlock; shipped together.
-4. **Feature work**: R-04 (validation), R-05 (error paths), R-11, R-12, R-14.
+4. **Feature work**: ~~R-04~~ (done), R-05 (error paths), R-11, R-12, R-14.
 5. **Policy/long-term**: R-13, R-15, ~~R-20~~ (done), R-22.

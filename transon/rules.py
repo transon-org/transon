@@ -119,6 +119,7 @@ def rule_value(_t: Transformer, _template, context: Context):
 
 @Transformer.register_rule(
     'set',
+    _required=('name',),
     name="Name of the variable. Can be dynamic. "
          "The names `this`, `item`, `key`, `value` and `index` are reserved "
          "and cannot be used as variable names. "
@@ -139,6 +140,7 @@ def rule_set(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'get',
+    _required=('name',),
     name="Name of the variable. Can be dynamic. "
          "The names `this`, `item`, `key`, `value` and `index` are reserved "
          "and cannot be used as variable names. "
@@ -161,6 +163,7 @@ def rule_get(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'attr',
+    _modes=(('name',), ('names',)),
     name="""
 Name of attribute to search. 
 It is possible to use a number as the name for items in arrays. 
@@ -198,6 +201,7 @@ def rule_attr(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'object',
+    _required=('key', 'value'),
     key="Defines template for name of attribute.",
     value="Defines template for value of attribute.",
 )
@@ -233,6 +237,7 @@ def _iter_contexts(context: Context):
 
 @Transformer.register_rule(
     'map',
+    _modes=(('item',), ('items',), ('key', 'value')),
     item="Defines template for items when producing the `list`",
     items="Defines templates for series of items when producing the `list`",
     key="Defines template for key when producing the `dict`",
@@ -282,6 +287,7 @@ def rule_map(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'filter',
+    _required=('cond',),
     cond="Defines template for condition",
 )
 def rule_filter(t: Transformer, template, context: Context):
@@ -317,6 +323,7 @@ def rule_filter(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'zip',
+    _required=('items',),
     items="Defines the list of lists",
 )
 def rule_zip(t: Transformer, template, context: Context):
@@ -339,6 +346,7 @@ def rule_zip(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'file',
+    _required=('name', 'content'),
     name="Defines template for file name",
     content="Defines template for file content. File content always has JSON formatted data",
 )
@@ -377,6 +385,7 @@ def _is_dict(x):
 
 @Transformer.register_rule(
     'join',
+    _required=('items',),
     items="List of values to concatenate.",
     sep="Defines separator for strings concatenation. Can be dynamic. "
         "Used only when all items are strings; must evaluate to a string "
@@ -412,6 +421,7 @@ def rule_join(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'chain',
+    _required=('funcs',),
     funcs="Define list of templates (not just rules) for chaining. "
           "The list structure is constant; each element is walked as a template.",
 )
@@ -445,6 +455,8 @@ def rule_chain(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'expr',
+    _required=('op',),
+    _modes=((), ('value',), ('values',)),
     op="""
     Defines name of operation. This is always constant.
 
@@ -529,6 +541,8 @@ def rule_expr(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'call',
+    _required=('name',),
+    _modes=((), ('value',), ('values',)),
     name="""
     Defines the name of function. This is always constant.
     
@@ -591,6 +605,7 @@ def rule_call(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'format',
+    _required=('pattern',),
     pattern="Defines pattern for string formatting. Can be dynamic. "
             "Must evaluate to a string (raises `TransformationError` otherwise).",
     value="Defines template for input data. Optional.",
@@ -640,6 +655,7 @@ def rule_format(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'include',
+    _required=('name',),
     name="Name or path to template. Can be dynamic. Meaning of this `name` depends on provided template loader.",
     default="Optional template for value returned when the included template produces "
             "no result. Can be dynamic.",
