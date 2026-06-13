@@ -84,7 +84,7 @@ rules — traded against the terseness of a string DSL. Pick the tool that fits 
 - **Expression-heavy** transforms read far more concisely in a string DSL like JSONata
   or jq — `transon` spells `(a + b) * c` as a nested rule tree.
 - **Maturity & ecosystem**: jq and JSONata are battle-tested with large communities;
-  `transon` is young (`0.0.x`) and Python-only.
+  `transon` is young and Python-only.
 
 ### The trade-off, concretely
 
