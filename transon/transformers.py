@@ -1,4 +1,5 @@
 import contextvars
+import copy
 from typing import (
     Any,
     Callable,
@@ -504,9 +505,25 @@ class Transformer:
             )
         return stack
 
-    def transform(self, data, no_content=None):
+    def transform(self, data, no_content=None, *, copy_output: bool = False):
+        """
+        Transform ``data`` with this transformer's template.
+
+        ``no_content`` controls the value returned when the template evaluates to
+        ``NO_CONTENT`` (defaults to ``None``; pass ``Transformer.NO_CONTENT`` to
+        receive the raw sentinel).
+
+        Output aliasing: ``transform()`` never mutates the input data or the template,
+        but rules that pass values straight through (e.g. ``this``, ``attr``, ``get``,
+        ``item``) return *references* into the input. Mutating the returned structure
+        afterwards therefore mutates the original input. Pass ``copy_output=True`` to
+        deep-copy the result once at this boundary, yielding a value that shares no
+        mutable structure with the input.
+        """
         context = Context(this=data)
         result = self.walk(self.template, context)
         if result is self.NO_CONTENT and no_content is not self.NO_CONTENT:
             return no_content
+        if copy_output:
+            return copy.deepcopy(result)
         return result

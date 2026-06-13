@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `transform(data, no_content=None, *, copy_output=False)` gained an opt-in
+  `copy_output` keyword. When `True`, the result is `copy.deepcopy`-ed once at the
+  `transform()` boundary, so it shares no mutable structure with the input. By default
+  (`False`) pass-through rules (`this`/`attr`/`get`/`item`/…) still return references
+  into the input — mutating the output then mutates the original input. This aliasing
+  is now documented prominently (spec §3.1, §10) so callers who post-process the result
+  know to opt in. Default behavior is unchanged. (Roadmap R-13, option 2)
+
 ## [0.0.11] - 2026-06-13
 
 ### Changed

@@ -41,7 +41,7 @@
 | [R-10](#r-10-no-default-value-mechanism) | No default-value mechanism | medium | done |
 | [R-11](#r-11-zip-emits-python-tuples-and-inherits-python-zip-quirks) | `zip` emits Python tuples and inherits Python `zip` quirks | medium | done |
 | [R-12](#r-12-join-of-an-empty-list-returns-) | `join` of an empty list returns `""` | low | done |
-| [R-13](#r-13-output-aliases-input-data-shared-mutable-structures) | Output aliases input data (shared mutable structures) | medium | needs-decision |
+| [R-13](#r-13-output-aliases-input-data-shared-mutable-structures) | Output aliases input data (shared mutable structures) | medium | done |
 | [R-14](#r-14-no-escape-for-a-literal-marker-key) | No escape for a literal marker (`$`) key | medium | done |
 | [R-15](#r-15-set-scoping-is-subtle-and-undocumented) | `set` scoping is subtle and undocumented | medium | needs-decision |
 | [R-16](#r-16-constant-vs-dynamic-parameters-are-inconsistent) | Constant vs dynamic parameters are inconsistent | low | done |
@@ -421,7 +421,7 @@ optional `default`; `NoContent.__bool__` is `False`; changelog entry added.
 
 ### R-13. Output aliases input data (shared mutable structures)
 
-**Status**: needs-decision · **Severity**: medium · **Source**: audit
+**Status**: done · **Severity**: medium · **Source**: audit
 
 `transform()` never mutates input — but rules like `this`/`attr`/`item` return
 *references* into the input. Verified: mutating the output afterwards mutates the
@@ -440,6 +440,18 @@ mutates input” is true only until the caller touches the result.
    flag) that deep-copies the final result once. One copy at the end is cheaper
    than per-rule copies and only paid by callers who need it.
 3. Do nothing. The trap stays invisible until it fires.
+
+**Decision (2026-06-13)**: option 2 — keep the default behavior (output may alias the
+input; one copy of input data is never made for the common case) and add an opt-in
+`transform(data, copy_output=True)` keyword that deep-copies the final result exactly
+once before returning. The aliasing is documented prominently in the spec (§3.1, §10)
+and the `transform()` docstring so callers who post-process the result know to opt in.
+
+**Shipped**: option 2 — `transform(data, no_content=None, *, copy_output=False)`. When
+`copy_output=True`, the returned value is `copy.deepcopy`-ed once at the `transform()`
+boundary so it shares no mutable structure with the input. Default (`False`) is
+unchanged: rules like `this`/`attr`/`item` still return references into the input, and
+this aliasing is now documented. Stdlib only (`copy`); no input/template mutation.
 
 ### R-14. No escape for a literal marker (`$`) key
 
@@ -673,4 +685,4 @@ large collections. Irrelevant for small documents — measure before optimizing.
 3. **NO_CONTENT batch**: ~~R-06~~ (done), ~~R-07~~ (done), ~~R-08~~ (done), ~~R-10~~ (done) — semantics
    interlock; shipped together.
 4. **Feature work**: ~~R-04~~ (done), ~~R-05~~ (done), ~~R-11~~ (done), ~~R-12~~ (done), ~~R-14~~ (done).
-5. **Policy/long-term**: R-13, R-15, ~~R-20~~ (done), R-22.
+5. **Policy/long-term**: ~~R-13~~ (done), R-15, ~~R-20~~ (done), R-22.

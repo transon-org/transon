@@ -167,7 +167,7 @@ Transformer(
     marker='$',                    # rule marker key
     max_include_depth=50,          # nested `include` depth limit (see `include` rule)
 )
-transformer.transform(data, no_content=None) -> output
+transformer.transform(data, no_content=None, *, copy_output=False) -> output
 transformer.validate()            # static template check; raises DefinitionError
 ```
 
@@ -176,6 +176,16 @@ The default is `None` (JSON-friendly). Pass any other value as a substitute (e.g
 marker string), or pass `Transformer.NO_CONTENT` to receive the raw sentinel.
 Inside rule evaluation, rules still produce and compare `Transformer.NO_CONTENT` as
 before; substitution applies only at the `transform()` boundary.
+
+**Output aliasing**: `transform()` never mutates the input data or the template, but
+rules that pass a value straight through (`this`, `attr`, `get`, `item`, …) return a
+*reference* into the input rather than a copy. Consequently, mutating the returned
+structure afterwards mutates the original input — the "never mutates input" invariant
+holds only until the caller touches the result. This is intentional (no per-rule
+copying overhead in the common case). Callers who post-process the output should pass
+`copy_output=True`, which `copy.deepcopy`-es the result exactly once at the
+`transform()` boundary so the returned value shares no mutable structure with the
+input. The default (`copy_output=False`) is unchanged. (Roadmap R-13, option 2.)
 
 The default `template_loader` raises `DefinitionError`; the default `file_writer` silently
 discards writes.
@@ -489,7 +499,11 @@ tagged example cases.
 - A template containing **no marker dicts** is reproduced as-is (deep copy by walking).
 - Rule parameters are templates: any parameter documented as "dynamic" must go through
   `t.walk()`.
-- `transform()` never mutates the input data or the template.
+- `transform()` never mutates the input data or the template. Pass-through rules
+  (`this`/`attr`/`get`/`item`/…) return references into the input, so the *output* may
+  alias input substructures; callers that mutate the result must pass
+  `copy_output=True` (deep-copies the result once) to avoid corrupting their input
+  (§3.1, Roadmap R-13).
 - Registry lookups respect MRO; subclass registries never pollute the base class.
 - `NO_CONTENT` skipping semantics in `map`/`object`/`file`/`filter` are part of the
   public contract (relied on by the corpus, e.g. `test_no_content.py`).
