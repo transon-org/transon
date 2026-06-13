@@ -5,7 +5,7 @@ class FilterDict(base.TableDataBaseCase):
     """
     Iterates over input `dict` and filters out items with even value.
     """
-    tags = ['filter', 'expr']
+    tags = ['filter', 'expr', 'value']
     template = {
         '$': 'filter',
         'cond': {
@@ -36,7 +36,7 @@ class FilterList(base.TableDataBaseCase):
     """
     Iterates over input `list` and filters out items with even value.
     """
-    tags = ['filter', 'expr']
+    tags = ['filter', 'expr', 'item']
     template = {
         '$': 'filter',
         'cond': {
@@ -50,6 +50,27 @@ class FilterList(base.TableDataBaseCase):
     }
     data = [1, 2, 3, 4, 5, 6]
     result = [1, 3, 5]
+
+
+class FilterListByOddIndex(base.TableDataBaseCase):
+    """
+    Filters a list, keeping only elements at odd indices (1, 3, 5, ...).
+    Demonstrates that ``index`` works inside ``filter`` as well as ``map``.
+    """
+    tags = ['filter', 'filter:cond', 'index', 'expr']
+    template = {
+        '$': 'filter',
+        'cond': {
+            '$': 'expr',
+            'op': 'mod',
+            'values': [
+                {'$': 'index'},
+                2,
+            ]
+        }
+    }
+    data = ['a', 'b', 'c', 'd', 'e']
+    result = ['b', 'd']
 
 
 class FilterListNoContent(base.TableDataBaseCase):

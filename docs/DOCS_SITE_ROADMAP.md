@@ -35,11 +35,11 @@
 
 | ID | Title | Theme | Severity | Status |
 |---|---|---|---|---|
-| D-01 | "Homogenous" misspelling in the tagline (and everywhere) | A. Correctness | high | needs-decision |
-| D-02 | Grammar/typos in the intro docstring | A. Correctness | medium | needs-decision |
-| D-03 | `attr` "either name **of** names" typo (error text) | A. Correctness | low | needs-decision |
-| D-04 | Broken JSON in the headline intro example | A. Correctness | high | needs-decision |
-| D-06 | Accessor docstrings omit `filter` scope | A. Correctness | medium | needs-decision |
+| D-01 | "Homogenous" misspelling in the tagline (and everywhere) | A. Correctness | high | done |
+| D-02 | Grammar/typos in the intro docstring | A. Correctness | medium | done |
+| D-03 | `attr` "either name **of** names" typo (error text) | A. Correctness | low | done |
+| D-04 | Broken JSON in the headline intro example | A. Correctness | high | done |
+| D-06 | Accessor docstrings omit `filter` scope | A. Correctness | medium | done |
 | D-05 | Intro is stale vs. v0.0.11 capabilities | B. Freshness | high | needs-decision |
 | D-11 | `file` rule has zero examples | C. Completeness | high | needs-decision |
 | D-12 | Parameters rendered with no example | C. Completeness | medium | needs-decision |
@@ -56,7 +56,7 @@
 
 ### D-01. "Homogenous" misspelling in the tagline (and everywhere)
 
-**Status**: needs-decision · **Severity**: high · **Source**: live site + source audit
+**Status**: done · **Severity**: high · **Source**: live site + source audit · **Decision**: option 1 (fix everywhere) · **Shipped**: corrected to "Homogeneous" in `App.tsx`, `pyproject.toml`, and `README.md` (`pyproject.toml` ships on next release)
 
 The tagline rendered directly under the title reads **"Homogenous JSON template
 engine"** (`transon-org.github.io/src/App.tsx`). The intended word is
@@ -77,7 +77,7 @@ landing page undercuts the "professional presentation" goal on first glance.
 
 ### D-02. Grammar/typos in the intro docstring
 
-**Status**: needs-decision · **Severity**: medium · **Source**: `transon/transformers.py` (class docstring)
+**Status**: done · **Severity**: medium · **Source**: `transon/transformers.py` (class docstring) · **Decision**: option 1 (copy-edit in one pass) · **Shipped**: grammar fixes in `Transformer` class docstring (except for/JSON/additional/functions; Rules section pointer)
 
 The intro prose (rendered as the opening sections of the page) contains several
 errors:
@@ -102,7 +102,7 @@ errors:
 
 ### D-03. `attr` "either name **of** names" typo (error text)
 
-**Status**: needs-decision · **Severity**: low · **Source**: `transon/rules.py` (`rule_attr`)
+**Status**: done · **Severity**: low · **Source**: `transon/rules.py` (`rule_attr`) · **Decision**: fix "of" → "or" · **Shipped**: `DefinitionError` message now reads ``either `name` or `names` attribute is required``
 
 The `DefinitionError` message reads ``either `name` of `names` attribute is
 required`` — "**of**" should be "**or**". User-facing whenever `attr` is misused, and
@@ -114,7 +114,7 @@ the engine now also has `validate()` paths that surface it.
 
 ### D-04. Broken JSON in the headline intro example
 
-**Status**: needs-decision · **Severity**: high · **Source**: `transon/transformers.py` (class docstring, "Example template")
+**Status**: done · **Severity**: high · **Source**: `transon/transformers.py` (class docstring, "Example template") · **Decision**: option 1 (fix JSON + corpus case) · **Shipped**: valid JSON in intro docstring; `MapListToNestedListWithItem` corpus case tagged `map`/`map:item`/`item`
 
 The first code sample on the page is not valid JSON:
 
@@ -139,7 +139,7 @@ won't round-trip through the playground.
 
 ### D-06. Accessor docstrings omit `filter` scope
 
-**Status**: needs-decision · **Severity**: medium · **Source**: `transon/rules.py` (`item`/`key`/`value`/`index`)
+**Status**: done · **Severity**: medium · **Source**: `transon/rules.py` (`item`/`key`/`value`/`index`) · **Decision**: option 1 (docstrings + filter examples) · **Shipped**: four accessor docstrings now say `map`/`filter`; tagged `FilterList`/`FilterDict` with `item`/`value`; added `FilterListByOddIndex` for `index`
 
 The docstrings for `item`, `key`, `value`, and `index` all say *"Works inside `map`
 rule"*, but the spec (§4.1) and the engine make them equally valid inside **`filter`**

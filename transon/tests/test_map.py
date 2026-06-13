@@ -1,6 +1,36 @@
 from . import base
 
 
+class MapListToNestedListWithItem(base.TableDataBaseCase):
+    """
+    Maps over a list input, wrapping each element in a one-item list around an object
+    with an ``x`` field. Matches the headline intro example: the outer ``test`` key is
+    copied literally, the nested ``map`` rule runs once per input element, and the inner
+    ``item`` rule resolves to each element's value.
+    """
+    tags = ['map', 'map:item', 'item']
+    template = {
+        'test': {
+            '$': 'map',
+            'item': [
+                {
+                    'x': {
+                        '$': 'item'
+                    }
+                }
+            ]
+        }
+    }
+    data = [1, 2, 3]
+    result = {
+        'test': [
+            [{'x': 1}],
+            [{'x': 2}],
+            [{'x': 3}],
+        ]
+    }
+
+
 class MapListToList(base.TableDataBaseCase):
     """
     Maps two lists obtained from different attributes of input.

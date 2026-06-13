@@ -5,7 +5,7 @@
 ![Codecov](https://img.shields.io/codecov/c/github/transon-org/transon)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/transon)
 
-Homogenous JSON template engine.
+Homogeneous JSON template engine.
 `transon` creates JSON out of template and JSON input.
 
 ```

@@ -84,7 +84,7 @@ def rule_parent(t: Transformer, _template, context: Context):
 @Transformer.register_rule('item')
 def rule_item(_t: Transformer, _template, context: Context):
     """
-    Works inside `map` rule when iterating over lists.
+    Works inside `map`/`filter` when iterating over lists.
     Returns current item.
     """
     return context.item
@@ -93,7 +93,7 @@ def rule_item(_t: Transformer, _template, context: Context):
 @Transformer.register_rule('key')
 def rule_key(_t: Transformer, _template, context: Context):
     """
-    Works inside `map` rule when iterating over dicts.
+    Works inside `map`/`filter` when iterating over dicts.
     Returns the key of current element.
     """
     return context.key
@@ -102,7 +102,7 @@ def rule_key(_t: Transformer, _template, context: Context):
 @Transformer.register_rule('index')
 def rule_index(_t: Transformer, _template, context: Context):
     """
-    Works inside `map` rule.
+    Works inside `map`/`filter`.
     Returns 0-based index of iteration.
     """
     return context.index
@@ -111,7 +111,7 @@ def rule_index(_t: Transformer, _template, context: Context):
 @Transformer.register_rule('value')
 def rule_value(_t: Transformer, _template, context: Context):
     """
-    Works inside `map` rule when iterating over dicts.
+    Works inside `map`/`filter` when iterating over dicts.
     Returns the value of current element.
     """
     return context.value
@@ -224,7 +224,7 @@ def rule_attr(t: Transformer, template, context: Context):
         result = _attr_lookup(t, context.this, names)
     else:
         t.definition_error(
-            'either `name` of `names` attribute is required for `attr` rule'
+            'either `name` or `names` attribute is required for `attr` rule'
         )
     return _apply_default(t, template, context, result)
 

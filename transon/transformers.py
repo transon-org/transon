@@ -173,8 +173,8 @@ class Transformer:
 
     ## Templates
 
-    Template could be any JSON structure. It will be reflected as-is in output, except of `rules` structures.
-    Rules are json objects with special attribute named `$` (this is called marker and can be changed).
+    Template could be any JSON structure. It will be reflected as-is in output, except for rule structures.
+    Rules are JSON objects with special attribute named `$` (this is called marker and can be changed).
     If the rule has nested template the same applies to it as well.
 
     Example template:
@@ -186,7 +186,7 @@ class Transformer:
             "item": [
                 {
                     "x": {
-                        "$": item
+                        "$": "item"
                     }
                 }
             ]
@@ -207,7 +207,7 @@ class Transformer:
         "test": [
             [{"x": 1}],
             [{"x": 2}],
-            [{"x": 3}],
+            [{"x": 3}]
         ]
     }
     ```
@@ -216,7 +216,7 @@ class Transformer:
 
     ## Extending
 
-    All rules are pluggable. There is a list of rules available out of the box.
+    All rules are pluggable. Built-in rules are documented below under **Rules**.
     However, you can easily add your own rules with their own attributes.
 
     ```python
@@ -245,8 +245,8 @@ class Transformer:
 
     Note that `my_rule` can be used with both transformers but may behave differently.
 
-    In same fashion you can also add addition operators for expressions (`expr`) calculations
-    and function (`call`) using decorators
+    In the same fashion you can also add additional operators for expressions (`expr`) calculations
+    and functions (`call`) using decorators
     `register_operator` and `register_function`.
     """
 
