@@ -9,22 +9,20 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.11"
-      - uses: Gr1N/setup-poetry@v8
+          enable-cache: true
       - name: Check Package Version
         run: |
-          version=$(poetry version --no-interaction | awk '{print $2}')
-          tag=${GITHUB_REF#refs/tags/}  # Get the tag name without the 'refs/tags/' prefix
-          tag=${tag#"v"}  # Remove the leading 'v' from the tag, if it exists
+          version=$(uv version --short)
+          tag=${GITHUB_REF#refs/tags/}
+          tag=${tag#v}
           if [[ "${tag}" != "${version}" ]]; then
             echo "Error: Package version ${version} does not match repository tag ${tag}"
             exit 1
           fi
-      - run: poetry install
-      - run: poetry build
+      - run: uv build
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_TOKEN }}

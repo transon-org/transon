@@ -81,8 +81,8 @@ ipython_config.py
 # pyenv (keep .python-version tracked for consistent local versions)
 # .python-version
 
-# Poetry
-# poetry.lock is committed for reproducible installs
+# uv
+# uv.lock is committed for reproducible installs
 
 # IDE
 .idea/

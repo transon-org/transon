@@ -48,6 +48,15 @@ Simply run the following command:
 pip install transon
 ```
 
+## Development
+
+Requires Python 3.9+ and [uv](https://docs.astral.sh/uv/).
+
+```shell
+uv sync --dev
+uv run pytest .
+```
+
 ## Inspired by
  - [XSLT](https://en.wikipedia.org/wiki/XSLT)
  - [JsonLogic](https://jsonlogic.com/)

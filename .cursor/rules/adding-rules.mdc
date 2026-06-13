@@ -37,7 +37,7 @@ def rule_my_rule(t: Transformer, template, context: Context):
    at least one tagged `"<rule>"`, plus one per parameter tagged `"<rule>:<param>"`.
 3. Add error-path tests in `tests/` if applicable.
 4. Update the expected set in `tests/test_transformers.py::test_get_rules`.
-5. Verify docs render: `python -m transon.docs` (requires `pip install -e .`); no `TBD` reported.
+5. Verify docs render: `uv run python -m transon.docs`; no `TBD` reported.
 6. Run full suite: `pytest .`
 
 ## Operators / functions

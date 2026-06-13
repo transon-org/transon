@@ -32,11 +32,11 @@ producing JSON *output*. It is inspired by XSLT and JsonLogic.
 | `transon/docs.py` | Documentation generator: harvests docstrings + test cases into JSON |
 | `transon/tests/` | **Example corpus**: table-driven test cases that double as documentation |
 | `tests/` | Plain pytest tests for engine mechanics (errors, extension, docs generation) |
-| `.github/workflows/dev.yml` | CI: pytest + coverage on Python 3.8–3.13 |
+| `.github/workflows/dev.yml` | CI: pytest + coverage on Python 3.9–3.13 (uv) |
 | `.github/workflows/release.yml` | PyPI publish on `v*` tags |
 
-Packaging is Poetry (`pyproject.toml`). Runtime dependencies: none (stdlib only;
-`importlib-metadata` backport for Python 3.7).
+Packaging is uv / PEP 621 (`pyproject.toml`, `uv.lock`). Runtime dependencies: none
+(stdlib only).
 
 ---
 
@@ -367,14 +367,13 @@ mocking, `get_all_docs()` smoke test.
 ### 6.3 Running
 
 ```shell
-poetry install --with dev
-poetry run pytest -v --cov=transon --cov-config=.coveragerc --cov-report term-missing .
+uv sync --dev
+uv run pytest -v --cov=transon --cov-config=.coveragerc --cov-report term-missing .
 ```
 
-CI (`.github/workflows/dev.yml`) runs this matrix on Python 3.8–3.13 and uploads
+CI (`.github/workflows/dev.yml`) runs this matrix on Python 3.9–3.13 and uploads
 coverage to Codecov (3.11 only). Coverage excludes `transon/tests/*` (`.coveragerc`).
-Keep code compatible with **Python 3.7** (no 3.8+ syntax: no walrus in hot paths is
-fine, but no `match`, no `|` type unions, etc.).
+Requires **Python 3.9+**.
 
 ---
 
@@ -405,7 +404,7 @@ tagged example cases.
 
 ## 8. Versioning & release
 
-- Version lives **only** in `pyproject.toml` (`tool.poetry.version`); runtime reads it
+- Version lives **only** in `pyproject.toml` (`[project].version`); runtime reads it
   via `importlib.metadata`.
 - Release: push tag `v*` → `.github/workflows/release.yml` builds with Poetry and
   publishes to PyPI.
@@ -435,7 +434,7 @@ tagged example cases.
 - Registry lookups respect MRO; subclass registries never pollute the base class.
 - `NO_CONTENT` skipping semantics in `map`/`object`/`file`/`filter` are part of the
   public contract (relied on by the corpus, e.g. `test_no_content.py`).
-- Iteration order: dict iteration follows insertion order (Python ≥3.7 guarantee).
+- Iteration order: dict iteration follows insertion order (Python 3.7+ guarantee).
 
 ---
 

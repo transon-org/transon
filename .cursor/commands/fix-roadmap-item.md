@@ -21,7 +21,7 @@ which `needs-decision` item to decide on.
 1. Set the item status to `in-progress` in `docs/ROADMAP.md`.
 2. Implement in the engine (`transon/transformers.py`, `transon/rules.py`,
    `transon/operators.py`, `transon/functions.py`). Respect the always-on rules:
-   Python 3.7 compatibility, stdlib only, no input/template mutation.
+   Python 3.9+ compatibility, stdlib only, no input/template mutation.
 3. Tests:
    - behavior visible to template authors → table-driven example case(s) in
      `transon/tests/` with proper `tags` and docstrings (they become documentation);
@@ -33,7 +33,7 @@ which `needs-decision` item to decide on.
    - `README.md` if the public API surface changed.
 5. If behavior changed for existing templates: add a changelog entry (create
    `CHANGELOG.md` if absent) describing old vs new behavior and the migration.
-6. Run the full suite: `poetry run pytest .` (or `pytest .`). All green, coverage
+6. Run the full suite: `uv run pytest .` (or `pytest .`). All green, coverage
    not reduced.
 7. Set the item status to `done` in `docs/ROADMAP.md`, with a one-line note of what
    was shipped (and the chosen option number).

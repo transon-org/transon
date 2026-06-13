@@ -1,16 +1,11 @@
 import importlib
+import importlib.metadata
 import inspect
 import pkgutil
 
 from functools import lru_cache
 from types import ModuleType
 from typing import Union
-
-try:  # pragma: no cover
-    import importlib.metadata as importlib_metadata
-except ImportError:  # pragma: no cover
-    # noinspection PyUnresolvedReferences
-    import importlib_metadata
 
 from transon import Transformer
 
@@ -115,7 +110,7 @@ def get_test_cases_for_rule_param(rule_name, param_name):
 
 def get_all_docs(cls=Transformer):
     return {
-        'version': importlib_metadata.version('transon'),
+        'version': importlib.metadata.version('transon'),
         'doc': inspect.getdoc(cls),
         'rules': [
             {

@@ -37,8 +37,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   Migration: templates that relied on `join` raising when an item was missing now get
   partial joins instead; use explicit validation if raising is required.
 
-- CI test matrix drops Python 3.7 (now 3.8–3.13, including 3.12 and 3.13). Declared
-  package support remains `^3.7` until a follow-up release. (Roadmap R-20, partial)
+- **Python 3.9+ required** — dropped 3.7/3.8 support; removed `importlib-metadata`
+  runtime backport and 3.7 compat cursor rules. (Roadmap R-20, option 1)
+
+  Migration: upgrade to Python 3.9 or newer.
+
+- **Poetry → uv** — packaging and CI now use uv (`uv sync --dev`, `uv run pytest`,
+  `uv build`). `pyproject.toml` is PEP 621; lockfile is `uv.lock`.
+
+  Migration: install [uv](https://docs.astral.sh/uv/), run `uv sync --dev` instead of
+  `poetry install --with dev`.
+
+- CI test matrix: Python 3.9–3.13 via `astral-sh/setup-uv` (replaces Poetry on
+  GitHub Actions).
 
 ## [0.0.8] - 2026-06-13
 

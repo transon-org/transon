@@ -13,7 +13,6 @@ packages exist that could replace domain knowledge):
 | `transon-overview.mdc` | always applied | Engine architecture map and invariants |
 | `testing-conventions.mdc` | test files | Table-driven test corpus conventions |
 | `adding-rules.mdc` | rules/operators/functions | How to add engine rules correctly |
-| `python37-compat.mdc` | `**/*.py` | Forbidden post-3.7 syntax and stdlib features |
 
 ## Commands (`.cursor/commands/`)
 
@@ -32,7 +31,7 @@ External, community-maintained skills are installed as packages from the
 [`skills` CLI](https://github.com/vercel-labs/skills). Installed skills are
 **not committed** — they are reproducibly installed from a manifest. The CLI
 maintains `skills-lock.json` (content hashes per skill), which **is committed**,
-like `poetry.lock`.
+like `uv.lock`.
 
 ### Install
 

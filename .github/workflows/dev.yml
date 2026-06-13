@@ -7,19 +7,20 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python_version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        python_version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: ${{ matrix.python_version }}
-      - uses: Gr1N/setup-poetry@v8
+          enable-cache: true
+      - run: uv python install ${{ matrix.python_version }}
+      - run: uv sync --dev --python ${{ matrix.python_version }}
       - run: |
-          poetry install --with dev
-      - run: |
-          poetry run pytest -v --cov=transon --cov-config=.coveragerc --cov-report term-missing --cov-report=xml .
-      - uses: codecov/codecov-action@v3
+          uv run --python ${{ matrix.python_version }} pytest -v \
+            --cov=transon --cov-config=.coveragerc \
+            --cov-report term-missing --cov-report=xml .
+      - uses: codecov/codecov-action@v4
         if: matrix.python_version == '3.11'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

@@ -22,9 +22,8 @@
    required for compatibility's sake alone. This unblocks the breaking-change
    concern in ~~R-01~~ (done), ~~R-02~~ (done), ~~R-06~~ (done), ~~R-07~~ (done), R-11 (each still needs its per-item option
    chosen, but "is breaking acceptable" is settled: yes, with changelog).
-2. **Python versions**: R-20 option 1 accepted — add 3.12/3.13 to CI now; in the
-   next minor release require ≥3.8 (or ≥3.9), drop the `importlib-metadata`
-   backport, and retire the 3.7 compat rules.
+2. **Python versions**: ~~R-20~~ (done) — require ≥3.9, CI 3.9–3.13, uv for packaging;
+   `importlib-metadata` backport and 3.7 compat rules retired.
 
 ## Checklist
 
@@ -49,7 +48,7 @@
 | [R-17](#r-17-include-has-no-cycledepth-protection-and-a-non-transon-default-error) | `include` has no cycle/depth protection; default loader raises `RuntimeError` | low | done |
 | [R-18](#r-18-include-rule-has-no-docstring) | `include` rule has no docstring | low | done |
 | [R-19](#r-19-docs-expr-with-values-ignores-this--underemphasized) | Docs: `expr` with `values` ignores `this` — underemphasized | low | done |
-| [R-20](#r-20-python-version-policy-37-is-eol-no-312313-in-ci) | Python version policy: 3.7 is EOL, no 3.12/3.13 in CI | medium | accepted |
+| [R-20](#r-20-python-version-policy-37-is-eol-no-312313-in-ci) | Python version policy: 3.7 is EOL, no 3.12/3.13 in CI | medium | done |
 | [R-21](#r-21-broken-type-annotations-in-transformerspy) | Broken type annotations in `transformers.py` | low | done |
 | [R-22](#r-22-contextderive-copies-all-variables-on-every-scope) | `Context.derive` copies all variables on every scope | low | needs-decision |
 
@@ -563,7 +562,7 @@ corpus example demonstrating the ignored-context behavior. No code change.
 
 ### R-20. Python version policy: 3.7 is EOL, no 3.12/3.13 in CI
 
-**Status**: accepted (option 1, see Policy decisions) · **Severity**: medium · **Source**: audit
+**Status**: done (option 1) · **Severity**: medium · **Source**: audit
 
 CI runs 3.7–3.11. Python 3.7 reached end-of-life in June 2023; meanwhile 3.12/3.13
 are untested (risk: stdlib deprecations/removals break the engine unnoticed).
@@ -582,6 +581,12 @@ interpreters people actually use.
    compat tax forever.
 3. Jump straight to ≥3.9 or ≥3.10. More cleanup headroom; drops users on old
    distro Pythons — decide based on actual user base.
+
+**Decision (2026-06-13)**: option 1 — CI 3.9–3.13; `requires-python >=3.9`; drop
+`importlib-metadata` backport; retire 3.7 compat rules; migrate Poetry → uv.
+
+**Shipped**: option 1 — `requires-python >=3.9`, uv packaging, CI matrix 3.9–3.13;
+changelog entry added.
 
 ### R-21. Broken type annotations in `transformers.py`
 
@@ -628,4 +633,4 @@ large collections. Irrelevant for small documents — measure before optimizing.
 3. **NO_CONTENT batch**: ~~R-06~~ (done), ~~R-07~~ (done), ~~R-08~~ (done), ~~R-10~~ (done) — semantics
    interlock; shipped together.
 4. **Feature work**: R-04 (validation), R-05 (error paths), R-11, R-12, R-14.
-5. **Policy/long-term**: R-13, R-15, R-20, R-22.
+5. **Policy/long-term**: R-13, R-15, ~~R-20~~ (done), R-22.
