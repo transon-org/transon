@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.0.10] - 2026-06-13
+
+### Fixed
+
+- Release CI: `uv build` failed when `.python-version` pinned an exact patch not
+  installed on the runner; use `3.11` and `uv build --python 3.11`.
+
+### Changed
+
+- Published wheel again includes `transon/tests` so `transon.docs` and the docs
+  playground can load the example corpus from PyPI.
+
 ## [0.0.9] - 2026-06-13
 
 ### Added
