@@ -51,6 +51,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - CI test matrix: Python 3.9–3.13 via `astral-sh/setup-uv` (replaces Poetry on
   GitHub Actions).
 
+- Packaging: PEP 639 `license = "MIT"`, added `LICENSE` file, tightened hatchling
+  sdist includes, pinned `hatchling>=1.27.0`; release workflow uses `setup-uv@v8`.
+
 ## [0.0.8] - 2026-06-13
 
 ### Changed

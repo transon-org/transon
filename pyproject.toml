@@ -3,14 +3,13 @@ name = "transon"
 version = "0.0.9"
 description = "Homogenous JSON template engine"
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 requires-python = ">=3.9"
 authors = [
     { name = "Eugene Chernyshov", email = "chernyshov.eugene@gmail.com" },
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 dependencies = []
@@ -30,8 +29,21 @@ dev = [
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27.0"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build]
+exclude = [
+  "transon/tests",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["transon"]
+
+[tool.hatch.build.targets.sdist]
+only-include = [
+    "transon",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+]
