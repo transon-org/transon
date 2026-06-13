@@ -47,7 +47,7 @@
 | D-07 | No install / getting-started / outbound links | D. Discoverability | medium | done |
 | D-09 | No rule index, table of contents, or anchors | D. Discoverability | medium | done |
 | D-10 | No conceptual framing (what/why/analogues) | D. Discoverability | low | done |
-| D-13 | Thin page `<title>` and `<meta description>` | D. Discoverability | low | needs-decision |
+| D-13 | Thin page `<title>` and `<meta description>` | D. Discoverability | low | done |
 | D-14 | Blank gray screen during Pyodide load | E. First impression | medium | needs-decision |
 | D-15 | Examples are minimal — no composition / realistic cases | F. Depth & learnability | medium | needs-decision |
 | D-16 | No task-oriented recipes / common-patterns section | F. Depth & learnability | medium | needs-decision |
@@ -326,7 +326,7 @@ under-sells *why* transon exists.
 
 ### D-13. Thin page `<title>` and `<meta description>`
 
-**Status**: needs-decision · **Severity**: low · **Source**: `transon-org.github.io/public/index.html`
+**Status**: done · **Severity**: low · **Source**: `transon-org.github.io/public/index.html` · **Decision**: option 1 + og:image · **Shipped**: site repo (`transon-org.github.io`) — descriptive `<title>` ("Transon — homogeneous JSON-to-JSON template engine & playground"), a one-sentence `<meta description>`, full Open Graph (`og:type`/`site_name`/`url`/`title`/`description`/`image`+dims+alt) and Twitter `summary_large_image` tags in `public/index.html`, plus a committed 1200×630 branded preview at `public/og-image.png` (light minimalist card matching the site, "transon / transforms json" wordmark + tagline "Homogeneous JSON-to-JSON template engine"). `npm run build` verified green; tags and image present in `build/`
 
 `<title>` is just "Transon" and `<meta name="description">` is "Transon
 documentation". No descriptive title, no Open Graph/Twitter card content for link
