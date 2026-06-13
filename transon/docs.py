@@ -60,6 +60,51 @@ def template_loader(name: str):
     )
 
 
+OPERATOR_DOCS = [
+    ('<',  'lt',  'binary', 'any',            'boolean',
+     'Less-than comparison: `true` when the left operand is strictly less than the right.'),
+    ('<=', 'le',  'binary', 'any',            'boolean',
+     'Less-than-or-equal comparison.'),
+    ('==', 'eq',  'binary', 'any',            'boolean',
+     'Equality comparison: `true` when both operands are equal.'),
+    ('!=', 'ne',  'binary', 'any',            'boolean',
+     'Inequality comparison: `true` when the operands differ.'),
+    ('>=', 'ge',  'binary', 'any',            'boolean',
+     'Greater-than-or-equal comparison.'),
+    ('>',  'gt',  'binary', 'any',            'boolean',
+     'Greater-than comparison.'),
+    ('+',  'add', 'binary', 'string, number', 'string, number',
+     'Addition for numbers, concatenation for strings.'),
+    ('-',  'sub', 'binary', 'number',         'number',
+     'Subtraction.'),
+    ('*',  'mul', 'binary', 'number',         'number',
+     'Multiplication.'),
+    ('/',  'div', 'binary', 'number',         'number',
+     'True division; the result is a float.'),
+    ('%',  'mod', 'binary', 'number',         'number',
+     'Modulo: the remainder of a division.'),
+    ('&&', 'and', 'binary', 'any',            'any',
+     'Logical conjunction by truthiness (Python `and`). Returns one of the operands, '
+     'not a strict boolean.'),
+    ('||', 'or',  'binary', 'any',            'any',
+     'Logical disjunction by truthiness (Python `or`). Returns the first truthy '
+     'operand and treats `NO_CONTENT` as falsy.'),
+    ('!',  'not', 'unary',  'boolean',        'boolean',
+     'Logical negation (Python `not`).'),
+]
+
+
+FUNCTION_DOCS = [
+    ('str',   'any', 'str',
+     'Convert any value to its string representation (Python `str`).'),
+    ('int',   'str', 'int',
+     'Parse a string (or number) into an integer (Python `int`). An optional base can '
+     'be passed as a second value.'),
+    ('float', 'str', 'float',
+     'Parse a string (or number) into a floating-point number (Python `float`).'),
+]
+
+
 def get_rules_docs(cls=Transformer):
     return [
         {
@@ -67,6 +112,32 @@ def get_rules_docs(cls=Transformer):
             'doc': inspect.getdoc(rule),
         }
         for rule in cls.get_rules()
+    ]
+
+
+def get_operators_docs():
+    return [
+        {
+            'name': name,
+            'alternative': alternative,
+            'kind': kind,
+            'types': types,
+            'result': result,
+            'doc': doc,
+        }
+        for name, alternative, kind, types, result, doc in OPERATOR_DOCS
+    ]
+
+
+def get_functions_docs():
+    return [
+        {
+            'name': name,
+            'input': input_type,
+            'output': output_type,
+            'doc': doc,
+        }
+        for name, input_type, output_type, doc in FUNCTION_DOCS
     ]
 
 
@@ -81,21 +152,7 @@ def get_rule_parameter_docs(rule_name, cls=Transformer):
     ]
 
 
-def get_test_cases_for_rule(rule_name):
-    return [
-        {
-            'name': case.__name__,
-            'doc': inspect.getdoc(case),
-            'template': case.template,
-            'data': case.data,
-            'result': case.result,
-        }
-        for case in get_test_cases_by_tag(rule_name)
-    ]
-
-
-def get_test_cases_for_rule_param(rule_name, param_name):
-    tag = f'{rule_name}:{param_name}'
+def get_test_cases_for_tag(tag):
     return [
         {
             'name': case.__name__,
@@ -106,6 +163,22 @@ def get_test_cases_for_rule_param(rule_name, param_name):
         }
         for case in get_test_cases_by_tag(tag)
     ]
+
+
+def get_test_cases_for_rule(rule_name):
+    return get_test_cases_for_tag(rule_name)
+
+
+def get_test_cases_for_rule_param(rule_name, param_name):
+    return get_test_cases_for_tag(f'{rule_name}:{param_name}')
+
+
+def get_test_cases_for_operator(alternative):
+    return get_test_cases_for_tag(f'op:{alternative}')
+
+
+def get_test_cases_for_function(name):
+    return get_test_cases_for_tag(f'func:{name}')
 
 
 def get_all_docs(cls=Transformer):
@@ -131,7 +204,21 @@ def get_all_docs(cls=Transformer):
                 ]
             }
             for rule_doc in get_rules_docs(cls)
-        ]
+        ],
+        'operators': [
+            {
+                'operator': operator_doc,
+                'examples': get_test_cases_for_operator(operator_doc['alternative']),
+            }
+            for operator_doc in get_operators_docs()
+        ],
+        'functions': [
+            {
+                'function': function_doc,
+                'examples': get_test_cases_for_function(function_doc['name']),
+            }
+            for function_doc in get_functions_docs()
+        ],
     }
 
 

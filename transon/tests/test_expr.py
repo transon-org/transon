@@ -6,7 +6,7 @@ class ExprSimpleMonads1(base.TableDataBaseCase):
     Adds suffix to input string.
     Illustrates functionality of `expr` rule in form of monad.
     """
-    tags = ['expr:value']
+    tags = ['expr:value', 'op:add']
     template = {
         '$': 'expr',
         'op': '+',
@@ -174,7 +174,7 @@ class ExprLogicalAnd(base.TableDataBaseCase):
     `and`/`&&` use Python logical conjunction (truthiness), not bitwise `&`.
     With integers, `6 and 3` yields `3`, not `2`.
     """
-    tags = ['expr:op']
+    tags = ['expr:op', 'op:and']
     template = {
         '$': 'expr',
         'op': 'and',
@@ -189,7 +189,7 @@ class ExprLogicalOr(base.TableDataBaseCase):
     `or`/`||` use Python logical disjunction (truthiness), not bitwise `|`.
     Returns the first truthy operand or the last operand.
     """
-    tags = ['expr:op']
+    tags = ['expr:op', 'op:or']
     template = {
         '$': 'expr',
         'op': 'or',
@@ -203,7 +203,7 @@ class ExprOrNoContentFallback(base.TableDataBaseCase):
     """
     `or` treats `NO_CONTENT` as falsy, so a missing value falls through to the fallback.
     """
-    tags = ['expr:op', 'attr']
+    tags = ['expr:op', 'op:or', 'attr']
     template = {
         '$': 'expr',
         'op': 'or',
@@ -220,7 +220,7 @@ class ExprUnary1(base.TableDataBaseCase):
     """
     Calculates negation of input using `expr` rule with unary operator as monad.
     """
-    tags = ['expr:op']
+    tags = ['expr:op', 'op:not']
     template = {
         '$': 'expr',
         'op': '!',
@@ -233,7 +233,7 @@ class ExprUnary2(base.TableDataBaseCase):
     """
     Calculates negation of input using `expr` rule with unary operator in alternative form.
     """
-    tags = ['expr:op']
+    tags = ['expr:op', 'op:not']
     template = {
         '$': 'expr',
         'op': 'not',

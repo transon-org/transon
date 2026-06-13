@@ -43,7 +43,7 @@
 | D-05 | Intro is stale vs. v0.0.11 capabilities | B. Freshness | high | done |
 | D-11 | `file` rule has zero examples | C. Completeness | high | done |
 | D-12 | Parameters rendered with no example | C. Completeness | medium | done |
-| D-08 | Operators and functions are not discoverable | C. Completeness | medium | needs-decision |
+| D-08 | Operators and functions are not discoverable | C. Completeness | medium | done |
 | D-07 | No install / getting-started / outbound links | D. Discoverability | medium | needs-decision |
 | D-09 | No rule index, table of contents, or anchors | D. Discoverability | medium | needs-decision |
 | D-10 | No conceptual framing (what/why/analogues) | D. Discoverability | low | needs-decision |
@@ -244,7 +244,7 @@ likely to confuse newcomers (e.g. `filter:cond`, `chain:funcs`) lack a worked ex
 
 ### D-08. Operators and functions are not discoverable
 
-**Status**: needs-decision · **Severity**: medium · **Source**: page structure
+**Status**: done · **Severity**: medium · **Source**: page structure · **Decision**: option 1 (first-class doc blocks — `docs.get_all_docs()` emits `operators`/`functions` arrays rendered as their own sections) · **Shipped**: engine repo — `docs.py` now emits `operators` (14, name/alternative/kind/types/result/doc) and `functions` (3, name/input/output/doc) arrays with examples harvested by `op:<alt>`/`func:<name>` tags; tagged existing `expr`/`call` corpus cases and added `test_operators.py` + a `float` case so every operator/function has a worked example; drift-guard tests in `tests/test_docs.py` keep the documented sets in sync with the registry. Site repo — new `Operator.tsx`/`Function.tsx`, `types.ts` shapes, and "Operators"/"Functions" sections in `App.tsx` (engine docstring changes appear on the live site after the next PyPI release)
 
 The 14 `expr` operators are documented only *inside* the `expr.op` parameter table,
 and the `str`/`int`/`float` functions only *inside* `call.name`. There is no
