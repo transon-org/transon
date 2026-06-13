@@ -8,7 +8,7 @@ class Include(base.TableDataBaseCase):
     For all examples in this documentation you can use them under their name in include command.
     This was achieved by providing special `template_loader` factory to `Transformer` class.
     """
-    tags = ['include']
+    tags = ['include', 'include:name']
     template = {
         '$': 'map',
         'item': {

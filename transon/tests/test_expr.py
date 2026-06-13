@@ -153,6 +153,52 @@ class ExprValuesComplex(base.TableDataBaseCase):
     result = 25
 
 
+class ExprValuesIgnoresThis(base.TableDataBaseCase):
+    """
+    With `values`, the operator runs as `reduce(op, evaluated_list)` — the current
+    context value is not an implicit argument. Input data affects the result only
+    when you reference it explicitly inside a list item (e.g. `{"$": "this"}`).
+    """
+    tags = ['expr:values']
+    template = {
+        '$': 'expr',
+        'op': '+',
+        'values': [1, 2, 3],
+    }
+    data = 'ignored by values mode'
+    result = 6
+
+
+class ExprLogicalAnd(base.TableDataBaseCase):
+    """
+    `and`/`&&` use Python logical conjunction (truthiness), not bitwise `&`.
+    With integers, `6 and 3` yields `3`, not `2`.
+    """
+    tags = ['expr:op']
+    template = {
+        '$': 'expr',
+        'op': 'and',
+        'value': 3,
+    }
+    data = 6
+    result = 3
+
+
+class ExprLogicalOr(base.TableDataBaseCase):
+    """
+    `or`/`||` use Python logical disjunction (truthiness), not bitwise `|`.
+    Returns the first truthy operand or the last operand.
+    """
+    tags = ['expr:op']
+    template = {
+        '$': 'expr',
+        'op': 'or',
+        'value': 5,
+    }
+    data = 0
+    result = 5
+
+
 class ExprUnary1(base.TableDataBaseCase):
     """
     Calculates negation of input using `expr` rule with unary operator as monad.

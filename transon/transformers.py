@@ -1,11 +1,21 @@
 from typing import (
+    Any,
     Callable,
     Dict,
-    NoReturn,
 )
 
 
+class DefinitionError(Exception):
+    pass
+
+
+class TransformationError(Exception):
+    pass
+
+
 class Context:
+    RESERVED_NAMES = ('this', 'item', 'key', 'value', 'index')
+
     def __init__(self, parent=None, **data):
         self._parent = parent
         self._data = data or {}
@@ -24,41 +34,58 @@ class Context:
     def this(self):
         return self._data['this']
 
+    def _require_slot(self, name, message):
+        try:
+            return self._data[name]
+        except KeyError as exc:
+            raise DefinitionError(message) from exc
+
     @property
     def item(self):
-        return self._data['item']
+        return self._require_slot(
+            'item',
+            '`item` is only valid inside `map`/`filter` over a list',
+        )
 
     @property
     def key(self):
-        return self._data['key']
+        return self._require_slot(
+            'key',
+            '`key` is only valid inside `map`/`filter` over a dict',
+        )
 
     @property
     def value(self):
-        return self._data['value']
+        return self._require_slot(
+            'value',
+            '`value` is only valid inside `map`/`filter` over a dict',
+        )
 
     @property
     def index(self):
-        return self._data['index']
+        return self._require_slot(
+            'index',
+            '`index` is only valid inside `map`/`filter`',
+        )
+
+    @classmethod
+    def _check_not_reserved(cls, key: str):
+        if key in cls.RESERVED_NAMES:
+            raise DefinitionError(
+                f'`{key}` is a reserved name and cannot be used as a variable name'
+            )
 
     def __contains__(self, key: str):
-        assert key not in ('this', 'item', 'key', 'value', 'index')
+        self._check_not_reserved(key)
         return key in self._data
 
     def __getitem__(self, key: str):
-        assert key not in ('this', 'item', 'key', 'value', 'index')
+        self._check_not_reserved(key)
         return self._data[key]
 
     def __setitem__(self, key: str, value):
-        assert key not in ('this', 'item', 'key', 'value', 'index')
+        self._check_not_reserved(key)
         self._data[key] = value
-
-
-class DefinitionError(Exception):
-    pass
-
-
-class TransformationError(Exception):
-    pass
 
 
 class NoContent:
@@ -66,8 +93,10 @@ class NoContent:
         return self
 
 
-FileWriterType = Callable[[str, any], NoReturn]
+FileWriterType = Callable[[str, Any], None]
 TemplateLoaderType = Callable[[str], 'Transformer']
+
+DEFAULT_MAX_INCLUDE_DEPTH = 50
 
 
 # noinspection PyUnusedLocal
@@ -77,7 +106,7 @@ def no_file_writer(name: str, data):  # pragma: no cover
 
 # noinspection PyUnusedLocal
 def no_template_loader(name: str) -> 'Transformer':   # pragma: no cover
-    raise RuntimeError(f'template with name `{name}` was not found')
+    raise DefinitionError(f'template with name `{name}` was not found')
 
 
 class Transformer:
@@ -250,11 +279,14 @@ class Transformer:
             file_writer: FileWriterType = no_file_writer,
             template_loader: TemplateLoaderType = no_template_loader,
             marker: str = DEFAULT_MARKER,
+            max_include_depth: int = DEFAULT_MAX_INCLUDE_DEPTH,
     ):
         self.template = template
         self.file_writer = file_writer
         self.template_loader = template_loader
         self.marker = marker
+        self.max_include_depth = max_include_depth
+        self._include_stack = []
 
     def walk_list(self, template, context):
         return [
@@ -296,6 +328,19 @@ class Transformer:
             rule = template[self.marker]
             raise DefinitionError(f'`{name}` property is required for `{rule}` rule')
         return template[name]
+
+    def _prepare_include(self, name):
+        stack = list(self._include_stack)
+        stack.append(name)
+        if len(stack) > self.max_include_depth:
+            chain = ' → '.join(stack)
+            raise TransformationError(
+                'include depth limit ({0}) exceeded: {1}'.format(
+                    self.max_include_depth,
+                    chain,
+                )
+            )
+        return stack
 
     def transform(self, data):
         context = Context(this=data)

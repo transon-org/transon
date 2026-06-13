@@ -94,6 +94,20 @@ class AttrSimpleIndexDoesNotExist(base.TableDataBaseCase):
     result = None
 
 
+class AttrDynamicNameNoContent(base.TableDataBaseCase):
+    """
+    When a dynamic attribute name evaluates to no value, lookup returns no value
+    uniformly — including on lists, where an invalid index type would otherwise fail.
+    """
+    tags = ['attr:name', 'get']
+    template = {
+        '$': 'attr',
+        'name': {'$': 'get', 'name': 'missing_var'},
+    }
+    data = [1, 2, 3]
+    result = None
+
+
 class AttrDynamicReferenceName1(base_attr.AttrDynamicReferenceName):
     data = {
         'a': 1,

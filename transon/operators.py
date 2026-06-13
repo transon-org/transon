@@ -3,6 +3,14 @@ import operator
 from transon import Transformer
 
 
+def _logical_and(a, b):
+    return a and b
+
+
+def _logical_or(a, b):
+    return a or b
+
+
 Transformer.register_operator('lt')(operator.lt)
 Transformer.register_operator('le')(operator.le)
 Transformer.register_operator('eq')(operator.eq)
@@ -16,8 +24,8 @@ Transformer.register_operator('mul')(operator.mul)
 Transformer.register_operator('div')(operator.truediv)
 Transformer.register_operator('mod')(operator.mod)
 
-Transformer.register_operator('and')(operator.and_)
-Transformer.register_operator('or')(operator.or_)
+Transformer.register_operator('and')(_logical_and)
+Transformer.register_operator('or')(_logical_or)
 Transformer.register_operator('not')(operator.not_)
 
 Transformer.register_operator('<')(operator.lt)
@@ -33,6 +41,6 @@ Transformer.register_operator('*')(operator.mul)
 Transformer.register_operator('/')(operator.truediv)
 Transformer.register_operator('%')(operator.mod)
 
-Transformer.register_operator('&&')(operator.and_)
-Transformer.register_operator('||')(operator.or_)
+Transformer.register_operator('&&')(_logical_and)
+Transformer.register_operator('||')(_logical_or)
 Transformer.register_operator('!')(operator.not_)

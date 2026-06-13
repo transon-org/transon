@@ -8,6 +8,38 @@ from transon import (
     DefinitionError,
 )
 
+_transon_errors = (DefinitionError, TransformationError)
+
+
+def _require_variable_name(name):
+    if name is Transformer.NO_CONTENT:
+        raise TransformationError(
+            'variable name cannot be no value (name evaluated to NO_CONTENT)'
+        )
+
+
+def _attr_lookup(container, names):
+    no_content = Transformer.NO_CONTENT
+    if names is no_content:
+        return no_content
+    if isinstance(names, list):
+        for segment in names:
+            if segment is no_content:
+                return no_content
+    try:
+        if isinstance(names, list):
+            return reduce(operator.getitem, names, container)
+        return container[names]
+    except KeyError:
+        return Transformer.NO_CONTENT
+    except IndexError:
+        return Transformer.NO_CONTENT
+    except TypeError as exc:
+        raise TransformationError(
+            'cannot access attribute or index on value of type '
+            f'{type(container).__name__}'
+        ) from exc
+
 
 @Transformer.register_rule('this')
 def rule_this(_t: Transformer, _template, context: Context):
@@ -24,6 +56,8 @@ def rule_parent(_t: Transformer, _template, context: Context):
     """
     Returns the value stored in previous context.
     """
+    if context.parent is None:
+        raise DefinitionError('`parent` is not available in the root context')
     return context.parent.this
 
 
@@ -65,7 +99,10 @@ def rule_value(_t: Transformer, _template, context: Context):
 
 @Transformer.register_rule(
     'set',
-    name="Name of the variable. Can be dynamic.",
+    name="Name of the variable. Can be dynamic. "
+         "The names `this`, `item`, `key`, `value` and `index` are reserved "
+         "and cannot be used as variable names. "
+         "Raises `TransformationError` if the name evaluates to `NO_CONTENT`.",
 )
 def rule_set(t: Transformer, template, context: Context):
     """
@@ -75,13 +112,17 @@ def rule_set(t: Transformer, template, context: Context):
     """
     t_name = t.require(template, 'name')
     name = t.walk(t_name, context)
+    _require_variable_name(name)
     context[name] = context.this
     return context.this
 
 
 @Transformer.register_rule(
     'get',
-    name="Name of the variable. Can be dynamic.",
+    name="Name of the variable. Can be dynamic. "
+         "The names `this`, `item`, `key`, `value` and `index` are reserved "
+         "and cannot be used as variable names. "
+         "Raises `TransformationError` if the name evaluates to `NO_CONTENT`.",
 )
 def rule_get(t: Transformer, template, context: Context):
     """
@@ -90,6 +131,7 @@ def rule_get(t: Transformer, template, context: Context):
     """
     t_name = t.require(template, 'name')
     name = t.walk(t_name, context)
+    _require_variable_name(name)
     if name in context:
         return context[name]
     return t.NO_CONTENT
@@ -112,27 +154,19 @@ def rule_attr(t: Transformer, template, context: Context):
     Returns values of attribute or item from current value in context.
     Can search in deeply nested structures with path.
     If attribute is not present returns no value.
+    If the dynamic name or any path segment evaluates to `NO_CONTENT`, returns
+    no value (uniformly for all container types).
 
     Parameters are mutually exclusive.
     """
     if 'name' in template:
         t_name = template['name']
         name = t.walk(t_name, context)
-        try:
-            return context.this[name]
-        except KeyError:
-            return t.NO_CONTENT
-        except IndexError:
-            return t.NO_CONTENT
+        return _attr_lookup(context.this, name)
     elif 'names' in template:
         t_names = template['names']
         names = t.walk(t_names, context)
-        try:
-            return reduce(operator.getitem, names, context.this)
-        except KeyError:
-            return t.NO_CONTENT
-        except IndexError:
-            return t.NO_CONTENT
+        return _attr_lookup(context.this, names)
     else:
         raise DefinitionError('either `name` of `names` attribute is required for `attr` rule')
 
@@ -270,7 +304,12 @@ def rule_zip(t: Transformer, template, context: Context):
 
     t_items = t.require(template, 'items')
     items = t.walk(t_items, context)
-    return list(zip(*items))
+    try:
+        return list(zip(*items))
+    except TypeError as exc:
+        raise TransformationError(
+            f'zip items must be iterable lists: {exc}'
+        ) from exc
 
 
 @Transformer.register_rule(
@@ -314,7 +353,9 @@ def _is_dict(x):
 @Transformer.register_rule(
     'join',
     items="List of values to concatenate.",
-    sep="Defines separator for strings concatenation.",
+    sep="Defines separator for strings concatenation. Can be dynamic. "
+        "Used only when all items are strings; must evaluate to a string "
+        "(raises `TransformationError` otherwise). Defaults to empty string.",
 )
 def rule_join(t: Transformer, template, context: Context):
     """
@@ -324,7 +365,13 @@ def rule_join(t: Transformer, template, context: Context):
     t_items = t.require(template, 'items')
     items = t.walk(t_items, context)
     if all(map(_is_str, items)):
-        sep = template.get('sep', '')
+        sep = ''
+        if 'sep' in template:
+            sep = t.walk(template['sep'], context)
+            if sep is t.NO_CONTENT or not isinstance(sep, str):
+                raise TransformationError(
+                    '`sep` must evaluate to a string for string join'
+                )
         return sep.join(items)
     elif all(map(_is_list, items)):
         return sum(items, [])
@@ -338,7 +385,8 @@ def rule_join(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'chain',
-    funcs="Define list of templates (not just rules) for chaining",
+    funcs="Define list of templates (not just rules) for chaining. "
+          "The list structure is constant; each element is walked as a template.",
 )
 def rule_chain(t: Transformer, template, context: Context):
     """
@@ -388,14 +436,21 @@ def rule_chain(t: Transformer, template, context: Context):
     | *            | mul         | binary | number         | number         |
     | /            | div         | binary | number         | number         |
     | %            | mod         | binary | number         | number         |
-    | &&           | and         | binary | boolean        | boolean        |
-    | &#124;&#124; | or          | binary | boolean        | boolean        |
+    | &&           | and         | binary | any            | any            |
+    | &#124;&#124; | or          | binary | any            | any            |
     | !            | not         | unary  | boolean        | boolean        |
 
     You can use code-style or mnemonic name (i.e. operator or alternative). 
 """,
     value="Defines template for single parameter value",
-    values="Defines template for multiple parameters values",
+    values="""
+Defines template for multiple parameter values.
+
+> **Warning:** Unlike unary mode and `value` mode, **`this` is not used** when `values`
+> is specified. The operator is applied via `reduce(op, values)` over the evaluated
+> list only. Include `{"$": "this"}` as a list item if you need the current context
+> value in the reduction.
+""",
 )
 def rule_expr(t: Transformer, template, context: Context):
     """
@@ -417,16 +472,32 @@ def rule_expr(t: Transformer, template, context: Context):
     op_code = t.require(template, 'op')
     op = t.get_operator(op_code)
 
+    def _apply_expr(fn):
+        try:
+            return fn()
+        except _transon_errors:
+            raise
+        except TypeError as exc:
+            raise TransformationError(
+                f'expr operator {op_code!r} failed on incompatible operands'
+            ) from exc
+
     if 'value' in template:
         t_value = template['value']
         value = t.walk(t_value, context)
-        return op(context.this, value)
+        return _apply_expr(lambda: op(context.this, value))
     elif 'values' in template:
         t_values = template['values']
         values = t.walk(t_values, context)
-        return reduce(op, values)
+        if not isinstance(values, list):
+            raise DefinitionError('`values` must be a list for `expr` rule')
+        if not values:
+            raise DefinitionError(
+                '`values` must contain at least one element for `expr` rule'
+            )
+        return _apply_expr(lambda: reduce(op, values))
     else:
-        return op(context.this)
+        return _apply_expr(lambda: op(context.this))
 
 
 @Transformer.register_rule(
@@ -467,21 +538,34 @@ def rule_call(t: Transformer, template, context: Context):
     name = t.require(template, 'name')
     function = t.get_function(name)
 
+    def _apply_call(fn):
+        try:
+            return fn()
+        except _transon_errors:
+            raise
+        except TypeError as exc:
+            raise TransformationError(
+                f'call to {name!r} failed on incompatible arguments'
+            ) from exc
+
     if 'value' in template:
         t_value = template['value']
         value = t.walk(t_value, context)
-        return function(value)
+        return _apply_call(lambda: function(value))
     elif 'values' in template:
         t_values = template['values']
         values = t.walk(t_values, context)
-        return function(*values)
+        if not isinstance(values, list):
+            raise DefinitionError('`values` must be a list for `call` rule')
+        return _apply_call(lambda: function(*values))
     else:
-        return function(context.this)
+        return _apply_call(lambda: function(context.this))
 
 
 @Transformer.register_rule(
     'format',
-    pattern="Defines pattern for string formatting. This is always a constant.",
+    pattern="Defines pattern for string formatting. Can be dynamic. "
+            "Must evaluate to a string (raises `TransformationError` otherwise).",
     value="Defines template for input data. Optional.",
 )
 def rule_format(t: Transformer, template, context: Context):
@@ -497,17 +581,27 @@ def rule_format(t: Transformer, template, context: Context):
     If value is list if will be unpacked to separate items.
     Otherwise while value will be passed to formatting.
     """
-    pattern = t.require(template, 'pattern')
+    t_pattern = t.require(template, 'pattern')
+    pattern = t.walk(t_pattern, context)
+    if pattern is t.NO_CONTENT or not isinstance(pattern, str):
+        raise TransformationError(
+            '`pattern` must evaluate to a string for format'
+        )
     value = context.this
     if 'value' in template:
         t_value = template['value']
         value = t.walk(t_value, context)
-    if isinstance(value, list):
-        return pattern.format(*value)
-    elif isinstance(value, dict):
-        return pattern.format(**value)
-    else:
-        return pattern.format(value)
+    try:
+        if isinstance(value, list):
+            return pattern.format(*value)
+        elif isinstance(value, dict):
+            return pattern.format(**value)
+        else:
+            return pattern.format(value)
+    except (KeyError, IndexError) as exc:
+        raise TransformationError(
+            f'format pattern {pattern!r} references a missing key or index'
+        ) from exc
 
 
 @Transformer.register_rule(
@@ -515,8 +609,23 @@ def rule_format(t: Transformer, template, context: Context):
     name="Name or path to template. Can be dynamic. Meaning of this `name` depends on provided template loader.",
 )
 def rule_include(t: Transformer, template, context: Context):
+    """
+    Loads and runs another template using the `template_loader` delegate
+    (a parameter to `Transformer` constructor).
+
+    Only the current context value is passed to the included template — variables
+    stored with `set`/`get` and iteration accessors do not cross the boundary.
+
+    Nested includes are limited by `max_include_depth` on `Transformer` (default 50).
+    Exceeding the limit raises `TransformationError` with the include name chain.
+
+    If the included template produces no result, this rule produces no result.
+    """
     t_name = t.require(template, 'name')
     name = t.walk(t_name, context)
+    stack = t._prepare_include(name)
     sub_transformer = t.template_loader(name)
+    sub_transformer._include_stack = stack
+    sub_transformer.max_include_depth = t.max_include_depth
     result = sub_transformer.transform(context.this)
     return t.NO_CONTENT if result is sub_transformer.NO_CONTENT else result

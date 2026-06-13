@@ -1,0 +1,69 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## [Unreleased]
+
+## [0.0.8] - 2026-06-13
+
+### Changed
+
+- `expr` operators `and`/`or` (aliases `&&`/`||`) now use Python **logical**
+  conjunction/disjunction with truthiness semantics (`a and b`, `a or b`), not
+  bitwise `&`/`|`. For example, `6 and 3` now yields `3`, not `2`; `0 or 5`
+  yields `5`. The result may be an operand value, not necessarily a boolean.
+  (Roadmap R-01, option 1)
+
+  Migration: templates that relied on integer bit arithmetic via `and`/`or` must
+  use a different approach (e.g. nested arithmetic with `mul`/`add`/`mod`).
+
+- Using a reserved name (`this`, `item`, `key`, `value`, `index`) as a variable
+  name with `set`/`get` now raises `DefinitionError` instead of `AssertionError`.
+  Previously the guard was implemented with `assert`, so under `python -O`
+  (or `PYTHONOPTIMIZE`) it was removed entirely and such templates could silently
+  overwrite the engine's own context slots, corrupting iteration state. The check
+  is now always active. (Roadmap R-03)
+
+  Migration: catch `transon.DefinitionError` instead of `AssertionError`; templates
+  must not use reserved names as variables (they never worked correctly).
+
+- Known leak sites for raw Python exceptions (`TypeError`, `KeyError`, etc.) now
+  re-raise as `DefinitionError` or `TransformationError` with descriptive messages:
+  `attr` invalid index types, `zip` non-iterables, `expr`/`call` bad `values`
+  parameters or incompatible operands, `format` missing keys, iteration accessors
+  and `parent` outside valid scope. Callers can rely on
+  `except (DefinitionError, TransformationError)` as the complete error boundary.
+  (Roadmap R-02, option 1)
+
+  Migration: catch `transon.DefinitionError` / `transon.TransformationError`
+  instead of raw `TypeError`, `KeyError`, or `IndexError` from transon rules.
+
+- When a dynamic variable `name` evaluates to `NO_CONTENT`, `set` and `get` now
+  raise `TransformationError` instead of silently using the sentinel as a variable
+  key. `attr` returns `NO_CONTENT` uniformly when the dynamic name or any path
+  segment is `NO_CONTENT` (previously list indexing raised `TransformationError`
+  while dict lookup returned `NO_CONTENT` by accident). (Roadmap R-09, option 1)
+
+  Migration: ensure computed variable names are defined before `set`/`get`; optional
+  deep lookups via computed keys continue to work through `attr` returning no value.
+
+- `join.sep` and `format.pattern` are now dynamic templates (walked like other rule
+  parameters). A rule invocation or other template in these slots is evaluated at
+  runtime instead of being used verbatim. `expr.op`, `call.name`, and `chain.funcs`
+  list structure remain constant. (Roadmap R-16, option 2)
+
+  Migration: templates that accidentally placed a marker dict in `join.sep` or
+  `format.pattern` expecting it to be ignored will now be evaluated; use a literal
+  string if you need a fixed separator or pattern.
+
+- The default `template_loader` (used by `include` when none is configured) now raises
+  `DefinitionError` instead of `RuntimeError`. Nested `include` calls are limited by
+  `max_include_depth` on `Transformer` (default 50, overridable); exceeding the limit
+  raises `TransformationError` with the include name chain (e.g. `A → B → A`).
+  (Roadmap R-17, option 1 with name tracking)
+
+  Migration: catch `DefinitionError` instead of `RuntimeError` for missing templates;
+  configure `max_include_depth` if legitimate include chains exceed 50 levels, or
+  refactor deeply nested includes.

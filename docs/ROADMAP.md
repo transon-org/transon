@@ -9,7 +9,7 @@
 > Sources: the spec's former §12 "Known issues" list — **fully migrated into this
 > file**; per-item `Spec: §12.N` labels record which original entry an item came
 > from — plus an engine-semantics audit (2026-06, labeled `Source: audit`). All
-> described behaviors are verified against the implementation (v0.0.7).
+> described behaviors are verified against the implementation (v0.0.8).
 
 **Statuses**: `needs-decision` (maintainer must pick an option) ·
 `accepted` (option chosen, ready to implement) · `in-progress` · `done` ·
@@ -20,7 +20,7 @@
 1. **Compatibility**: pre-1.0 freedom — behavior-changing fixes may change defaults
    directly, with a changelog entry and a minor version bump. No opt-in flags
    required for compatibility's sake alone. This unblocks the breaking-change
-   concern in R-01, R-02, R-06, R-07, R-11 (each still needs its per-item option
+   concern in ~~R-01~~ (done), ~~R-02~~ (done), R-06, R-07, R-11 (each still needs its per-item option
    chosen, but "is breaking acceptable" is settled: yes, with changelog).
 2. **Python versions**: R-20 option 1 accepted — add 3.12/3.13 to CI now; in the
    next minor release require ≥3.8 (or ≥3.9), drop the `importlib-metadata`
@@ -30,27 +30,27 @@
 
 | ID | Title | Severity | Status |
 |---|---|---|---|
-| [R-01](#r-01-andor-operators-are-bitwise-not-logical) | `and`/`or` operators are bitwise, not logical | high | needs-decision |
-| [R-02](#r-02-raw-python-exceptions-escape-the-error-model) | Raw Python exceptions escape the error model | high | needs-decision |
-| [R-03](#r-03-reserved-name-guard-is-an-assert-vanishes-under--o) | Reserved-name guard is an `assert` — vanishes under `-O` | high | accepted |
+| [R-01](#r-01-andor-operators-are-bitwise-not-logical) | `and`/`or` operators are bitwise, not logical | high | done |
+| [R-02](#r-02-raw-python-exceptions-escape-the-error-model) | Raw Python exceptions escape the error model | high | done |
+| [R-03](#r-03-reserved-name-guard-is-an-assert-vanishes-under--o) | Reserved-name guard is an `assert` — vanishes under `-O` | high | done |
 | [R-04](#r-04-no-template-validation-phase-typos-and-ambiguity-pass-silently) | No template validation; typos and ambiguity pass silently | high | needs-decision |
 | [R-05](#r-05-error-messages-carry-no-template-location) | Error messages carry no template location | medium | needs-decision |
 | [R-06](#r-06-no_content-leaks-to-the-caller-at-top-level) | `NO_CONTENT` leaks to the caller at top level | high | needs-decision |
 | [R-07](#r-07-no_content-leaks-into-format-output) | `NO_CONTENT` leaks into `format` output | high | needs-decision |
 | [R-08](#r-08-join-is-inconsistent-with-no_content-items) | `join` is inconsistent with `NO_CONTENT` items | medium | needs-decision |
-| [R-09](#r-09-no_content-as-a-dynamic-name-attrsetget) | `NO_CONTENT` as a dynamic name (`attr`/`set`/`get`) | medium | needs-decision |
+| [R-09](#r-09-no_content-as-a-dynamic-name-attrsetget) | `NO_CONTENT` as a dynamic name (`attr`/`set`/`get`) | medium | done |
 | [R-10](#r-10-no-default-value-mechanism) | No default-value mechanism | medium | needs-decision |
 | [R-11](#r-11-zip-emits-python-tuples-and-inherits-python-zip-quirks) | `zip` emits Python tuples and inherits Python `zip` quirks | medium | needs-decision |
 | [R-12](#r-12-join-of-an-empty-list-returns-) | `join` of an empty list returns `""` | low | needs-decision |
 | [R-13](#r-13-output-aliases-input-data-shared-mutable-structures) | Output aliases input data (shared mutable structures) | medium | needs-decision |
 | [R-14](#r-14-no-escape-for-a-literal-marker-key) | No escape for a literal marker (`$`) key | medium | needs-decision |
 | [R-15](#r-15-set-scoping-is-subtle-and-undocumented) | `set` scoping is subtle and undocumented | medium | needs-decision |
-| [R-16](#r-16-constant-vs-dynamic-parameters-are-inconsistent) | Constant vs dynamic parameters are inconsistent | low | needs-decision |
-| [R-17](#r-17-include-has-no-cycledepth-protection-and-a-non-transon-default-error) | `include` has no cycle/depth protection; default loader raises `RuntimeError` | low | needs-decision |
-| [R-18](#r-18-include-rule-has-no-docstring) | `include` rule has no docstring | low | accepted |
-| [R-19](#r-19-docs-expr-with-values-ignores-this--underemphasized) | Docs: `expr` with `values` ignores `this` — underemphasized | low | accepted |
+| [R-16](#r-16-constant-vs-dynamic-parameters-are-inconsistent) | Constant vs dynamic parameters are inconsistent | low | done |
+| [R-17](#r-17-include-has-no-cycledepth-protection-and-a-non-transon-default-error) | `include` has no cycle/depth protection; default loader raises `RuntimeError` | low | done |
+| [R-18](#r-18-include-rule-has-no-docstring) | `include` rule has no docstring | low | done |
+| [R-19](#r-19-docs-expr-with-values-ignores-this--underemphasized) | Docs: `expr` with `values` ignores `this` — underemphasized | low | done |
 | [R-20](#r-20-python-version-policy-37-is-eol-no-312313-in-ci) | Python version policy: 3.7 is EOL, no 3.12/3.13 in CI | medium | accepted |
-| [R-21](#r-21-broken-type-annotations-in-transformerspy) | Broken type annotations in `transformers.py` | low | accepted |
+| [R-21](#r-21-broken-type-annotations-in-transformerspy) | Broken type annotations in `transformers.py` | low | done |
 | [R-22](#r-22-contextderive-copies-all-variables-on-every-scope) | `Context.derive` copies all variables on every scope | low | needs-decision |
 
 ---
@@ -59,7 +59,7 @@
 
 ### R-01. `and`/`or` operators are bitwise, not logical
 
-**Status**: needs-decision · **Severity**: high · **Spec**: §12.1
+**Status**: done (option 1) · **Severity**: high · **Spec**: §12.1
 
 `and`/`or`/`&&`/`||` map to `operator.and_`/`or_` — Python’s **bitwise** `&`/`|`.
 Correct on `bool` inputs; on ints it computes bit arithmetic (`6 and 3` → `2`); on
@@ -81,15 +81,18 @@ data corruption in real pipelines.
 3. Keep current behavior, document loudly, add new `all`/`any` style operators with
    logical semantics. Preserves compatibility but permanently traps newcomers.
 
+**Shipped**: option 1 — `and`/`or`/`&&`/`||` now use logical conjunction/disjunction
+with Python truthiness; changelog entry added.
+
 ### R-02. Raw Python exceptions escape the error model
 
-**Status**: needs-decision · **Severity**: high · **Spec**: §12.6, §12.7 + audit
+**Status**: done (option 1) · **Severity**: high · **Spec**: §12.6, §12.7 + audit
 
 The contract is: `DefinitionError` = bad template, `TransformationError` = bad data.
 In practice many code paths leak raw Python exceptions (all verified):
 
 - `attr` only catches `KeyError`/`IndexError`; string-indexing a string or indexing
-  a list with a non-int (including `NO_CONTENT`, see R-09) raises raw `TypeError`.
+  a list with a non-int (including `NO_CONTENT`, see ~~R-09~~) raises raw `TypeError`.
 - `zip` over non-iterables → raw `TypeError` (`'int' object is not iterable`).
 - `expr` with `values: []` → raw `TypeError` from `reduce()` of empty iterable.
 - `call` with `values` that isn’t a list → raw `TypeError` from `fn(*values)`.
@@ -118,9 +121,17 @@ from config or end users, this is an API-contract hole.
 
 Option 1 and 2 compose; 1 alone already covers all known sites.
 
+**Decision (2026-06-13)**: option 1 — wrap each known leak site; re-raise as
+`DefinitionError` or `TransformationError` with a descriptive message.
+
+**Shipped**: option 1 — known leak sites (`attr`, `zip`, `expr`, `call`, `format`,
+iteration accessors, `parent`) now raise transon errors; changelog entry added.
+
 ### R-03. Reserved-name guard is an `assert` — vanishes under `-O`
 
-**Status**: accepted (fix is unambiguous) · **Severity**: high · **Spec**: §12.7 + audit
+**Status**: done (2026-06-13 — explicit checks raising `DefinitionError`, always
+active regardless of `-O`; changelog entry added) · **Severity**: high ·
+**Spec**: §12.7 + audit
 
 `Context.__contains__/__getitem__/__setitem__` enforce that `this`, `item`, `key`,
 `value`, `index` aren’t used as variable names — via `assert`. Verified: under
@@ -134,6 +145,9 @@ can silently shadow engine internals — worst-case silent wrong output. Even wi
 **Fix (single obvious option)**: replace asserts with explicit checks raising
 `DefinitionError` (it is a template-authoring mistake). Strictly a bugfix; the only
 visible change is `AssertionError` → `DefinitionError`.
+
+**Shipped**: explicit `DefinitionError` checks (always active, including under `-O`);
+changelog entry added.
 
 ### R-04. No template validation; typos and ambiguity pass silently
 
@@ -261,7 +275,7 @@ a redundant `filter`/`map` pass.
 
 ### R-09. `NO_CONTENT` as a dynamic name (`attr`/`set`/`get`)
 
-**Status**: needs-decision · **Severity**: medium · **Source**: audit
+**Status**: done (option 1) · **Severity**: medium · **Source**: audit
 
 When a dynamic `name` itself evaluates to `NO_CONTENT` (e.g. `{"$": "get"}` of an
 undefined variable feeding `attr`):
@@ -282,6 +296,12 @@ template authors can’t always control; the `set` case hides bugs.
    error, not a missing value).
 2. Raise `TransformationError` in all three rules. Stricter; makes “optional deep
    lookup via computed key” patterns crash.
+
+**Decision (2026-06-13)**: option 1 — `attr` returns `NO_CONTENT` when the dynamic
+name (or any path segment) is `NO_CONTENT`; `set`/`get` raise `TransformationError`.
+
+**Shipped**: option 1 — uniform `attr` absorption; `set`/`get` error on
+`NO_CONTENT` names; changelog entry added.
 
 ### R-10. No default-value mechanism
 
@@ -433,20 +453,19 @@ error.
 
 ### R-16. Constant vs dynamic parameters are inconsistent
 
-**Status**: needs-decision · **Severity**: low · **Source**: audit
+**Status**: done (option 2) · **Severity**: low · **Source**: audit
 
 Most rule parameters are templates (walked); a handful are read verbatim:
-`expr.op`, `call.name`, `format.pattern`, `join.sep`, `chain.funcs` structure.
-The rule docs don’t always say which. Verified failure: a template passed as
-`join.sep` isn’t evaluated — it crashes with raw `AttributeError: 'dict' object
-has no attribute 'join'` (also an R-02 instance).
+`expr.op`, `call.name`, and `chain.funcs` list structure. Previously `join.sep`
+and `format.pattern` were also constant, which caused raw Python errors when
+authors passed templates in those slots.
 
 **Impact if not fixed**: authors must memorize per-parameter rules; mistakes
-surface as raw Python errors rather than “this parameter must be constant”.
+surface as raw Python errors rather than evaluated templates or clear errors.
 
 **Options**:
 
-1. **(Recommended)** Document constness per parameter (audit all `register_rule`
+1. Document constness per parameter (audit all `register_rule`
    param docs), and raise `DefinitionError` when a constant parameter receives a
    dict containing the marker. Keeps semantics, fixes diagnostics.
 2. Make conservative parameters dynamic where harmless (`join.sep`,
@@ -454,9 +473,16 @@ surface as raw Python errors rather than “this parameter must be constant”.
    `call.name` would make static validation (R-04) impossible — at minimum keep
    those constant.
 
+**Decision (2026-06-13)**: option 2 — walk `join.sep` and `format.pattern`; keep
+`expr.op`, `call.name`, and `chain.funcs` list structure constant.
+
+**Shipped**: option 2 — `join.sep` and `format.pattern` are walked; non-string
+results raise `TransformationError`; param docs and spec updated; changelog entry
+added.
+
 ### R-17. `include` has no cycle/depth protection; default loader raises `RuntimeError`
 
-**Status**: needs-decision · **Severity**: low · **Source**: audit
+**Status**: done (option 1 with name tracking) · **Severity**: low · **Source**: audit
 
 A `template_loader` that permits cycles (e.g. `docs.template_loader` includes any
 test case by name) lets two templates include each other → raw `RecursionError`.
@@ -476,22 +502,36 @@ misconfiguration.
    more state threading through nested transformers). Depth limit is simpler and
    catches the same accidents.
 
+**Decision (2026-06-13)**: option 1 with name tracking — `DefinitionError` from the
+default loader; depth limit (default 50, overridable) with include name chain in
+`TransformationError` messages.
+
+**Shipped**: option 1 with name tracking — default loader raises `DefinitionError`;
+`max_include_depth` on `Transformer` (default 50); depth exceeded raises
+`TransformationError` with name chain; changelog entry added.
+
 ### R-18. `include` rule has no docstring
 
-**Status**: accepted (trivial, no decision needed) · **Severity**: low · **Spec**: §12.11
+**Status**: done · **Severity**: low · **Spec**: §12.11
 
 The only rule whose generated documentation is `doc: null`. Fix: write the
 markdown docstring on `rule_include` covering loader delegation, the
 value-only boundary (no variable/context crossing), and `NO_CONTENT` propagation.
 Impact of not fixing: a documented feature is invisible on the docs site/playground.
 
+**Shipped**: added `rule_include` docstring (loader delegation, value-only boundary,
+`NO_CONTENT` propagation); tagged existing corpus example with `include:name`.
+
 ### R-19. Docs: `expr` with `values` ignores `this` — underemphasized
 
-**Status**: accepted (docs-only) · **Severity**: low · **Spec**: §12.10
+**Status**: done · **Severity**: low · **Spec**: §12.10
 
 Intended behavior, stated once in prose. Easy to misuse since every other mode
 involves `this`. Fix: add a warning callout in the `values` parameter doc and a
 corpus example demonstrating the ignored-context behavior. No code change.
+
+**Shipped**: warning callout on `expr` `values` parameter doc; corpus example
+`ExprValuesIgnoresThis` (`1+2+3` with unrelated input string).
 
 ---
 
@@ -521,13 +561,15 @@ interpreters people actually use.
 
 ### R-21. Broken type annotations in `transformers.py`
 
-**Status**: accepted (trivial, no decision needed) · **Severity**: low · **Source**: audit
+**Status**: done · **Severity**: low · **Source**: audit
 
 `FileWriterType = Callable[[str, any], NoReturn]` uses the builtin function `any`
 instead of `typing.Any`, and `NoReturn` (function never returns) instead of `None`
 (returns nothing). Harmless at runtime, wrong under any type checker.
 Fix: `Callable[[str, Any], None]`. Impact of not fixing: type checkers report
 nonsense for anyone integrating the library; signals low typing hygiene.
+
+**Shipped**: `FileWriterType` corrected to `Callable[[str, Any], None]`.
 
 ### R-22. `Context.derive` copies all variables on every scope
 
@@ -555,9 +597,9 @@ large collections. Irrelevant for small documents — measure before optimizing.
 
 ## Suggested sequencing
 
-1. **No-decision fixes** (can start immediately): R-03, R-18, R-19, R-21.
-2. **Error-model batch** (one minor release, loud changelog): R-01, R-02, R-09,
-   R-16-diagnostics, R-17 — all convert crashes/silent wrongness into documented
+1. **No-decision fixes** (can start immediately): ~~R-03~~ (done), ~~R-18~~ (done), ~~R-19~~ (done), ~~R-21~~ (done).
+2. **Error-model batch** (one minor release, loud changelog): ~~R-01~~ (done), ~~R-02~~ (done), ~~R-09~~ (done),
+   ~~R-16~~ (done), ~~R-17~~ (done) — all convert crashes/silent wrongness into documented
    errors.
 3. **NO_CONTENT batch**: R-06, R-07, R-08, R-10 — decide together, semantics
    interlock.

@@ -24,6 +24,15 @@ def test_invalid_rule(template):
         transformer.transform(0)
 
 
+@pytest.mark.parametrize('rule', ['set', 'get'])
+@pytest.mark.parametrize('name', ['this', 'item', 'key', 'value', 'index'])
+def test_reserved_variable_name(rule, name):
+    transformer = Transformer({'$': rule, 'name': name})
+
+    with pytest.raises(DefinitionError, match='reserved name'):
+        transformer.transform(0)
+
+
 def test_get_rules():
     assert {
         rule.__rule_name__

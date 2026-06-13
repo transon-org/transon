@@ -72,6 +72,27 @@ class JoinTwoStrings(base_join.JoinTwoBase):
     result = 'hello world!'
 
 
+class JoinTwoStringsWithDynamicSep(base.TableDataBaseCase):
+    """
+    Joins two strings using a separator taken from input data.
+    """
+    tags = ['join', 'join:sep', 'attr']
+    template = {
+        '$': 'join',
+        'items': [
+            {'$': 'attr', 'name': 'first'},
+            {'$': 'attr', 'name': 'second'},
+        ],
+        'sep': {'$': 'attr', 'name': 'separator'},
+    }
+    data = {
+        'first': 'hello',
+        'second': 'world',
+        'separator': ', ',
+    }
+    result = 'hello, world'
+
+
 class JoinManyDynamicDicts(base.TableDataBaseCase):
     """
     Iterates over input list twice.

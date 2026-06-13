@@ -1,7 +1,7 @@
 # transon — Engine Specification
 
 > **Audience**: developers (human or AI) maintaining and extending the `transon` library itself.
-> **Status**: descriptive — this document specifies the engine *as implemented* (v0.0.7).
+> **Status**: descriptive — this document specifies the engine *as implemented* (v0.0.8).
 > Deliberate design questions and suspected accidental behaviors are tracked in
 > [`docs/ROADMAP.md`](ROADMAP.md) (see [§12](#12-known-issues--design-questions)).
 
@@ -63,8 +63,8 @@ A rule invocation dict carries its parameters as sibling keys of the marker:
 ```
 
 Rule parameters are themselves templates (walked recursively), except where a rule
-explicitly requires a constant (e.g. `expr.op`, `call.name`, `format.pattern`,
-`join.sep`, `chain.funcs` list structure).
+explicitly requires a constant (e.g. `expr.op`, `call.name`, `chain.funcs` list
+structure).
 
 ### 2.2 Context
 
@@ -92,9 +92,10 @@ executes in. Consequences (all verified against the implementation):
 - `get` only checks the current context's data dict — but ancestor variables are
   present there by copying at derive time, so lookup effectively covers the whole chain.
 
-The names `this`, `item`, `key`, `value`, `index` are **reserved**: `Context.__contains__`,
-`__getitem__`, `__setitem__` assert against them, so they cannot be used as variable
-names with `set`/`get` (violation raises `AssertionError`, not a transon error type).
+The names `this`, `item`, `key`, `value`, `index` are **reserved**
+(`Context.RESERVED_NAMES`): `Context.__contains__`, `__getitem__`, `__setitem__`
+check against them, so they cannot be used as variable names with `set`/`get`
+(violation raises `DefinitionError`).
 
 ### 2.3 NO_CONTENT — the "no value" sentinel
 
@@ -120,8 +121,8 @@ In the documentation/test corpus, a top-level `NO_CONTENT` result is treated as 
 
 | Exception | Meaning | Raised when |
 |---|---|---|
-| `DefinitionError` | The template is malformed | Unknown rule/operator/function name; missing required rule parameter (`Transformer.require`); `attr` with neither `name` nor `names`; `map` with no valid parameter combination |
-| `TransformationError` | The template is valid but input data is incompatible | `map`/`filter` over a non-iterable (not list/dict); `join` over mixed-type items |
+| `DefinitionError` | The template is malformed | Unknown rule/operator/function name; missing required rule parameter (`Transformer.require`); `attr` with neither `name` nor `names`; `map` with no valid parameter combination; reserved variable name (`this`, `item`, `key`, `value`, `index`) used with `set`/`get`; iteration accessors (`item`, `key`, `value`, `index`) or `parent` used outside their valid scope; `expr`/`call` with a non-list or empty `values` parameter; `include` with no configured `template_loader` (default loader) |
+| `TransformationError` | The template is valid but input data is incompatible | `map`/`filter` over a non-iterable (not list/dict); `join` over mixed-type items; `attr` lookup with an incompatible index type; `zip` over non-iterable items; `expr` operator applied to incompatible operand types; `call` with incompatible argument types; `format` pattern referencing a missing key or index; `set`/`get` when a dynamic `name` evaluates to `NO_CONTENT`; `include` depth limit exceeded (nested include chain too deep) |
 
 Both are exported from the package root. Errors are raised lazily during
 `transform()` — there is no template validation phase.
@@ -139,11 +140,12 @@ Transformer(
     file_writer=no_file_writer,    # Callable[[str, Any], None] — used by the `file` rule
     template_loader=no_template_loader,  # Callable[[str], Transformer] — used by `include`
     marker='$',                    # rule marker key
+    max_include_depth=50,          # nested `include` depth limit (see `include` rule)
 )
 transformer.transform(data) -> output   # may return Transformer.NO_CONTENT
 ```
 
-The default `template_loader` raises `RuntimeError`; the default `file_writer` silently
+The default `template_loader` raises `DefinitionError`; the default `file_writer` silently
 discards writes.
 
 ### 3.2 Registries and extension
@@ -206,14 +208,15 @@ All rules live in `transon/rules.py`. "Dynamic" parameters are walked as templat
 | `key` | current dict key | inside `map`/`filter` over a dict |
 | `value` | current dict value | inside `map`/`filter` over a dict |
 
-Accessing an iteration property outside its scope raises `KeyError` (no transon error type).
+Accessing `parent` in the root context or an iteration property outside its scope
+raises `DefinitionError`.
 
 ### 4.2 Variables
 
 | Rule | Parameters | Semantics |
 |---|---|---|
-| `set` | `name` (dynamic) | Stores `context.this` under `name` in the *current* context; returns `context.this` (pass-through, usable as a tap inside `chain`) |
-| `get` | `name` (dynamic) | Returns the stored value or `NO_CONTENT` if undefined |
+| `set` | `name` (dynamic) | Stores `context.this` under `name` in the *current* context; returns `context.this` (pass-through, usable as a tap inside `chain`). Raises `TransformationError` if `name` evaluates to `NO_CONTENT`. |
+| `get` | `name` (dynamic) | Returns the stored value or `NO_CONTENT` if undefined. Raises `TransformationError` if `name` evaluates to `NO_CONTENT`. |
 
 ### 4.3 Data access — `attr`
 
@@ -223,7 +226,10 @@ Parameters (mutually exclusive; one required, else `DefinitionError`):
 - `names` (dynamic): list of keys/indexes, applied sequentially (deep path).
 
 Missing key (`KeyError`) or index out of range (`IndexError`) → `NO_CONTENT`.
-Other lookup failures (e.g. `TypeError` indexing a string with a string) propagate raw.
+When `name` or any path segment in `names` evaluates to `NO_CONTENT` → `NO_CONTENT`
+(uniform regardless of container type).
+Other lookup failures (e.g. `TypeError` indexing a string with a string) →
+`TransformationError`.
 
 ### 4.4 Structure builders
 
@@ -233,7 +239,7 @@ Other lookup failures (e.g. `TypeError` indexing a string with a string) propaga
 | `map` | exactly one of: `item` \| `items` \| `key`+`value` | Iterates `context.this` (list or dict). `item`: one output element per input element → list. `items`: template yields a *list* of elements per input element, concatenated → list. `key`+`value`: → dict. `NO_CONTENT` results are skipped. Each iteration derives a sub-context with `this`=element plus iteration props. |
 | `filter` | `cond` (required, dynamic) | Keeps elements where `cond` is truthy (and not `NO_CONTENT`). Preserves container type: list→list, dict→dict. |
 | `zip` | `items` (required, dynamic) | `list(zip(*items))` — transposes a list of lists. Produces Python **tuples** in the output. |
-| `join` | `items` (required, dynamic), `sep` (constant, strings only, default `""`) | Type-homogeneous concatenation: all-strings → `sep.join`; all-lists → flatten one level; all-dicts → merged dict (later keys win). Mixed types → `TransformationError`. |
+| `join` | `items` (required, dynamic), `sep` (dynamic, strings only, default `""`) | Type-homogeneous concatenation: all-strings → `sep.join`; all-lists → flatten one level; all-dicts → merged dict (later keys win). Mixed types → `TransformationError`. `sep` must evaluate to a string when joining strings. |
 | `chain` | `funcs` (required; list of templates) | Function composition: walks each template in order, each result becomes `this` of a derived context for the next. `chain(f1, f2, f3)(x) == f3(f2(f1(x)))`. |
 
 ### 4.5 Computation
@@ -242,14 +248,14 @@ Other lookup failures (e.g. `TypeError` indexing a string with a string) propaga
 |---|---|---|
 | `expr` | `op` (required, constant), optionally `value` (dynamic) or `values` (dynamic) | No param → unary `op(this)`. `value` → binary `op(this, value)`. `values` → `reduce(op, values)` (**`this` is ignored**). |
 | `call` | `name` (required, constant), optionally `value` or `values` (dynamic) | No param → `fn(this)`. `value` → `fn(value)`. `values` → `fn(*values)`. `this` is ignored when params given. |
-| `format` | `pattern` (required, constant), `value` (optional, dynamic; defaults to `this`) | Python `str.format`. List value → positional unpack `pattern.format(*v)`; dict value → keyword unpack `pattern.format(**v)`; otherwise single argument. |
+| `format` | `pattern` (required, dynamic), `value` (optional, dynamic; defaults to `this`) | Python `str.format`. `pattern` must evaluate to a string. List value → positional unpack `pattern.format(*v)`; dict value → keyword unpack `pattern.format(**v)`; otherwise single argument. |
 
 ### 4.6 Side effects & composition
 
 | Rule | Parameters | Semantics |
 |---|---|---|
 | `file` | `name`, `content` (both required, dynamic) | Calls the configured `file_writer(name, content)`. Skipped if either is `NO_CONTENT`. Always returns `NO_CONTENT` (so `map` over `file` yields `[]`). |
-| `include` | `name` (required, dynamic) | Loads a sub-`Transformer` via the configured `template_loader` and runs it against `context.this`. Variables/context do **not** cross the boundary — only the value. Sub-result `NO_CONTENT` is propagated as this transformer's `NO_CONTENT`. |
+| `include` | `name` (required, dynamic) | Loads a sub-`Transformer` via the configured `template_loader` and runs it against `context.this`. Variables/context do **not** cross the boundary — only the value. Sub-result `NO_CONTENT` is propagated as this transformer's `NO_CONTENT`. Nested includes are tracked by name; exceeding `max_include_depth` (constructor parameter, default 50) raises `TransformationError` with the include chain in the message. |
 
 ### 4.7 Built-in operators (`expr`)
 
@@ -260,7 +266,7 @@ Each operator has a mnemonic and a code-style alias mapping to the same Python
 |---|---|---|---|
 | `lt le eq ne ge gt` | `< <= == != >= >` | `operator.lt` … | comparisons |
 | `add sub mul div mod` | `+ - * / %` | `operator.add` …, `truediv` for `div` | `+` also concatenates strings/lists |
-| `and or not` | `&& \|\| !` | `operator.and_`, `or_`, `not_` | **bitwise**, not logical — see R-01 in `docs/ROADMAP.md` |
+| `and or not` | `&& \|\| !` | logical `and`/`or`/`not` | Python truthiness; returns operands, not always `bool` |
 
 ### 4.8 Built-in functions (`call`)
 

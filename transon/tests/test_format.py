@@ -81,3 +81,20 @@ class FormatWithValue(base.TableDataBaseCase):
     }
     data = ['a', 'b', 'c']
     result = ['a-1', 'b-2', 'c-3']
+
+
+class FormatWithDynamicPattern(base.TableDataBaseCase):
+    """
+    Formats a dict using a pattern string taken from the same input.
+    """
+    tags = ['format', 'format:pattern', 'attr']
+    template = {
+        '$': 'format',
+        'pattern': {'$': 'attr', 'name': 'pattern'},
+    }
+    data = {
+        'pattern': '{greeting}, {name}!',
+        'greeting': 'Hello',
+        'name': 'world',
+    }
+    result = 'Hello, world!'
