@@ -133,6 +133,15 @@ for unknown rules, unknown rule parameters, missing required parameters, ambiguo
 mutually-exclusive parameter combinations, and invalid literal operator/function names
 (see §3.4).
 
+`DefinitionError` and `TransformationError` messages include the template location
+where the failure occurred (a path of dict keys, list indices, rule names, and rule
+parameter names), for example:
+
+```
+value is not iterable: 'not-a-list'
+  at template → pipeline → chain → funcs[0] → map
+```
+
 ---
 
 ## 3. The `Transformer` class

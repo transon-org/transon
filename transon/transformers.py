@@ -1,8 +1,23 @@
+import contextvars
 from typing import (
     Any,
     Callable,
     Dict,
+    Tuple,
 )
+
+_template_path: contextvars.ContextVar[Tuple[str, ...]] = contextvars.ContextVar(
+    'transon_template_path',
+    default=(),
+)
+
+
+def format_error_message(message: str) -> str:
+    path = _template_path.get()
+    if not path:
+        return message
+    location = ' → '.join(('template',) + path)
+    return f'{message}\n  at {location}'
 
 
 class DefinitionError(Exception):
@@ -38,7 +53,7 @@ class Context:
         try:
             return self._data[name]
         except KeyError as exc:
-            raise DefinitionError(message) from exc
+            raise DefinitionError(format_error_message(message)) from exc
 
     @property
     def item(self):
@@ -71,9 +86,9 @@ class Context:
     @classmethod
     def _check_not_reserved(cls, key: str):
         if key in cls.RESERVED_NAMES:
-            raise DefinitionError(
+            raise DefinitionError(format_error_message(
                 f'`{key}` is a reserved name and cannot be used as a variable name'
-            )
+            ))
 
     def __contains__(self, key: str):
         self._check_not_reserved(key)
@@ -106,7 +121,9 @@ def no_file_writer(name: str, data):  # pragma: no cover
 
 # noinspection PyUnusedLocal
 def no_template_loader(name: str) -> 'Transformer':   # pragma: no cover
-    raise DefinitionError(f'template with name `{name}` was not found')
+    raise DefinitionError(format_error_message(
+        f'template with name `{name}` was not found'
+    ))
 
 
 class Transformer:
@@ -242,7 +259,7 @@ class Transformer:
             functions = getattr(c, '_functions', {})
             if name in functions:
                 return functions[name]
-        raise DefinitionError(f'Invalid function `{name}`')
+        raise DefinitionError(format_error_message(f'Invalid function `{name}`'))
 
     @classmethod
     def get_operator(cls, name):
@@ -250,7 +267,7 @@ class Transformer:
             operators = getattr(c, '_operators', {})
             if name in operators:
                 return operators[name]
-        raise DefinitionError(f'Invalid operator `{name}`')
+        raise DefinitionError(format_error_message(f'Invalid operator `{name}`'))
 
     @classmethod
     def get_rule(cls, name):
@@ -258,7 +275,7 @@ class Transformer:
             rules = getattr(c, '_rules', {})
             if name in rules:
                 return rules[name]
-        raise DefinitionError(f'Invalid rule `{name}`')
+        raise DefinitionError(format_error_message(f'Invalid rule `{name}`'))
 
     @classmethod
     def get_rules(cls):
@@ -295,37 +312,61 @@ class Transformer:
         if validate:
             self.validate()
 
-    def walk_list(self, template, context):
+    @property
+    def path(self) -> Tuple[str, ...]:
+        return _template_path.get()
+
+    def definition_error(self, message: str) -> None:
+        raise DefinitionError(format_error_message(message))
+
+    def transformation_error(self, message: str) -> None:
+        raise TransformationError(format_error_message(message))
+
+    def walk_param(self, param_template, context, param_name: str):
+        return self.walk(param_template, context, self.path + (param_name,))
+
+    def _walk_with_path(self, path: Tuple[str, ...], func):
+        token = _template_path.set(path)
+        try:
+            return func()
+        finally:
+            _template_path.reset(token)
+
+    def walk_list(self, template, context, path):
         return [
-            self.walk(item, context)
-            for item in template
+            self.walk(item, context, path + (f'[{index}]',))
+            for index, item in enumerate(template)
         ]
-    
-    def walk_dict(self, template, context):
+
+    def walk_dict(self, template, context, path):
         return {
-            key: self.walk(value, context)
+            key: self.walk(value, context, path + (key,))
             for key, value in template.items()
         }
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def walk_scalar(self, template, context):
+    def walk_scalar(self, template, context, path):
         return template
 
-    def walk_rule(self, template, context):
+    def walk_rule(self, template, context, path):
         rule_name = template[self.marker]
-        rule = self.get_rule(rule_name)
-        return rule(self, template, context)
+        rule_path = path + (rule_name,)
+        return self._walk_with_path(
+            rule_path,
+            lambda: self.get_rule(rule_name)(self, template, context),
+        )
 
-    def walk(self, template, context):
+    def walk(self, template, context, path=()):
+        return self._walk_with_path(path, lambda: self._walk(template, context, path))
+
+    def _walk(self, template, context, path):
         if isinstance(template, list):
-            return self.walk_list(template, context)
-        elif isinstance(template, dict):
+            return self.walk_list(template, context, path)
+        if isinstance(template, dict):
             if self.marker in template:
-                return self.walk_rule(template, context)
-            else:
-                return self.walk_dict(template, context)
-        else:
-            return self.walk_scalar(template, context)
+                return self.walk_rule(template, context, path)
+            return self.walk_dict(template, context, path)
+        return self.walk_scalar(template, context, path)
 
     def write_file(self, name, content):
         self.file_writer(name, content)
@@ -333,32 +374,39 @@ class Transformer:
     def require(self, template, name):
         if name not in template:
             rule = template[self.marker]
-            raise DefinitionError(f'`{name}` property is required for `{rule}` rule')
+            self.definition_error(
+                f'`{name}` property is required for `{rule}` rule'
+            )
         return template[name]
 
     def validate(self):
         """Validate the template statically without input data."""
-        self._validate_template(self.template)
+        self._walk_with_path((), lambda: self._validate_template(self.template))
 
-    def _validate_template(self, template):
+    def _validate_template(self, template, path=()):
         if isinstance(template, list):
-            for item in template:
-                self._validate_template(item)
+            for index, item in enumerate(template):
+                self._validate_template(item, path + (f'[{index}]',))
         elif isinstance(template, dict):
             if self.marker in template:
-                self._validate_rule(template)
+                self._validate_rule(template, path)
             else:
-                for value in template.values():
-                    self._validate_template(value)
+                for key, value in template.items():
+                    self._validate_template(value, path + (key,))
 
-    def _validate_rule(self, template):
+    def _validate_rule(self, template, path):
         rule_name = template[self.marker]
-        rule = self.get_rule(rule_name)
-        self._validate_rule_params(rule_name, rule, template)
-        self._validate_rule_constants(rule_name, template)
-        for key, value in template.items():
-            if key != self.marker:
-                self._validate_template(value)
+        rule_path = path + (rule_name,)
+
+        def validate_body():
+            rule = self.get_rule(rule_name)
+            self._validate_rule_params(rule_name, rule, template)
+            self._validate_rule_constants(rule_name, template)
+            for key, value in template.items():
+                if key != self.marker:
+                    self._validate_template(value, rule_path + (key,))
+
+        self._walk_with_path(rule_path, validate_body)
 
     def _validate_rule_params(self, rule_name, rule, template):
         known = set(getattr(rule, '__rule_params__', {}))
@@ -366,14 +414,14 @@ class Transformer:
         unknown = present - known
         if unknown:
             names = ', '.join(f'`{name}`' for name in sorted(unknown))
-            raise DefinitionError(
+            self.definition_error(
                 f'unknown {names} for `{rule_name}` rule'
             )
 
         schema = getattr(rule, '__rule_schema__', {})
         for param in schema.get('required', ()):
             if param not in present:
-                raise DefinitionError(
+                self.definition_error(
                     f'`{param}` property is required for `{rule_name}` rule'
                 )
 
@@ -391,14 +439,14 @@ class Transformer:
         for mode in non_empty_modes:
             if mode & present and not mode <= present:
                 missing = sorted(mode - present)
-                raise DefinitionError(
+                self.definition_error(
                     f'incomplete parameter set {sorted(mode)!r} for '
                     f'`{rule_name}` rule (missing {missing!r})'
                 )
 
         if len(active_modes) > 1:
             params = sorted(set().union(*active_modes))
-            raise DefinitionError(
+            self.definition_error(
                 f'ambiguous mutually exclusive parameters for `{rule_name}` rule: '
                 f'{params!r}'
             )
@@ -409,7 +457,7 @@ class Transformer:
         if has_empty_mode and not (present & all_mode_params):
             return
 
-        raise DefinitionError(
+        self.definition_error(
             f'no valid parameter combination for `{rule_name}` rule'
         )
 
@@ -425,7 +473,7 @@ class Transformer:
         elif rule_name == 'chain' and 'funcs' in template:
             funcs = template['funcs']
             if not isinstance(funcs, list):
-                raise DefinitionError(
+                self.definition_error(
                     '`funcs` must be a list for `chain` rule'
                 )
 
@@ -434,7 +482,7 @@ class Transformer:
         stack.append(name)
         if len(stack) > self.max_include_depth:
             chain = ' → '.join(stack)
-            raise TransformationError(
+            self.transformation_error(
                 'include depth limit ({0}) exceeded: {1}'.format(
                     self.max_include_depth,
                     chain,

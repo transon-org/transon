@@ -33,7 +33,7 @@
 | [R-02](#r-02-raw-python-exceptions-escape-the-error-model) | Raw Python exceptions escape the error model | high | done |
 | [R-03](#r-03-reserved-name-guard-is-an-assert-vanishes-under--o) | Reserved-name guard is an `assert` — vanishes under `-O` | high | done |
 | [R-04](#r-04-no-template-validation-phase-typos-and-ambiguity-pass-silently) | No template validation; typos and ambiguity pass silently | high | done |
-| [R-05](#r-05-error-messages-carry-no-template-location) | Error messages carry no template location | medium | needs-decision |
+| [R-05](#r-05-error-messages-carry-no-template-location) | Error messages carry no template location | medium | done |
 | [R-06](#r-06-no_content-leaks-to-the-caller-at-top-level) | `NO_CONTENT` leaks to the caller at top level | high | done |
 | [R-07](#r-07-no_content-leaks-into-format-output) | `NO_CONTENT` leaks into `format` output | high | done |
 | [R-08](#r-08-join-is-inconsistent-with-no_content-items) | `join` is inconsistent with `NO_CONTENT` items | medium | done |
@@ -188,7 +188,7 @@ all built-in rules; changelog and spec §3.4 updated.
 
 ### R-05. Error messages carry no template location
 
-**Status**: needs-decision · **Severity**: medium · **Source**: audit
+**Status**: done (option 1) · **Severity**: medium · **Source**: audit
 
 When a transformation fails deep inside a nested template, the error says *what*
 went wrong but not *where* — there is no path like
@@ -207,6 +207,13 @@ hand. Pain grows with template size — exactly where the engine is most useful.
    a context variable. Less plumbing but easy to get subtly wrong.
 3. Do nothing (acceptable while templates stay small; contradicts the library’s
    pitch for complex transformations).
+
+**Decision (2026-06-13)**: option 1 — thread a lightweight path through
+`walk_list`/`walk_dict`/`walk_rule` and include it in transon error messages.
+
+**Shipped**: option 1 — `DefinitionError`/`TransformationError` messages append
+`at template → …` with dict keys, list indices, rule names, and parameter names;
+changelog entry added.
 
 ---
 
@@ -638,5 +645,5 @@ large collections. Irrelevant for small documents — measure before optimizing.
    errors.
 3. **NO_CONTENT batch**: ~~R-06~~ (done), ~~R-07~~ (done), ~~R-08~~ (done), ~~R-10~~ (done) — semantics
    interlock; shipped together.
-4. **Feature work**: ~~R-04~~ (done), R-05 (error paths), R-11, R-12, R-14.
+4. **Feature work**: ~~R-04~~ (done), ~~R-05~~ (done), R-11, R-12, R-14.
 5. **Policy/long-term**: R-13, R-15, ~~R-20~~ (done), R-22.

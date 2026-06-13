@@ -15,6 +15,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   are declared via `_required` and `_modes` on `register_rule`. (Roadmap R-04,
   option 1)
 
+- `DefinitionError` and `TransformationError` messages include the template path
+  where the failure occurred (dict keys, list indices, rule names, parameter names).
+  (Roadmap R-05, option 1)
+
 ## [0.0.10] - 2026-06-13
 
 ### Fixed
