@@ -41,7 +41,7 @@
 | D-04 | Broken JSON in the headline intro example | A. Correctness | high | done |
 | D-06 | Accessor docstrings omit `filter` scope | A. Correctness | medium | done |
 | D-05 | Intro is stale vs. v0.0.11 capabilities | B. Freshness | high | done |
-| D-11 | `file` rule has zero examples | C. Completeness | high | needs-decision |
+| D-11 | `file` rule has zero examples | C. Completeness | high | done |
 | D-12 | Parameters rendered with no example | C. Completeness | medium | needs-decision |
 | D-08 | Operators and functions are not discoverable | C. Completeness | medium | needs-decision |
 | D-07 | No install / getting-started / outbound links | D. Discoverability | medium | needs-decision |
@@ -200,7 +200,7 @@ the project today.
 
 ### D-11. `file` rule has zero examples
 
-**Status**: needs-decision · **Severity**: high · **Source**: `transon/tests/` audit
+**Status**: done · **Severity**: high · **Source**: `transon/tests/` audit · **Decision**: option 1 (corpus example; no playground bridge) · **Shipped**: `FileWriteViaMap` corpus case tagged `file`/`file:name`/`file:content` — `map` over `file` yields `[]`, docstring explains side-effect / `NO_CONTENT` semantics
 
 `file` is the only rule with **no harvested examples**: its tests live in
 `tests/test_file.py` as plain pytest functions (mocking `file_writer`), not as
