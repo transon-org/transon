@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.0.11] - 2026-06-13
+
 ### Changed
 
 - `join` returns `NO_CONTENT` when there are no items to join (including when every
