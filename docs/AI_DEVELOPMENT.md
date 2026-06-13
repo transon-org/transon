@@ -13,6 +13,7 @@ packages exist that could replace domain knowledge):
 | `transon-overview.mdc` | always applied | Engine architecture map and invariants |
 | `testing-conventions.mdc` | test files | Table-driven test corpus conventions |
 | `adding-rules.mdc` | rules/operators/functions | How to add engine rules correctly |
+| `status-consistency.mdc` | `docs/ROADMAP.md`, `CHANGELOG.md` | No mixed lists; keep item statuses aligned across the table, section headers, inline mentions, and changelog |
 
 ## Commands (`.cursor/commands/`)
 
@@ -23,6 +24,23 @@ packages exist that could replace domain knowledge):
 The improvement backlog lives in `docs/ROADMAP.md` (statuses, impact analysis,
 fix options per item) — it is the single home for known issues and open design
 questions; `docs/SPECIFICATION.md` describes current behavior only.
+
+## Consistency checks (`scripts/` + hooks + CI)
+
+Status tracking in `docs/ROADMAP.md` is duplicated across the checklist table,
+per-item `**Status**:` headers, inline `~~R-xx~~` mentions, and `CHANGELOG.md`
+references. Rather than re-asking the agent to "check every place", a deterministic
+validator enforces alignment:
+
+| Mechanism | Location | When it runs |
+|---|---|---|
+| Validator script | `scripts/check_roadmap.py` | On demand (`python scripts/check_roadmap.py`) |
+| CI test | `tests/test_roadmap_consistency.py` | Every `pytest` run / PR |
+| `stop` hook | `.cursor/hooks.json` → `.cursor/hooks/check-roadmap-status.py` | When the agent finishes a turn that left `docs/ROADMAP.md` dirty and inconsistent — auto-prompts a fix |
+| Rule | `.cursor/rules/status-consistency.mdc` | While editing the roadmap/changelog |
+
+General principle (encoded in the rule): **no mixed lists** — once a list tracks a
+field for its items, every item, including new ones, must carry it.
 
 ## Skills (`.agents/skills/`)
 

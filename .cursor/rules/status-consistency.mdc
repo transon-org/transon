@@ -1,0 +1,42 @@
+---
+description: Keep item status/field tracking consistent across lists (no mixed lists); align ROADMAP statuses everywhere
+globs: docs/ROADMAP.md,CHANGELOG.md
+alwaysApply: false
+---
+
+# Status & list-field consistency
+
+## General principle (any list, any doc)
+
+Field tracking in a list must be **exhaustive and uniform**. Once *any* item in a
+list carries a field (a status, an owner, a severity, a checkbox), **every** item
+in that list — including ones you add later — must carry the same field. Never
+leave a mixed list where some items are annotated and others are not. If you add a
+new item to an annotated list, annotate it; if you start annotating, backfill the
+existing items.
+
+## ROADMAP.md: one status, recorded in four places
+
+`docs/ROADMAP.md` records each item's status in places that must always agree:
+
+1. the **Checklist** table — the `Status` column;
+2. the item's section header — the `**Status**:` line under `### R-xx.`;
+3. inline mentions — `~~R-xx~~ (status)` strikethroughs (strikethrough ⇒ `done`/`rejected`);
+4. `CHANGELOG.md` — `(Roadmap R-xx, …)` references imply the item shipped (`done`/`in-progress`).
+
+When you change one item's status, update **all** of these. When you add an item,
+add it to both the table and a section with a matching status. Allowed statuses:
+`needs-decision`, `accepted`, `in-progress`, `done`, `rejected`.
+
+## Verify mechanically — don't eyeball it
+
+After editing `docs/ROADMAP.md` or `CHANGELOG.md`, run the checker instead of
+manually scanning for missed spots:
+
+```bash
+python scripts/check_roadmap.py
+```
+
+It must print "consistent" (exit 0). The same check runs in CI
+(`tests/test_roadmap_consistency.py`) and via a `stop` hook, so unresolved drift
+will block you later — fix it now.
