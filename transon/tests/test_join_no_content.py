@@ -20,3 +20,30 @@ class JoinSkipsMissingStringFields(base.TableDataBaseCase):
         'last': 'Lovelace',
     }
     result = 'Ada Lovelace'
+
+
+class JoinEmptyReturnsNoContent(base.TableDataBaseCase):
+    """
+    Joining an empty list of items produces no value (`NO_CONTENT`).
+    """
+    tags = ['join']
+    template = {
+        '$': 'join',
+        'items': [],
+    }
+    data = {}
+    result = None
+
+
+class JoinEmptyWithDefaultDict(base.TableDataBaseCase):
+    """
+    When there are no items to join, `default` supplies the result value.
+    """
+    tags = ['join', 'join:default']
+    template = {
+        '$': 'join',
+        'items': [],
+        'default': {},
+    }
+    data = {}
+    result = {}

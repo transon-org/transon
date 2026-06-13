@@ -40,7 +40,7 @@
 | [R-09](#r-09-no_content-as-a-dynamic-name-attrsetget) | `NO_CONTENT` as a dynamic name (`attr`/`set`/`get`) | medium | done |
 | [R-10](#r-10-no-default-value-mechanism) | No default-value mechanism | medium | done |
 | [R-11](#r-11-zip-emits-python-tuples-and-inherits-python-zip-quirks) | `zip` emits Python tuples and inherits Python `zip` quirks | medium | done |
-| [R-12](#r-12-join-of-an-empty-list-returns-) | `join` of an empty list returns `""` | low | needs-decision |
+| [R-12](#r-12-join-of-an-empty-list-returns-) | `join` of an empty list returns `""` | low | done |
 | [R-13](#r-13-output-aliases-input-data-shared-mutable-structures) | Output aliases input data (shared mutable structures) | medium | needs-decision |
 | [R-14](#r-14-no-escape-for-a-literal-marker-key) | No escape for a literal marker (`$`) key | medium | needs-decision |
 | [R-15](#r-15-set-scoping-is-subtle-and-undocumented) | `set` scoping is subtle and undocumented | medium | needs-decision |
@@ -293,8 +293,8 @@ a redundant `filter`/`map` pass.
 **Options**:
 
 1. **(Recommended)** Filter `NO_CONTENT` items out before type dispatch — aligns
-   `join` with the documented skip semantics. Edge effect: combines with R-12
-   (all-items-missing → empty-list case hits the `""` quirk).
+   `join` with the documented skip semantics. Edge effect: combines with ~~R-12~~
+   (done) (all-items-missing → empty-list case; now returns `NO_CONTENT`).
 2. Keep raising, but with a precise message (“item 2 is NO_CONTENT”). Honest but
    keeps `join` the odd one out.
 
@@ -393,7 +393,7 @@ non-iterables raise `TransformationError`.
 
 ### R-12. `join` of an empty list returns `""`
 
-**Status**: needs-decision · **Severity**: low · **Spec**: §12.5
+**Status**: done (option 1 refined + falsy sentinel) · **Severity**: low · **Spec**: §12.5
 
 `all()` over an empty list is vacuously true, so the all-strings branch wins:
 joining zero dicts yields `""` instead of `{}`.
@@ -409,6 +409,15 @@ type* when the input collection is empty — a classic edge-case production bug.
 2. Infer intent from the *template* (impossible — items are dynamic) or always
    return `NO_CONTENT` for empty input (breaking, and surprising in string
    pipelines). Not recommended.
+
+**Decision (2026-06-13)**: option 1 refined — `join` returns `NO_CONTENT` when there are
+no items to join (including when all items are `NO_CONTENT`); optional dynamic `default`
+parameter supplies a fallback value (same pattern as `attr`/`get`/`format`/`include`).
+Additionally, `NoContent` is falsy so `expr` `or`/`and` can compose fallbacks in `chain`
+(e.g. `join` → `expr` `or` `{}`).
+
+**Shipped**: option 1 refined + falsy sentinel — empty `join` returns `NO_CONTENT` with
+optional `default`; `NoContent.__bool__` is `False`; changelog entry added.
 
 ### R-13. Output aliases input data (shared mutable structures)
 
@@ -648,5 +657,5 @@ large collections. Irrelevant for small documents — measure before optimizing.
    errors.
 3. **NO_CONTENT batch**: ~~R-06~~ (done), ~~R-07~~ (done), ~~R-08~~ (done), ~~R-10~~ (done) — semantics
    interlock; shipped together.
-4. **Feature work**: ~~R-04~~ (done), ~~R-05~~ (done), ~~R-11~~ (done), R-12, R-14.
+4. **Feature work**: ~~R-04~~ (done), ~~R-05~~ (done), ~~R-11~~ (done), ~~R-12~~ (done), R-14.
 5. **Policy/long-term**: R-13, R-15, ~~R-20~~ (done), R-22.

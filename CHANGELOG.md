@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- `join` returns `NO_CONTENT` when there are no items to join (including when every
+  item is `NO_CONTENT`), instead of vacuously producing `""`. Optional dynamic
+  `default` supplies a fallback value (same pattern as `attr`/`get`/`format`/`include`).
+  (Roadmap R-12, option 1 refined)
+
+  Migration: templates that relied on empty `join` returning `""` must add
+  `"default": ""` or compose a fallback (e.g. `chain` + `expr` `or`).
+
+- `NoContent` is falsy in boolean context, so `expr` `and`/`or` treat `NO_CONTENT`
+  like a missing value and fall through to the other operand. (Roadmap R-12)
+
+  Migration: templates that passed `NO_CONTENT` through `expr` `or` expecting it to
+  be kept must use identity checks elsewhere; use `default` or an explicit fallback
+  operand.
+
 - `zip` returns lists of lists instead of Python tuples, so output rows are
   JSON-friendly and work with `join` and numeric `attr` indexing. Any iterable
   item is still accepted (strings zip character-wise, as with Python `zip`).

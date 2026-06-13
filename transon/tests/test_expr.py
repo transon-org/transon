@@ -199,6 +199,23 @@ class ExprLogicalOr(base.TableDataBaseCase):
     result = 5
 
 
+class ExprOrNoContentFallback(base.TableDataBaseCase):
+    """
+    `or` treats `NO_CONTENT` as falsy, so a missing value falls through to the fallback.
+    """
+    tags = ['expr:op', 'attr']
+    template = {
+        '$': 'expr',
+        'op': 'or',
+        'values': [
+            {'$': 'attr', 'name': 'missing'},
+            'fallback',
+        ],
+    }
+    data = {}
+    result = 'fallback'
+
+
 class ExprUnary1(base.TableDataBaseCase):
     """
     Calculates negation of input using `expr` rule with unary operator as monad.

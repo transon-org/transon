@@ -107,6 +107,9 @@ class NoContent:
     def __getitem__(self, _):
         return self
 
+    def __bool__(self):
+        return False
+
 
 FileWriterType = Callable[[str, Any], None]
 TemplateLoaderType = Callable[[str], 'Transformer']

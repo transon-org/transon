@@ -37,7 +37,7 @@ def test_join_skips_no_content_items():
     }) == 'hello, world'
 
 
-def test_join_all_no_content_items_yields_empty_string():
+def test_join_all_no_content_items_yields_no_content():
     transformer = Transformer({
         '$': 'join',
         'items': [
@@ -45,7 +45,51 @@ def test_join_all_no_content_items_yields_empty_string():
             {'$': 'attr', 'name': 'missing_b'},
         ],
     })
-    assert transformer.transform({}) == ''
+    assert transformer.transform({}) is None
+
+
+def test_join_empty_items_yields_no_content():
+    transformer = Transformer({
+        '$': 'join',
+        'items': [],
+    })
+    assert transformer.transform({}) is None
+
+
+def test_join_empty_items_with_default():
+    transformer = Transformer({
+        '$': 'join',
+        'items': [],
+        'default': {},
+    })
+    assert transformer.transform({}) == {}
+
+
+def test_no_content_is_falsy():
+    assert not Transformer.NO_CONTENT
+
+
+def test_expr_or_falls_back_from_no_content():
+    transformer = Transformer({
+        '$': 'expr',
+        'op': 'or',
+        'values': [
+            {'$': 'attr', 'name': 'missing'},
+            {'fallback': True},
+        ],
+    })
+    assert transformer.transform({}) == {'fallback': True}
+
+
+def test_join_empty_or_fallback_via_chain():
+    transformer = Transformer({
+        '$': 'chain',
+        'funcs': [
+            {'$': 'join', 'items': []},
+            {'$': 'expr', 'op': 'or', 'value': {'empty': True}},
+        ],
+    })
+    assert transformer.transform({}) == {'empty': True}
 
 
 def test_format_no_content_value():

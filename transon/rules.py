@@ -390,16 +390,21 @@ def _is_dict(x):
     sep="Defines separator for strings concatenation. Can be dynamic. "
         "Used only when all items are strings; must evaluate to a string "
         "(raises `TransformationError` otherwise). Defaults to empty string.",
+    default="Optional template for value returned when there are no items to join "
+            "(including when all items are `NO_CONTENT`). Can be dynamic.",
 )
 def rule_join(t: Transformer, template, context: Context):
     """
     Joins (concatenates) together several dicts, lists of strings.
     If items to be concatenated have different types an exception will be thrown.
     Items that evaluate to `NO_CONTENT` are omitted before concatenation.
+    When no items remain, returns `NO_CONTENT` unless `default` is provided.
     """
     t_items = t.require(template, 'items')
     items = t.walk_param(t_items, context, 'items')
     items = [item for item in items if item is not t.NO_CONTENT]
+    if not items:
+        return _apply_default(t, template, context, t.NO_CONTENT)
     if all(map(_is_str, items)):
         sep = ''
         if 'sep' in template:

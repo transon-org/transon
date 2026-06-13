@@ -103,8 +103,13 @@ check against them, so they cannot be used as variable names with `set`/`get`
 of a value (distinct from JSON `null`/Python `None`). Semantics:
 
 - **Producers**: `attr` (missing key/index), `get` (undefined variable), `file` (always),
-  `include` (when the included template yields `NO_CONTENT`). Optional `default` on
-  `attr`, `get`, `format`, and `include` returns a substitute instead of `NO_CONTENT`.
+  `include` (when the included template yields `NO_CONTENT`), `join` (when there are no
+  items to join). Optional `default` on `attr`, `get`, `format`, `include`, and `join`
+  returns a substitute instead of `NO_CONTENT`.
+- **Falsiness**: `NoContent` is falsy in boolean context (`bool()`, `expr` `and`/`or`),
+  so logical operators can fall back from `NO_CONTENT` (e.g. `chain` of `join` then
+  `expr` `or` with a fallback value). Rules that test for absence still use identity
+  (`is NO_CONTENT`), not truthiness.
 - **Absorption**: `NoContent.__getitem__` returns `self`, so further `attr` lookups on
   a missing value stay `NO_CONTENT` instead of raising.
 - **Consumers (skip/filter behavior)**:
@@ -112,7 +117,8 @@ of a value (distinct from JSON `null`/Python `None`). Semantics:
   - `object`: returns `{}` if key or value is `NO_CONTENT`.
   - `file`: skips writing if name or content is `NO_CONTENT`.
   - `filter`: a condition evaluating to `NO_CONTENT` excludes the element.
-  - `join`: items that evaluate to `NO_CONTENT` are omitted before concatenation.
+  - `join`: items that evaluate to `NO_CONTENT` are omitted before concatenation; when
+    no items remain the result is `NO_CONTENT` unless `default` is provided.
 - **`format`**: returns `NO_CONTENT` when the formatting value (or any unpacked list
   element or dict key/value) is `NO_CONTENT`, unless `default` is provided.
 - **Top-level `transform()`**: by default maps a top-level `NO_CONTENT` result to
@@ -299,7 +305,7 @@ Other lookup failures (e.g. `TypeError` indexing a string with a string) →
 | `map` | exactly one of: `item` \| `items` \| `key`+`value` | Iterates `context.this` (list or dict). `item`: one output element per input element → list. `items`: template yields a *list* of elements per input element, concatenated → list. `key`+`value`: → dict. `NO_CONTENT` results are skipped. Each iteration derives a sub-context with `this`=element plus iteration props. |
 | `filter` | `cond` (required, dynamic) | Keeps elements where `cond` is truthy (and not `NO_CONTENT`). Preserves container type: list→list, dict→dict. |
 | `zip` | `items` (required, dynamic) | Transposes iterables like Python's `zip`: each output row is a **list** (`[list(row) for row in zip(*items)]`). Non-iterable items → `TransformationError`. |
-| `join` | `items` (required, dynamic), `sep` (dynamic, strings only, default `""`) | Type-homogeneous concatenation: all-strings → `sep.join`; all-lists → flatten one level; all-dicts → merged dict (later keys win). Items that evaluate to `NO_CONTENT` are omitted before concatenation. Mixed types → `TransformationError`. `sep` must evaluate to a string when joining strings. |
+| `join` | `items` (required, dynamic), `sep` (dynamic, strings only, default `""`), `default` (optional, dynamic) | Type-homogeneous concatenation: all-strings → `sep.join`; all-lists → flatten one level; all-dicts → merged dict (later keys win). Items that evaluate to `NO_CONTENT` are omitted before concatenation. When no items remain → `NO_CONTENT` (or `default` when provided). Mixed types → `TransformationError`. `sep` must evaluate to a string when joining strings. |
 | `chain` | `funcs` (required; list of templates) | Function composition: walks each template in order, each result becomes `this` of a derived context for the next. `chain(f1, f2, f3)(x) == f3(f2(f1(x)))`. |
 
 ### 4.5 Computation
