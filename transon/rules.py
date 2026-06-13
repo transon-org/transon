@@ -330,19 +330,17 @@ def rule_filter(t: Transformer, template, context: Context):
 )
 def rule_zip(t: Transformer, template, context: Context):
     """
-    Works exactly like `zip` function in python.
-    Converts collection of lists into list of items.
-    Another way to think of `zip` is that it turns rows into columns, and columns into rows.
-    This is similar to transposing a matrix.
+    Transposes iterables like Python's `zip`: rows become columns and columns become rows.
+    Each output row is a **list** (JSON-friendly), not a Python tuple.
     """
 
     t_items = t.require(template, 'items')
     items = t.walk_param(t_items, context, 'items')
     try:
-        return list(zip(*items))
+        return [list(row) for row in zip(*items)]
     except TypeError as exc:
         t.transformation_error(
-            f'zip items must be iterable lists: {exc}'
+            f'zip items must be iterable: {exc}'
         )
 
 

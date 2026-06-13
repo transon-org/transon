@@ -20,7 +20,7 @@
 1. **Compatibility**: pre-1.0 freedom — behavior-changing fixes may change defaults
    directly, with a changelog entry and a minor version bump. No opt-in flags
    required for compatibility's sake alone. This unblocks the breaking-change
-   concern in ~~R-01~~ (done), ~~R-02~~ (done), ~~R-06~~ (done), ~~R-07~~ (done), R-11 (each still needs its per-item option
+   concern in ~~R-01~~ (done), ~~R-02~~ (done), ~~R-06~~ (done), ~~R-07~~ (done), ~~R-11~~ (done) (each still needs its per-item option
    chosen, but "is breaking acceptable" is settled: yes, with changelog).
 2. **Python versions**: ~~R-20~~ (done) — require ≥3.9, CI 3.9–3.13, uv for packaging;
    `importlib-metadata` backport and 3.7 compat rules retired.
@@ -39,7 +39,7 @@
 | [R-08](#r-08-join-is-inconsistent-with-no_content-items) | `join` is inconsistent with `NO_CONTENT` items | medium | done |
 | [R-09](#r-09-no_content-as-a-dynamic-name-attrsetget) | `NO_CONTENT` as a dynamic name (`attr`/`set`/`get`) | medium | done |
 | [R-10](#r-10-no-default-value-mechanism) | No default-value mechanism | medium | done |
-| [R-11](#r-11-zip-emits-python-tuples-and-inherits-python-zip-quirks) | `zip` emits Python tuples and inherits Python `zip` quirks | medium | needs-decision |
+| [R-11](#r-11-zip-emits-python-tuples-and-inherits-python-zip-quirks) | `zip` emits Python tuples and inherits Python `zip` quirks | medium | done |
 | [R-12](#r-12-join-of-an-empty-list-returns-) | `join` of an empty list returns `""` | low | needs-decision |
 | [R-13](#r-13-output-aliases-input-data-shared-mutable-structures) | Output aliases input data (shared mutable structures) | medium | needs-decision |
 | [R-14](#r-14-no-escape-for-a-literal-marker-key) | No escape for a literal marker (`$`) key | medium | needs-decision |
@@ -368,13 +368,13 @@ entry added.
 
 ### R-11. `zip` emits Python tuples and inherits Python `zip` quirks
 
-**Status**: needs-decision · **Severity**: medium · **Spec**: §12.8 + audit
+**Status**: done (option 2) · **Severity**: medium · **Spec**: §12.8 + audit
 
-`rule_zip` returns `list(zip(*items))` → a list of **tuples**. Tuples serialize via
-`json.dumps` but are not lists: `join` of zipped rows raises `TransformationError`
-(verified), strict equality/round-trip checks fail. Also inherited from Python
-`zip`: strings are zipped character-wise, and non-iterable items raise raw
-`TypeError` (→ R-02).
+`rule_zip` returned `list(zip(*items))` → a list of **tuples**. Tuples serialize via
+`json.dumps` but are not lists: `join` of zipped rows raised `TransformationError`
+(verified), strict equality/round-trip checks failed. Also inherited from Python
+`zip`: strings are zipped character-wise, and non-iterable items raised raw
+`TypeError` (→ ~~R-02~~).
 
 **Impact if not fixed**: violates the core promise “output is JSON”; `zip` results
 are second-class values inside the engine itself.
@@ -387,6 +387,9 @@ are second-class values inside the engine itself.
    in JSON anyway) and for anyone deliberately zipping strings.
 2. Lists of lists, but keep accepting any iterable (strings zip char-wise).
    Preserves a behavior that is almost certainly never intentional in JSON land.
+
+**Shipped**: option 2 — each output row is a list; any iterable item is accepted;
+non-iterables raise `TransformationError`.
 
 ### R-12. `join` of an empty list returns `""`
 
@@ -645,5 +648,5 @@ large collections. Irrelevant for small documents — measure before optimizing.
    errors.
 3. **NO_CONTENT batch**: ~~R-06~~ (done), ~~R-07~~ (done), ~~R-08~~ (done), ~~R-10~~ (done) — semantics
    interlock; shipped together.
-4. **Feature work**: ~~R-04~~ (done), ~~R-05~~ (done), R-11, R-12, R-14.
+4. **Feature work**: ~~R-04~~ (done), ~~R-05~~ (done), ~~R-11~~ (done), R-12, R-14.
 5. **Policy/long-term**: R-13, R-15, ~~R-20~~ (done), R-22.

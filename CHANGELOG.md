@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- `zip` returns lists of lists instead of Python tuples, so output rows are
+  JSON-friendly and work with `join` and numeric `attr` indexing. Any iterable
+  item is still accepted (strings zip character-wise, as with Python `zip`).
+  (Roadmap R-11, option 2)
+
+  Migration: code that compared output row types to `tuple` or relied on tuple
+  semantics must use lists instead; template behavior is otherwise unchanged.
+
 ### Added
 
 - Opt-in static template validation: `Transformer.validate()` and

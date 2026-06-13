@@ -298,7 +298,7 @@ Other lookup failures (e.g. `TypeError` indexing a string with a string) →
 | `object` | `key`, `value` (both required, dynamic) | Single-pair dict `{key: value}`; `{}` if either side is `NO_CONTENT`. For dynamically-named attributes. |
 | `map` | exactly one of: `item` \| `items` \| `key`+`value` | Iterates `context.this` (list or dict). `item`: one output element per input element → list. `items`: template yields a *list* of elements per input element, concatenated → list. `key`+`value`: → dict. `NO_CONTENT` results are skipped. Each iteration derives a sub-context with `this`=element plus iteration props. |
 | `filter` | `cond` (required, dynamic) | Keeps elements where `cond` is truthy (and not `NO_CONTENT`). Preserves container type: list→list, dict→dict. |
-| `zip` | `items` (required, dynamic) | `list(zip(*items))` — transposes a list of lists. Produces Python **tuples** in the output. |
+| `zip` | `items` (required, dynamic) | Transposes iterables like Python's `zip`: each output row is a **list** (`[list(row) for row in zip(*items)]`). Non-iterable items → `TransformationError`. |
 | `join` | `items` (required, dynamic), `sep` (dynamic, strings only, default `""`) | Type-homogeneous concatenation: all-strings → `sep.join`; all-lists → flatten one level; all-dicts → merged dict (later keys win). Items that evaluate to `NO_CONTENT` are omitted before concatenation. Mixed types → `TransformationError`. `sep` must evaluate to a string when joining strings. |
 | `chain` | `funcs` (required; list of templates) | Function composition: walks each template in order, each result becomes `this` of a derived context for the next. `chain(f1, f2, f3)(x) == f3(f2(f1(x)))`. |
 
@@ -505,7 +505,7 @@ Template:
 ```
 
 Input `{"keys": ["a","b"], "values": [1,2]}` → root context `this=input` →
-`zip` produces `[("a",1), ("b",2)]` → chain derives context with that as `this` →
+`zip` produces `[["a",1], ["b",2]]` → chain derives context with that as `this` →
 `map` iterates, each pair becomes `this`/`item` in a sub-context → `attr` with numeric
 names indexes the tuple → output `{"a": 1, "b": 2}`.
 
