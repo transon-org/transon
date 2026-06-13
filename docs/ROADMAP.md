@@ -50,7 +50,7 @@
 | [R-19](#r-19-docs-expr-with-values-ignores-this--underemphasized) | Docs: `expr` with `values` ignores `this` — underemphasized | low | done |
 | [R-20](#r-20-python-version-policy-37-is-eol-no-312313-in-ci) | Python version policy: 3.7 is EOL, no 3.12/3.13 in CI | medium | done |
 | [R-21](#r-21-broken-type-annotations-in-transformerspy) | Broken type annotations in `transformers.py` | low | done |
-| [R-22](#r-22-contextderive-copies-all-variables-on-every-scope) | `Context.derive` copies all variables on every scope | low | needs-decision |
+| [R-22](#r-22-contextderive-copies-all-variables-on-every-scope) | `Context.derive` copies all variables on every scope | low | done |
 
 ---
 
@@ -659,7 +659,7 @@ nonsense for anyone integrating the library; signals low typing hygiene.
 
 ### R-22. `Context.derive` copies all variables on every scope
 
-**Status**: needs-decision · **Severity**: low · **Source**: audit
+**Status**: done (option 1, copy-on-write) · **Severity**: low · **Source**: audit
 
 `derive()` copies the entire variable dict into every child context (every `map`
 iteration, every `chain` step). With V variables and N iterations that is O(V×N)
@@ -679,6 +679,16 @@ large collections. Irrelevant for small documents — measure before optimizing.
 2. Keep copying; revisit only if profiling shows it matters. **(Recommended for
    now)** — correctness items above are worth more than this optimization.
 
+**Decision (2026-06-13)**: option 1 with copy-on-write — `derive()` stores only
+new props; reads walk the parent chain; the first `set` in a derived scope
+materializes a snapshot of inherited variables so writes stay isolated. Preserves
+R-15 scoping in practice (sequential evaluation never mutates a parent mid-child);
+avoids O(V) copying on read-only `map`/`chain` steps.
+
+**Shipped**: option 1 with copy-on-write — `derive()` stores only new props; reads and
+iteration-slot accessors walk the parent chain; first `set` materializes inherited
+variables for write isolation.
+
 ---
 
 ## Suggested sequencing
@@ -690,4 +700,4 @@ large collections. Irrelevant for small documents — measure before optimizing.
 3. **NO_CONTENT batch**: ~~R-06~~ (done), ~~R-07~~ (done), ~~R-08~~ (done), ~~R-10~~ (done) — semantics
    interlock; shipped together.
 4. **Feature work**: ~~R-04~~ (done), ~~R-05~~ (done), ~~R-11~~ (done), ~~R-12~~ (done), ~~R-14~~ (done).
-5. **Policy/long-term**: ~~R-13~~ (done), ~~R-15~~ (done), ~~R-20~~ (done), R-22.
+5. **Policy/long-term**: ~~R-13~~ (done), ~~R-15~~ (done), ~~R-20~~ (done), ~~R-22~~ (done).

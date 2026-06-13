@@ -78,9 +78,11 @@ structure).
 - User variables — arbitrary names written by the `set` rule, read by `get`.
 - `parent` — the context this one was derived from.
 
-`context.derive(**props)` creates a child: it **copies all data from the parent** and
-overlays the new props. `set` writes into the data dict of the exact context object it
-executes in.
+`context.derive(**props)` creates a child linked via `parent`: it stores only the
+new props (e.g. `this`, iteration slots). Reads of user variables walk the parent
+chain; the first `set` in a derived scope materializes inherited variables into the
+local dict so writes stay isolated. `set` writes into the data dict of the exact
+context object it executes in.
 
 #### Variable scoping (`set` / `get`)
 
@@ -88,7 +90,7 @@ Template authors should treat these rules as the contract (R-15):
 
 | Where `set` runs | Visible to |
 |---|---|
-| Descendant scopes (`derive()` after the `set`) | Yes — copied at derivation time |
+| Descendant scopes (`derive()` after the `set`) | Yes — visible via parent-chain lookup; first `set` in a child snapshots inherited vars |
 | Later sibling keys/items in the same literal dict/list | Yes — siblings share one context object; order matters |
 | Earlier sibling keys/items in the same literal dict/list | No — already evaluated |
 | First func of a `chain` | Caller's scope, later `chain` funcs, and later siblings outside the `chain` |
@@ -107,9 +109,9 @@ Consequences (all verified against the implementation):
   keys (insertion order). The first func of a `chain` also runs in the caller's
   context, so a `set` there escapes into the caller's scope; subsequent funcs run in
   derived contexts and their sets do not.
-- `get` only checks the current context's data dict — but ancestor variables are
-  present there by copying at derive time, so lookup effectively covers ancestor scopes
-  as they existed when the current context was created.
+- `get` walks the current context's data dict, then the parent chain for undefined
+  names — so ancestor variables are visible without eager copying on `derive()`. The
+  first `set` in a derived scope materializes inherited variables locally.
 
 Refactoring pitfall: wrapping a step in `chain`, reordering dict keys, or moving a
 `set` can change visibility with no error — consult the table above.
@@ -313,7 +315,7 @@ raises `DefinitionError`.
 | Rule | Parameters | Semantics |
 |---|---|---|
 | `set` | `name` (dynamic) | Stores `context.this` under `name` in the *current* context; returns `context.this` (pass-through, usable as a tap inside `chain`). Raises `TransformationError` if `name` evaluates to `NO_CONTENT`. Scoping: see §2.2 (variable scoping table). |
-| `get` | `name` (dynamic), `default` (optional, dynamic) | Returns the stored value from the *current* context (ancestor variables are present via copy-on-`derive()`). Returns `NO_CONTENT` if undefined. Raises `TransformationError` if `name` evaluates to `NO_CONTENT`. When `default` is provided, returns its evaluation instead of `NO_CONTENT`. Scoping: see §2.2. |
+| `get` | `name` (dynamic), `default` (optional, dynamic) | Returns the stored value from the *current* context (ancestor variables resolved via parent-chain lookup). Returns `NO_CONTENT` if undefined. Raises `TransformationError` if `name` evaluates to `NO_CONTENT`. When `default` is provided, returns its evaluation instead of `NO_CONTENT`. Scoping: see §2.2. |
 
 Examples for each scoping case live in `transon/tests/test_set.py` (docs-site examples).
 

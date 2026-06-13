@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- `Context.derive()` no longer eagerly copies all parent variables into every child
+  scope. Derived contexts store only new props; `get` walks the parent chain for reads;
+  the first `set` in a derived scope materializes inherited variables (copy-on-write).
+  R-15 scoping semantics are unchanged for sequential template evaluation.
+  (Roadmap R-22, option 1 with copy-on-write)
+
 ### Added
 
 - Documented `set`/`get` variable scoping for template authors: rule docstrings,

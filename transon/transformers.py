@@ -35,12 +35,26 @@ class Context:
     def __init__(self, parent=None, **data):
         self._parent = parent
         self._data = data or {}
+        self._materialized = parent is None
 
     def derive(self, **props):
-        new_props = {}
-        new_props.update(self._data)
-        new_props.update(props)
-        return Context(self, **new_props)
+        return Context(self, **props)
+
+    def _materialize_from_parent(self):
+        if self._materialized or self._parent is None:
+            return
+        merged = {}
+        chain = []
+        ctx = self._parent
+        while ctx is not None:
+            chain.append(ctx)
+            ctx = ctx._parent
+        for ctx in reversed(chain):
+            merged.update(ctx._data)
+        for key, value in merged.items():
+            if key not in self._data:
+                self._data[key] = value
+        self._materialized = True
 
     @property
     def parent(self):
@@ -51,10 +65,12 @@ class Context:
         return self._data['this']
 
     def _require_slot(self, name, message):
-        try:
-            return self._data[name]
-        except KeyError as exc:
-            raise DefinitionError(format_error_message(message)) from exc
+        ctx = self
+        while ctx is not None:
+            if name in ctx._data:
+                return ctx._data[name]
+            ctx = ctx._parent
+        raise DefinitionError(format_error_message(message))
 
     @property
     def item(self):
@@ -93,14 +109,24 @@ class Context:
 
     def __contains__(self, key: str):
         self._check_not_reserved(key)
-        return key in self._data
+        if key in self._data:
+            return True
+        if self._parent is not None:
+            return key in self._parent
+        return False
 
     def __getitem__(self, key: str):
         self._check_not_reserved(key)
-        return self._data[key]
+        if key in self._data:
+            return self._data[key]
+        if self._parent is not None:
+            return self._parent[key]
+        raise KeyError(key)
 
     def __setitem__(self, key: str, value):
         self._check_not_reserved(key)
+        if not self._materialized:
+            self._materialize_from_parent()
         self._data[key] = value
 
 

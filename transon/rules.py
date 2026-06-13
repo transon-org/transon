@@ -136,7 +136,8 @@ def rule_set(t: Transformer, template, context: Context):
     runs in:
 
     - **Descendant scopes**: visible in any context derived *after* the `set`
-      (child scopes copy parent variables at `derive()` time).
+      (child scopes resolve ancestor variables through the parent chain; the first
+      `set` in a child materializes inherited variables for write isolation).
     - **Later siblings, same scope**: when a `set` runs directly at a literal-dict
       key or list element, later-evaluated siblings in that dict/list share the
       same context and can `get` the variable. Earlier siblings cannot — visibility
@@ -172,9 +173,9 @@ def rule_get(t: Transformer, template, context: Context):
     """
     Returns the value stored under the given name in the *current* context.
 
-    Ancestor variables are available because `derive()` copies the parent scope
-    at creation time — but only variables that were already `set` before that
-    derivation. A `set` in a sibling template or a later `chain` func that
+    Ancestor variables are available because `derive()` links child scopes to their
+    parent and `get` walks that chain — but only variables that were already `set`
+    before that derivation. A `set` in a sibling template or a later `chain` func that
     shares no context object with this evaluation will not be found.
 
     Returns `NO_CONTENT` when the name is undefined, unless `default` is
