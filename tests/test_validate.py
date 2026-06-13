@@ -72,6 +72,30 @@ def test_validate_invalid_function_literal():
         transformer.validate()
 
 
+def test_validate_object_fields_literal_marker_key_ok():
+    Transformer(
+        {'$': 'object', 'fields': {'$': {'$': 'attr', 'name': 'x'}}}
+    ).validate()
+
+
+def test_validate_object_fields_recurses_into_values():
+    transformer = Transformer(
+        {'$': 'object', 'fields': {'$': {'$': 'attr', 'nmae': 'x'}}}
+    )
+
+    with pytest.raises(DefinitionError, match='unknown `nmae`'):
+        transformer.validate()
+
+
+def test_validate_object_ambiguous_modes():
+    transformer = Transformer(
+        {'$': 'object', 'key': 'a', 'value': 'b', 'fields': {}}
+    )
+
+    with pytest.raises(DefinitionError, match='ambiguous mutually exclusive'):
+        transformer.validate()
+
+
 def test_validate_chain_funcs_must_be_list():
     transformer = Transformer({'$': 'chain', 'funcs': {'$': 'this'}})
 

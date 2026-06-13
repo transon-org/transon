@@ -203,17 +203,47 @@ def rule_attr(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'object',
-    _required=('key', 'value'),
-    key="Defines template for name of attribute.",
-    value="Defines template for value of attribute.",
+    _modes=(('key', 'value'), ('fields',)),
+    key="Defines template for name of attribute. "
+        "Mutually exclusive with `fields`.",
+    value="Defines template for value of attribute. "
+          "Mutually exclusive with `fields`.",
+    fields="A literal mapping whose keys are emitted verbatim — including the "
+           "marker (`$`), so this is how you produce an object key that is the "
+           "marker itself (data that would otherwise be read as a rule "
+           "invocation). Each value is walked as a template. Entries whose value "
+           "evaluates to `NO_CONTENT` are omitted. Mutually exclusive with "
+           "`key`/`value`.",
 )
 def rule_object(t: Transformer, template, context: Context):
     """
-    Returns a dict with one item.
-    This is useful when you need dynamically named attributes.
-    If you need multiple attributes use `join` or `map`.
-    If `key` or `value` returns no result then the rule returns empty dict.
+    Returns a dict.
+
+    In the default `key`/`value` mode it returns a dict with a single,
+    dynamically named item; this is useful when the attribute name itself comes
+    from the input. If you need multiple attributes use `join` or `map`. If `key`
+    or `value` returns no result then the rule returns an empty dict.
+
+    In the `fields` mode it builds a dict from a literal mapping: each key is
+    emitted verbatim and each value is walked as a template. Because the keys are
+    literal, this is the canonical way to produce an object whose key is the
+    marker (`$`) itself — data that would otherwise be interpreted as a rule
+    invocation. Values that evaluate to `NO_CONTENT` are skipped, omitting the
+    corresponding key from the result.
     """
+    if 'fields' in template:
+        fields = t.require(template, 'fields')
+        if not isinstance(fields, dict):
+            t.definition_error(
+                '`fields` must be a mapping for `object` rule'
+            )
+        result = {}
+        for name, t_value in fields.items():
+            value = t.walk(t_value, context, t.path + (f'fields.{name}',))
+            if value is t.NO_CONTENT:
+                continue
+            result[name] = value
+        return result
     t_key = t.require(template, 'key')
     t_value = t.require(template, 'value')
     key = t.walk_param(t_key, context, 'key')

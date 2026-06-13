@@ -42,7 +42,7 @@
 | [R-11](#r-11-zip-emits-python-tuples-and-inherits-python-zip-quirks) | `zip` emits Python tuples and inherits Python `zip` quirks | medium | done |
 | [R-12](#r-12-join-of-an-empty-list-returns-) | `join` of an empty list returns `""` | low | done |
 | [R-13](#r-13-output-aliases-input-data-shared-mutable-structures) | Output aliases input data (shared mutable structures) | medium | needs-decision |
-| [R-14](#r-14-no-escape-for-a-literal-marker-key) | No escape for a literal marker (`$`) key | medium | needs-decision |
+| [R-14](#r-14-no-escape-for-a-literal-marker-key) | No escape for a literal marker (`$`) key | medium | done |
 | [R-15](#r-15-set-scoping-is-subtle-and-undocumented) | `set` scoping is subtle and undocumented | medium | needs-decision |
 | [R-16](#r-16-constant-vs-dynamic-parameters-are-inconsistent) | Constant vs dynamic parameters are inconsistent | low | done |
 | [R-17](#r-17-include-has-no-cycledepth-protection-and-a-non-transon-default-error) | `include` has no cycle/depth protection; default loader raises `RuntimeError` | low | done |
@@ -443,7 +443,7 @@ mutates input” is true only until the caller touches the result.
 
 ### R-14. No escape for a literal marker (`$`) key
 
-**Status**: needs-decision · **Severity**: medium · **Spec**: §12.9
+**Status**: done (option 4) · **Severity**: medium · **Spec**: §12.9
 
 Data containing `"$"` as a plain key cannot be written literally in a template —
 any dict with the marker key is dispatched as a rule. Workarounds: the `object`
@@ -465,6 +465,21 @@ transform templates *about* transon.
    itself then needs escaping.
 3. Both — quoting for blocks, escaping for single keys. Decide if option 1 alone
    proves insufficient.
+
+**Decision (2026-06-13)**: option 4 (refinement of the rejected new-rule idea) —
+**extend the existing `object` rule** with a `fields` mode instead of adding a new
+keyword. `{"$": "object", "fields": {…}}` takes a literal mapping: keys are emitted
+verbatim (including the marker `$`), values are walked as templates. This is purely
+additive, introduces no new rule name (no change to the registry/`get_rules` set),
+preserves partial templating (every value is dynamic), and only upgrades the existing
+"workaround is the `object` rule" note in the spec. The all-static-deep-block case
+(a future `quote` rule) is deferred as still-rare. Companion key-escaping (option 2)
+is not pursued.
+
+**Shipped**: option 4 — `object` rule extended with a `fields` mode
+(`{"$": "object", "fields": {…}}`): literal keys (including the marker `$`), dynamic
+values, `NO_CONTENT` values omitted. No new rule keyword; `validate()` recurses into
+`fields` values; changelog entry added.
 
 ---
 
@@ -657,5 +672,5 @@ large collections. Irrelevant for small documents — measure before optimizing.
    errors.
 3. **NO_CONTENT batch**: ~~R-06~~ (done), ~~R-07~~ (done), ~~R-08~~ (done), ~~R-10~~ (done) — semantics
    interlock; shipped together.
-4. **Feature work**: ~~R-04~~ (done), ~~R-05~~ (done), ~~R-11~~ (done), ~~R-12~~ (done), R-14.
+4. **Feature work**: ~~R-04~~ (done), ~~R-05~~ (done), ~~R-11~~ (done), ~~R-12~~ (done), ~~R-14~~ (done).
 5. **Policy/long-term**: R-13, R-15, ~~R-20~~ (done), R-22.

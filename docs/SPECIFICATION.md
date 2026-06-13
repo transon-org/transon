@@ -53,8 +53,10 @@ A template is any JSON value. The engine walks it recursively (`Transformer.walk
 - **anything else** (scalar) → returned as-is (`walk_scalar`).
 
 The marker is configurable per `Transformer` instance (`marker=` constructor kwarg).
-There is **no escaping mechanism** for emitting a literal dict that contains the marker
-key — the only workaround is the `object` rule (`{"$": "object", "key": "$", "value": ...}`).
+To emit a literal dict that contains the marker key, use the `object` rule in `fields`
+mode (`{"$": "object", "fields": {"$": ...}}`): the keys of `fields` are emitted
+verbatim while the values are walked as templates (R-14). The single-pair form
+(`{"$": "object", "key": "$", "value": ...}`) also works for one literal key.
 
 A rule invocation dict carries its parameters as sibling keys of the marker:
 
@@ -114,7 +116,8 @@ of a value (distinct from JSON `null`/Python `None`). Semantics:
   a missing value stay `NO_CONTENT` instead of raising.
 - **Consumers (skip/filter behavior)**:
   - `map`: items (or key/value pairs) that evaluate to `NO_CONTENT` are omitted.
-  - `object`: returns `{}` if key or value is `NO_CONTENT`.
+  - `object`: in `key`/`value` mode returns `{}` if key or value is `NO_CONTENT`;
+    in `fields` mode omits each entry whose value is `NO_CONTENT`.
   - `file`: skips writing if name or content is `NO_CONTENT`.
   - `filter`: a condition evaluating to `NO_CONTENT` excludes the element.
   - `join`: items that evaluate to `NO_CONTENT` are omitted before concatenation; when
@@ -301,7 +304,7 @@ Other lookup failures (e.g. `TypeError` indexing a string with a string) →
 
 | Rule | Parameters | Semantics |
 |---|---|---|
-| `object` | `key`, `value` (both required, dynamic) | Single-pair dict `{key: value}`; `{}` if either side is `NO_CONTENT`. For dynamically-named attributes. |
+| `object` | exactly one of: `key`+`value` \| `fields` | `key`+`value` (dynamic): single-pair dict `{key: value}`; `{}` if either side is `NO_CONTENT`. For dynamically-named attributes. `fields`: literal mapping whose keys are emitted verbatim (including the marker `$` — the canonical literal-marker-key escape, R-14) and whose values are walked as templates; entries with a `NO_CONTENT` value are omitted. |
 | `map` | exactly one of: `item` \| `items` \| `key`+`value` | Iterates `context.this` (list or dict). `item`: one output element per input element → list. `items`: template yields a *list* of elements per input element, concatenated → list. `key`+`value`: → dict. `NO_CONTENT` results are skipped. Each iteration derives a sub-context with `this`=element plus iteration props. |
 | `filter` | `cond` (required, dynamic) | Keeps elements where `cond` is truthy (and not `NO_CONTENT`). Preserves container type: list→list, dict→dict. |
 | `zip` | `items` (required, dynamic) | Transposes iterables like Python's `zip`: each output row is a **list** (`[list(row) for row in zip(*items)]`). Non-iterable items → `TransformationError`. |

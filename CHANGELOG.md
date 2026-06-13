@@ -33,6 +33,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `object` rule gained a `fields` mode: `{"$": "object", "fields": {…}}` builds a
+  dict from a literal mapping whose keys are emitted verbatim (including the marker
+  `$`) and whose values are walked as templates. This is the canonical way to emit
+  an object key that is the marker itself — data that would otherwise be read as a
+  rule invocation — while keeping values dynamic. Entries whose value evaluates to
+  `NO_CONTENT` are omitted. Purely additive; the `key`/`value` mode is unchanged.
+  (Roadmap R-14, option 4)
+
 - Opt-in static template validation: `Transformer.validate()` and
   `Transformer(..., validate=True)` raise `DefinitionError` for unknown rules,
   unknown parameters, missing required parameters, ambiguous mutually-exclusive

@@ -49,6 +49,27 @@ class NoContentForObjectValue(base.TableDataBaseCase):
     result = {}
 
 
+class NoContentForObjectFields(base.TableDataBaseCase):
+    """
+    Builds a multi-key object in `fields` mode where one value has no value.
+    The entry whose value resolves to no value is omitted from the result.
+    """
+    tags = ['object:fields', 'get']
+    template = {
+        '$': 'object',
+        'fields': {
+            'present': {'$': 'attr', 'name': 'x'},
+            'missing': {'$': 'get', 'name': 'nope'},
+        },
+    }
+    data = {
+        'x': 'xxx',
+    }
+    result = {
+        'present': 'xxx',
+    }
+
+
 class NoContentForMappingList(base.TableDataBaseCase):
     """
     Demonstrates skipping of items in `list` generation by `map` rule when they have no value.

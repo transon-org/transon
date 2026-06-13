@@ -406,7 +406,18 @@ class Transformer:
             self._validate_rule_params(rule_name, rule, template)
             self._validate_rule_constants(rule_name, template)
             for key, value in template.items():
-                if key != self.marker:
+                if key == self.marker:
+                    continue
+                if (
+                    rule_name == 'object'
+                    and key == 'fields'
+                    and isinstance(value, dict)
+                ):
+                    for field_key, field_value in value.items():
+                        self._validate_template(
+                            field_value, rule_path + (key, field_key)
+                        )
+                else:
                     self._validate_template(value, rule_path + (key,))
 
         self._walk_with_path(rule_path, validate_body)

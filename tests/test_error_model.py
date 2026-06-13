@@ -114,6 +114,18 @@ def test_get_no_content_name():
         transformer.transform(1)
 
 
+def test_object_fields_not_a_mapping():
+    transformer = Transformer({'$': 'object', 'fields': 5})
+    with pytest.raises(DefinitionError, match='`fields` must be a mapping'):
+        transformer.transform(None)
+
+
+def test_object_without_any_mode():
+    transformer = Transformer({'$': 'object'})
+    with pytest.raises(DefinitionError, match='`key` property is required'):
+        transformer.transform(None)
+
+
 def test_join_dynamic_sep_non_string():
     transformer = Transformer({
         '$': 'join',
