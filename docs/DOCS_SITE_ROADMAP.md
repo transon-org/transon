@@ -40,7 +40,7 @@
 | D-03 | `attr` "either name **of** names" typo (error text) | A. Correctness | low | done |
 | D-04 | Broken JSON in the headline intro example | A. Correctness | high | done |
 | D-06 | Accessor docstrings omit `filter` scope | A. Correctness | medium | done |
-| D-05 | Intro is stale vs. v0.0.11 capabilities | B. Freshness | high | needs-decision |
+| D-05 | Intro is stale vs. v0.0.11 capabilities | B. Freshness | high | done |
 | D-11 | `file` rule has zero examples | C. Completeness | high | needs-decision |
 | D-12 | Parameters rendered with no example | C. Completeness | medium | needs-decision |
 | D-08 | Operators and functions are not discoverable | C. Completeness | medium | needs-decision |
@@ -162,7 +162,7 @@ than the real contract.
 
 ### D-05. Intro is stale vs. v0.0.11 capabilities
 
-**Status**: needs-decision · **Severity**: high · **Source**: `transon/transformers.py` (class docstring)
+**Status**: done · **Severity**: high · **Source**: `transon/transformers.py` (class docstring) · **Decision**: option 1 (rewrite the class docstring as a landing narrative) · **Shipped**: refreshed the `Transformer` class docstring — homogeneous JSON-to-JSON pitch + a skimmable "What you can do" capability list (static `validate()`, `default` family, `NO_CONTENT` skip model, `object` `fields` literal keys, configurable `marker`, `copy_output`, `DefinitionError`/`TransformationError` model, `file_writer`/`template_loader` delegates), pointing to the per-rule **Rules** section and the spec for detail; also added a ```plantuml``` input/template→`transon`→output diagram (mirrors the README, rendered on-site via the existing `remark-simple-plantuml` plugin)
 
 The `Transformer` docstring still describes the original 2023 engine. It never
 mentions features that the changelog/spec now advertise and that are the project's

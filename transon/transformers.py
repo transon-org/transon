@@ -160,9 +160,26 @@ class Transformer:
     """
     ## Usage
 
-    `Transformer` class interpolates template with input data.
-    Format of output is defined by template.
-    Input is used to fill values into template placeholders.
+    `transon` is a homogeneous JSON-to-JSON template engine: templates are themselves
+    plain JSON, and the shape of the output is defined entirely by the template.
+    Input data is interpolated into the template's placeholders.
+
+    ```plantuml
+    @startuml
+    skinparam shadowing false
+    skinparam rectangle {
+      BackgroundColor #FEFEFE
+      BorderColor #333333
+    }
+    rectangle "JSON Template" as T
+    rectangle "JSON Input" as I
+    rectangle "transon" as E
+    rectangle "JSON Output" as O
+    T -down-> E
+    I -right-> E
+    E -right-> O
+    @enduml
+    ```
 
     ```python
     from transon import Transformer
@@ -213,6 +230,34 @@ class Transformer:
     ```
 
     Note that each item preserves its template definition (including list around object).
+
+    ## What you can do
+
+    Beyond simple interpolation, `transon` offers:
+
+    - **Static validation** — `Transformer(template, validate=True)` (or calling
+      `.validate()`) checks the template's structure up front, without any input data,
+      raising `DefinitionError` on malformed rules.
+    - **Defaults for missing values** — `attr`, `get`, `join`, `format`, and `include`
+      accept a `default` template, used when the looked-up value is absent.
+    - **A "no value" model** — rules can produce `NO_CONTENT`; container rules such as
+      `map`, `object`, `filter`, and `file` skip it instead of emitting `null`.
+      `transform(data, no_content=...)` controls what a top-level `NO_CONTENT` becomes
+      (defaults to `None`).
+    - **Literal keys** — the `object` rule's `fields` mode builds dicts with literal keys,
+      including a key equal to the marker (`$`).
+    - **Configurable marker** — `Transformer(template, marker="@")` if `$` collides with
+      your data.
+    - **Safe output** — `transform(data, copy_output=True)` deep-copies the result so it
+      shares no mutable structure with the input (which is never mutated regardless).
+    - **A clear error model** — `DefinitionError` signals a malformed template,
+      `TransformationError` signals data that does not fit; both messages include the
+      template path where the problem occurred.
+    - **I/O delegates** — the `file` rule writes through a `file_writer` callback and the
+      `include` rule loads sub-templates through a `template_loader` callback.
+
+    The full set of built-in rules is documented below under **Rules**; see the
+    specification for exhaustive semantics.
 
     ## Extending
 
