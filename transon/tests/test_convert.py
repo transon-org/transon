@@ -41,7 +41,7 @@ class ConvertNoParameters(base.TableDataBaseCase):
     """
     Converts input integer into string.
     """
-    tags = ['call']
+    tags = ['call', 'call:name']
     template = {
         '$': 'call',
         'name': 'str',

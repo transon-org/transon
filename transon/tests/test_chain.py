@@ -5,7 +5,7 @@ class ChainWithAttr(base.TableDataBaseCase):
     """
     Searching for values in nested structure with sequence of `attr` operations chained together.
     """
-    tags = ['map:item', 'chain']
+    tags = ['map:item', 'chain', 'chain:funcs']
     template = {
         '$': 'map',
         'item': {

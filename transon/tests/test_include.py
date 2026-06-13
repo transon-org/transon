@@ -1,6 +1,31 @@
 from . import base
 
 
+class LookupMissingAttr(base.TableDataBaseCase):
+    """
+    Returns no result when a named attribute is absent from the input.
+    Used as an included sub-template in ``IncludeWithDefault``.
+    """
+    tags = ['attr']
+    template = {'$': 'attr', 'name': 'missing'}
+    data = {}
+    result = None
+
+
+class IncludeWithDefault(base.TableDataBaseCase):
+    """
+    Returns a fallback when the included template produces no result.
+    """
+    tags = ['include', 'include:default']
+    template = {
+        '$': 'include',
+        'name': 'LookupMissingAttr',
+        'default': 'fallback',
+    }
+    data = {}
+    result = 'fallback'
+
+
 class Include(base.TableDataBaseCase):
     """
     Illustrates usage of `include` rule by iterating over input `list` and applying different template to each item.

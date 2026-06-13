@@ -23,7 +23,7 @@ class JoinTwoBase(base.TableDataBaseCase):
     """
     Joins two dicts taken from separate attributes of input into one dict.
     """
-    tags = ['join']
+    tags = ['join', 'join:items']
     template = {
         '$': 'join',
         'items': [

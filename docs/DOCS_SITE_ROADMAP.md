@@ -42,7 +42,7 @@
 | D-06 | Accessor docstrings omit `filter` scope | A. Correctness | medium | done |
 | D-05 | Intro is stale vs. v0.0.11 capabilities | B. Freshness | high | done |
 | D-11 | `file` rule has zero examples | C. Completeness | high | done |
-| D-12 | Parameters rendered with no example | C. Completeness | medium | needs-decision |
+| D-12 | Parameters rendered with no example | C. Completeness | medium | done |
 | D-08 | Operators and functions are not discoverable | C. Completeness | medium | needs-decision |
 | D-07 | No install / getting-started / outbound links | D. Discoverability | medium | needs-decision |
 | D-09 | No rule index, table of contents, or anchors | D. Discoverability | medium | needs-decision |
@@ -225,7 +225,7 @@ the weakest spot in an otherwise example-rich page.
 
 ### D-12. Parameters rendered with no example
 
-**Status**: needs-decision · **Severity**: medium · **Source**: `transon/tests/` tag audit
+**Status**: done · **Severity**: medium · **Source**: `transon/tests/` tag audit · **Decision**: option 1 (backfill tagged corpus cases) · **Shipped**: param tags on `SetVisibleToLaterSiblingKey` (`set:name`, `get:name`), `ChainWithAttr` (`chain:funcs`), `JoinTwoBase` (`join:items`), `ConvertNoParameters` (`call:name`); new `IncludeWithDefault` + `LookupMissingAttr` for `include:default` (`filter:cond` already covered by D-06)
 
 Example coverage is uneven: several parameters render with documentation but no
 example block. Confirmed gaps: `set:name`, `get:name`, `filter:cond`, `join:items`,

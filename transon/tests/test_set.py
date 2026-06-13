@@ -6,7 +6,7 @@ class SetVisibleToLaterSiblingKey(base.TableDataBaseCase):
     A variable stored at one literal-dict key is visible to later sibling keys
     evaluated in the same scope (dict insertion order).
     """
-    tags = ['set', 'get']
+    tags = ['set', 'set:name', 'get', 'get:name']
     template = {
         'first': {'$': 'set', 'name': 'saved'},
         'second': {'$': 'get', 'name': 'saved'},
