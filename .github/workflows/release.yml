@@ -23,7 +23,7 @@ jobs:
             exit 1
           fi
       - run: uv python install 3.11
-      - run: uv build
+      - run: uv build --python 3.11
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
