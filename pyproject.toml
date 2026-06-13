@@ -32,11 +32,6 @@ dev = [
 requires = ["hatchling>=1.27.0"]
 build-backend = "hatchling.build"
 
-[tool.hatch.build]
-exclude = [
-  "transon/tests",
-]
-
 [tool.hatch.build.targets.wheel]
 packages = ["transon"]
 
