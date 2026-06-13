@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Documented `set`/`get` variable scoping for template authors: rule docstrings,
+  spec §2.2 scoping table, and seven example cases in `transon/tests/test_set.py`
+  (sibling dict keys, first vs later `chain` func, `map` isolation). Behavior
+  unchanged. (Roadmap R-15, option 1)
+
 - `transform(data, no_content=None, *, copy_output=False)` gained an opt-in
   `copy_output` keyword. When `True`, the result is `copy.deepcopy`-ed once at the
   `transform()` boundary, so it shares no mutable structure with the input. By default

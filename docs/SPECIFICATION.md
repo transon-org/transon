@@ -80,7 +80,23 @@ structure).
 
 `context.derive(**props)` creates a child: it **copies all data from the parent** and
 overlays the new props. `set` writes into the data dict of the exact context object it
-executes in. Consequences (all verified against the implementation):
+executes in.
+
+#### Variable scoping (`set` / `get`)
+
+Template authors should treat these rules as the contract (R-15):
+
+| Where `set` runs | Visible to |
+|---|---|
+| Descendant scopes (`derive()` after the `set`) | Yes — copied at derivation time |
+| Later sibling keys/items in the same literal dict/list | Yes — siblings share one context object; order matters |
+| Earlier sibling keys/items in the same literal dict/list | No — already evaluated |
+| First func of a `chain` | Caller's scope, later `chain` funcs, and later siblings outside the `chain` |
+| Later `chain` func, `map`/`filter` iteration, etc. | Only that derived scope and its descendants |
+| Parent scope after a derived scope ends | No |
+| `include` sub-template | No — separate `transform()` |
+
+Consequences (all verified against the implementation):
 
 - Variables flow **downward only**: a `derive()` performed *after* a `set` carries the
   variable; the parent's own dict is untouched by sets in derived contexts. So a `set`
@@ -92,7 +108,11 @@ executes in. Consequences (all verified against the implementation):
   context, so a `set` there escapes into the caller's scope; subsequent funcs run in
   derived contexts and their sets do not.
 - `get` only checks the current context's data dict — but ancestor variables are
-  present there by copying at derive time, so lookup effectively covers the whole chain.
+  present there by copying at derive time, so lookup effectively covers ancestor scopes
+  as they existed when the current context was created.
+
+Refactoring pitfall: wrapping a step in `chain`, reordering dict keys, or moving a
+`set` can change visibility with no error — consult the table above.
 
 The names `this`, `item`, `key`, `value`, `index` are **reserved**
 (`Context.RESERVED_NAMES`): `Context.__contains__`, `__getitem__`, `__setitem__`
@@ -292,8 +312,10 @@ raises `DefinitionError`.
 
 | Rule | Parameters | Semantics |
 |---|---|---|
-| `set` | `name` (dynamic) | Stores `context.this` under `name` in the *current* context; returns `context.this` (pass-through, usable as a tap inside `chain`). Raises `TransformationError` if `name` evaluates to `NO_CONTENT`. |
-| `get` | `name` (dynamic), `default` (optional, dynamic) | Returns the stored value or `NO_CONTENT` if undefined. Raises `TransformationError` if `name` evaluates to `NO_CONTENT`. When `default` is provided, returns its evaluation instead of `NO_CONTENT`. |
+| `set` | `name` (dynamic) | Stores `context.this` under `name` in the *current* context; returns `context.this` (pass-through, usable as a tap inside `chain`). Raises `TransformationError` if `name` evaluates to `NO_CONTENT`. Scoping: see §2.2 (variable scoping table). |
+| `get` | `name` (dynamic), `default` (optional, dynamic) | Returns the stored value from the *current* context (ancestor variables are present via copy-on-`derive()`). Returns `NO_CONTENT` if undefined. Raises `TransformationError` if `name` evaluates to `NO_CONTENT`. When `default` is provided, returns its evaluation instead of `NO_CONTENT`. Scoping: see §2.2. |
+
+Examples for each scoping case live in `transon/tests/test_set.py` (docs-site examples).
 
 ### 4.3 Data access — `attr`
 

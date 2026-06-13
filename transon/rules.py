@@ -123,13 +123,32 @@ def rule_value(_t: Transformer, _template, context: Context):
     name="Name of the variable. Can be dynamic. "
          "The names `this`, `item`, `key`, `value` and `index` are reserved "
          "and cannot be used as variable names. "
-         "Raises `TransformationError` if the name evaluates to `NO_CONTENT`.",
+         "Raises `TransformationError` if the name evaluates to `NO_CONTENT`. "
+         "See the rule docstring for scoping rules.",
 )
 def rule_set(t: Transformer, template, context: Context):
     """
-    Stores the value in the context under given name.
-    You can consider this rule as variable assignment.
-    Variable will be accessible under that name in all underlying contexts.
+    Stores `context.this` under the given name in the *current* context scope.
+    Returns `context.this` unchanged (pass-through), so it can sit inside a
+    `chain` without altering the piped value.
+
+    **Scoping** — where a `set` is visible depends on which context object it
+    runs in:
+
+    - **Descendant scopes**: visible in any context derived *after* the `set`
+      (child scopes copy parent variables at `derive()` time).
+    - **Later siblings, same scope**: when a `set` runs directly at a literal-dict
+      key or list element, later-evaluated siblings in that dict/list share the
+      same context and can `get` the variable. Earlier siblings cannot — visibility
+      follows dict key / list index order.
+    - **First `chain` func**: runs in the caller's context, so a `set` there is
+      visible to later `chain` funcs and to sibling templates outside the `chain`.
+    - **Later `chain` funcs, `map`/`filter` items, etc.**: run in derived contexts;
+      their `set` values stay inside that scope and do not escape to parents or
+      already-evaluated siblings.
+
+    `include` starts a separate transformation — variables do not cross that
+    boundary.
     """
     t_name = t.require(template, 'name')
     name = t.walk_param(t_name, context, 'name')
@@ -144,14 +163,22 @@ def rule_set(t: Transformer, template, context: Context):
     name="Name of the variable. Can be dynamic. "
          "The names `this`, `item`, `key`, `value` and `index` are reserved "
          "and cannot be used as variable names. "
-         "Raises `TransformationError` if the name evaluates to `NO_CONTENT`.",
+         "Raises `TransformationError` if the name evaluates to `NO_CONTENT`. "
+         "See the rule docstring for scoping rules.",
     default="Optional template for value returned when the variable is undefined. "
             "Can be dynamic.",
 )
 def rule_get(t: Transformer, template, context: Context):
     """
-    Returns the value stored under given name.
-    Value may be stored in current context or in any previous contexts.
+    Returns the value stored under the given name in the *current* context.
+
+    Ancestor variables are available because `derive()` copies the parent scope
+    at creation time — but only variables that were already `set` before that
+    derivation. A `set` in a sibling template or a later `chain` func that
+    shares no context object with this evaluation will not be found.
+
+    Returns `NO_CONTENT` when the name is undefined, unless `default` is
+    provided.
     """
     t_name = t.require(template, 'name')
     name = t.walk_param(t_name, context, 'name')
@@ -467,6 +494,8 @@ def rule_chain(t: Transformer, template, context: Context):
     `chain(f1, f2, f3)(x) === f3(f2(f1(x)))`
 
     Each function execution creates new context that will be passed to next function.
+    The **first** func runs in the caller's context (so a `set` there is visible
+    outside the `chain`); each subsequent func runs in a derived context.
     ```plantuml
     @startuml
     left to right direction

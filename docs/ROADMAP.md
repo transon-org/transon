@@ -43,7 +43,7 @@
 | [R-12](#r-12-join-of-an-empty-list-returns-) | `join` of an empty list returns `""` | low | done |
 | [R-13](#r-13-output-aliases-input-data-shared-mutable-structures) | Output aliases input data (shared mutable structures) | medium | done |
 | [R-14](#r-14-no-escape-for-a-literal-marker-key) | No escape for a literal marker (`$`) key | medium | done |
-| [R-15](#r-15-set-scoping-is-subtle-and-undocumented) | `set` scoping is subtle and undocumented | medium | needs-decision |
+| [R-15](#r-15-set-scoping-is-subtle-and-undocumented) | `set` scoping is subtle and undocumented | medium | done |
 | [R-16](#r-16-constant-vs-dynamic-parameters-are-inconsistent) | Constant vs dynamic parameters are inconsistent | low | done |
 | [R-17](#r-17-include-has-no-cycledepth-protection-and-a-non-transon-default-error) | `include` has no cycle/depth protection; default loader raises `RuntimeError` | low | done |
 | [R-18](#r-18-include-rule-has-no-docstring) | `include` rule has no docstring | low | done |
@@ -499,7 +499,7 @@ values, `NO_CONTENT` values omitted. No new rule keyword; `validate()` recurses 
 
 ### R-15. `set` scoping is subtle and undocumented
 
-**Status**: needs-decision · **Severity**: medium · **Spec**: §12.12
+**Status**: done (option 1) · **Severity**: medium · **Spec**: §2.2, §4.2
 
 Whether a variable set by `set` is visible to a sibling template depends on the
 exact context object the `set` executed in: directly at a literal-dict key or as
@@ -525,6 +525,11 @@ error.
 3. Make `set` deliberately context-transparent (visible to all later evaluation in
    the same `transform()` call) — simplest mental model (“template-global
    variables”), but legalizes evaluation-order coupling everywhere.
+
+**Decision (2026-06-13)**: option 1 — document current scoping as the contract.
+
+**Shipped**: option 1 — spec §2.2 scoping table, `set`/`get` rule docs, and seven
+example cases in `transon/tests/test_set.py`; behavior unchanged.
 
 ### R-16. Constant vs dynamic parameters are inconsistent
 
@@ -685,4 +690,4 @@ large collections. Irrelevant for small documents — measure before optimizing.
 3. **NO_CONTENT batch**: ~~R-06~~ (done), ~~R-07~~ (done), ~~R-08~~ (done), ~~R-10~~ (done) — semantics
    interlock; shipped together.
 4. **Feature work**: ~~R-04~~ (done), ~~R-05~~ (done), ~~R-11~~ (done), ~~R-12~~ (done), ~~R-14~~ (done).
-5. **Policy/long-term**: ~~R-13~~ (done), R-15, ~~R-20~~ (done), R-22.
+5. **Policy/long-term**: ~~R-13~~ (done), ~~R-15~~ (done), ~~R-20~~ (done), R-22.
