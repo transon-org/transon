@@ -49,7 +49,7 @@
 | D-10 | No conceptual framing (what/why/analogues) | D. Discoverability | low | done |
 | D-13 | Thin page `<title>` and `<meta description>` | D. Discoverability | low | done |
 | D-19 | No "when to pick what" comparison table vs. other tools | D. Discoverability | medium | done |
-| D-14 | Blank gray screen during Pyodide load | E. First impression | medium | needs-decision |
+| D-14 | Blank gray screen during Pyodide load | E. First impression | medium | done |
 | D-15 | Examples are minimal — no composition / realistic cases | F. Depth & learnability | medium | needs-decision |
 | D-16 | No task-oriented recipes / common-patterns section | F. Depth & learnability | medium | needs-decision |
 | D-17 | Error model described but never shown | F. Depth & learnability | low | needs-decision |
@@ -395,7 +395,7 @@ more useful.
 
 ### D-14. Blank gray screen during Pyodide load
 
-**Status**: needs-decision · **Severity**: medium · **Source**: live site (load behavior)
+**Status**: done · **Severity**: medium · **Source**: live site (load behavior) · **Decision**: option 1 (content stopgap — render a static intro immediately, before Pyodide loads, then let the generated docs augment it) · **Shipped**: site repo (`transon-org.github.io`) — disabled the PyScript splash spinner (`[splashscreen] enabled = false` in `public/config.toml`) and seeded `#root` in `public/index.html` with a styled static intro (title + `transforms json` tagline, the "Homogeneous JSON-to-JSON template engine" pitch line, a one-sentence framing, a `pip install transon` snippet, PyPI/GitHub/Specification/Changelog links, and a "Loading the interactive reference & playground…" spinner) shown instantly during the ~10–15s Pyodide download; `src/index.tsx` `init()` now clears `#root` before mounting so the generated docs replace the intro with no duplicate header. Static HTML, so it does not depend on the next PyPI release; `npm run build` green and the pre-load → loaded transition verified in-browser. · **Relates to**: D-05/D-07 (reuses the pitch + install content); the fuller engineering fix (preload/pin Pyodide, lazy-load the playground, or pre-bake the docs JSON) remains out of scope per option 2 and is not tracked here
 
 On load the page shows a gray spinner ("Downloading pyodide-0.22.1… / Python
 startup…") for ~10–15s while a multi-MB Python runtime downloads, with **no product

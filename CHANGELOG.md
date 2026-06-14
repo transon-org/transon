@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.0.13] - 2026-06-14
+
+### Changed
+
+- README: add a "Comparison" section with a "best when" decision table, honest
+  trade-offs, and a JSONata-vs-transon side-by-side example. (Docs-site D-19)
+- Docs: add a "What is transon?" framing block to the `Transformer` class
+  docstring (problem statement, inspirations, design principles, analogues) and fix
+  the getting-started snippet. (Docs-site D-07, D-10)
+
 ## [0.0.12] - 2026-06-14
 
 ### Changed
