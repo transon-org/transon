@@ -53,7 +53,7 @@
 | D-15 | Examples are minimal — no composition / realistic cases | F. Depth & learnability | medium | done |
 | D-16 | No task-oriented recipes / common-patterns section | F. Depth & learnability | medium | done |
 | D-17 | Error model described but never shown | F. Depth & learnability | low | done |
-| D-18 | Core semantics documented only in the spec, not on-page | F. Depth & learnability | medium | needs-decision |
+| D-18 | Core semantics documented only in the spec, not on-page | F. Depth & learnability | medium | done |
 
 ---
 
@@ -492,7 +492,7 @@ errors) is claimed but undocumented by example; debugging users get no anchor.
 
 ### D-18. Core semantics documented only in the spec, not on-page
 
-**Status**: needs-decision · **Severity**: medium · **Source**: `docs/SPECIFICATION.md` vs. on-page intro
+**Status**: done · **Severity**: medium · **Source**: `docs/SPECIFICATION.md` vs. on-page intro · **Decision**: option 1 (add a "How evaluation works" section to the `Transformer` class docstring) · **Shipped**: engine repo (`transon`) — new `## How evaluation works` section in the `Transformer` class docstring (between **Templates** and **What you can do**), covering the four mechanics of the mental model in a few tight paragraphs: (1) the recursive top-down tree walk and how each JSON type is rebuilt, (2) marker-based rule detection and why parameters-are-templates makes rules nest/compose (incl. literal-`$` via `object` `fields` / configurable `marker`), (3) context/scope — `this`, the `map`/`filter` derived iteration accessors, and downward-only `set`/`get` variable flow, and (4) `NO_CONTENT` skip propagation through container rules plus `default`/top-level `no_content`. Links to SPECIFICATION.md §2 for exhaustive detail. Renders on the live site after the next PyPI release (docstring is harvested by `docs.get_all_docs()['doc']`).
 
 The page names the key semantics — tree walk / marker-based rule detection, context and
 scope nesting, and `NO_CONTENT` skip *propagation* through container rules — but their

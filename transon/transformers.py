@@ -272,6 +272,54 @@ class Transformer:
 
     Note that each item preserves its template definition (including list around object).
 
+    ## How evaluation works
+
+    A handful of rules cover everything because they compose, and they compose because
+    the engine evaluates every template the same way. Understanding these four
+    mechanics lets you predict how any template behaves without trial and error.
+
+    **1. Recursive tree walk.** The engine walks the template top-down and rebuilds it
+    node by node. Each node is handled by its JSON type:
+
+    - a **list** → walk every element, return a new list;
+    - a **dict containing the marker key** (`$`) → a *rule invocation* (see below);
+    - a **dict without the marker** → walk every value, return a new dict with the same
+      keys;
+    - any **scalar** (string, number, boolean, `null`) → copied through unchanged.
+
+    So a template that contains no markers is returned as a deep copy of itself; rules
+    are the only thing that injects data.
+
+    **2. Marker-based rule detection.** A dict is a rule *only* when it contains the
+    marker key; its value names the rule (`{"$": "map", ...}`) and the sibling keys are
+    the rule's parameters. Those parameters are themselves templates and are walked
+    recursively, so rules nest arbitrarily — this is why even arithmetic is just nested
+    `expr` rules rather than a string mini-language. (To emit a literal dict that really
+    does contain a `$` key, use the `object` rule's `fields` mode, or change the marker
+    with `Transformer(template, marker="@")`.)
+
+    **3. Context and scope.** Evaluation carries a *context* whose `this` is the current
+    value (the transformation input at the root). Iterating rules — `map` and `filter` —
+    *derive* a child context for each element, exposing the accessors `item`, `index`
+    (lists) and `key`, `value`, `index` (dicts); those accessors are only valid inside
+    that derived scope. Variables (`set`/`get`) flow **downward only**: a value `set` in
+    a scope is visible to its descendants and to later-evaluated siblings, but not to
+    parent or earlier-evaluated scopes. This downward-only rule is what makes nested
+    transformations predictable.
+
+    **4. `NO_CONTENT` skip propagation.** Missing lookups don't blow up: `attr`/`get`
+    over an absent key/variable produce the `NO_CONTENT` sentinel (distinct from
+    `null`). Container rules then *skip* it rather than emitting `null` — `map` drops
+    the item, `object`/`filter`/`file` omit the entry, `join` leaves it out — so
+    optional data simply disappears from the output. A `default` parameter (on `attr`,
+    `get`, `format`, `include`, `join`) substitutes a value instead, and a top-level
+    `NO_CONTENT` becomes `None` (configurable via `transform(data, no_content=...)`).
+
+    These four behaviours are the whole evaluation model; the
+    [specification](https://github.com/transon-org/transon/blob/main/docs/SPECIFICATION.md)
+    (§2) documents the exhaustive details (scoping edge cases, every `NO_CONTENT`
+    producer/consumer, the error model).
+
     ## What you can do
 
     Beyond simple interpolation, `transon` offers:
