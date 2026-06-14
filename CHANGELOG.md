@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-06-15
+
+First `0.1.x` milestone: the engine-semantics roadmap (`R-01…R-22`) and the
+docs-site content roadmap (`D-01…D-19`) are both complete. No breaking changes
+since `0.0.13`; this release marks the v0 feature set as stable.
+
+### Added
+
+- Docs pipeline: `transon.docs.get_all_docs()` now emits top-level
+  `worked_examples`, `recipes`, and `errors` arrays, harvested from new corpus
+  galleries (`transon/tests/test_worked_examples.py`, `test_recipes.py`,
+  `test_error_model.py`) via the `worked-example` / `recipe` / `error` tags, with
+  drift-guards in `tests/test_docs.py`. A new `ErrorBaseCase` corpus type asserts
+  the exact `str(exception)` so published error text can't drift. (Docs-site D-15,
+  D-16, D-17)
+- Docs: a "How evaluation works" section in the `Transformer` class docstring —
+  the on-page mental model (recursive tree walk, marker-based rule detection,
+  context/scope for iteration accessors, `NO_CONTENT` skip propagation), linking to
+  the specification for exhaustive detail. (Docs-site D-18)
+
+### Changed
+
+- Operator and function documentation is now stored at registration time on
+  `register_operator` / `register_function` (and exposed via `get_operators()` /
+  `get_functions()`) instead of detached tables, keeping the registry the single
+  source of truth for the generated docs. (Docs-site D-08 follow-up)
+
 ## [0.0.13] - 2026-06-14
 
 ### Changed
