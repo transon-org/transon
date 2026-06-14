@@ -52,7 +52,7 @@
 | D-14 | Blank gray screen during Pyodide load | E. First impression | medium | done |
 | D-15 | Examples are minimal — no composition / realistic cases | F. Depth & learnability | medium | done |
 | D-16 | No task-oriented recipes / common-patterns section | F. Depth & learnability | medium | done |
-| D-17 | Error model described but never shown | F. Depth & learnability | low | needs-decision |
+| D-17 | Error model described but never shown | F. Depth & learnability | low | done |
 | D-18 | Core semantics documented only in the spec, not on-page | F. Depth & learnability | medium | needs-decision |
 
 ---
@@ -471,7 +471,7 @@ the page answers "what does rule X do?" but never "how do I do Y?".
 
 ### D-17. Error model described but never shown
 
-**Status**: needs-decision · **Severity**: low · **Source**: `Transformer` class docstring ("What you can do") vs. page
+**Status**: done · **Severity**: low · **Source**: `Transformer` class docstring ("What you can do") vs. page · **Decision**: option 1 (show a concrete example of each error — literal message text incl. the `at template → …` location — backed by error-path corpus/doc cases so the shown text can't drift) · **Shipped**: engine repo (`transon`) — new `ErrorBaseCase` corpus type in `transon/tests/base.py` (asserts the *exact* `str(exception)`, so published error text can't drift) and a six-case gallery in `transon/tests/test_error_model.py` tagged `error`, covering both error types and the located path: `ErrorInvalidRuleName`, `ErrorMissingRequiredAttr`, `ErrorAccessorOutsideScope`, `ErrorUnknownParamOnValidate` (static `validate()`, no data), `ErrorDataNotIterable` (deep `at template → result → chain → funcs[1] → map` path), `ErrorIncompatibleOperands`. `docs.py` `get_all_docs()` now emits a top-level `errors` array (name/doc/template/data/error/error_type/action), with a drift-guard in `tests/test_docs.py` asserting all six are present and both error types are shown. Class docstring "What you can do" error bullet now points to the on-page **Error model** examples. Site repo (`transon-org.github.io`) — new `ErrorModel.tsx` renders a self-linking `#error-model` section (template + input + literal located message + error-type label per case via the existing GFM `Markdown`/syntax highlighter), `IErrorData`/`IDocsData.errors` added to `types.ts`, wired into `App.tsx` below Recipes, and an "Error model" link added to `TableOfContents.tsx` (all gated on the array being present, so it no-ops on the current PyPI build and appears after the next release); CSS in `App.css`. `npm run build` green; full `pytest` (232) green.
 
 The intro advertises the error model — `DefinitionError` vs `TransformationError`, with
 messages that include the template path (`at template → …`) — but **no actual error

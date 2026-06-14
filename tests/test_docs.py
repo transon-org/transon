@@ -66,3 +66,26 @@ def test_all_docs_expose_recipes():
     } <= names
     for recipe in recipes:
         assert recipe['doc'] and 'TBD' not in recipe['doc']
+
+
+def test_all_docs_expose_error_model():
+    docs = get_all_docs()
+    errors = docs['errors']
+    assert errors, "the error-model block (D-17) must not be empty"
+    names = {error['name'] for error in errors}
+    assert {
+        'ErrorInvalidRuleName',
+        'ErrorMissingRequiredAttr',
+        'ErrorAccessorOutsideScope',
+        'ErrorUnknownParamOnValidate',
+        'ErrorDataNotIterable',
+        'ErrorIncompatibleOperands',
+    } <= names
+    types = {error['error_type'] for error in errors}
+    assert {'DefinitionError', 'TransformationError'} <= types, (
+        "both error types must be demonstrated"
+    )
+    for error in errors:
+        assert error['doc'] and 'TBD' not in error['doc']
+        assert error['error'] and 'at template' in error['error']
+        assert error['error_type'] in {'DefinitionError', 'TransformationError'}

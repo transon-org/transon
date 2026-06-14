@@ -37,6 +37,13 @@ def get_test_cases():
 
 
 @lru_cache(maxsize=None)
+def get_error_cases():
+    from transon.tests.base import ErrorBaseCase
+    import_submodules('transon.tests')
+    return list(ErrorBaseCase.iterate_valid_cases())
+
+
+@lru_cache(maxsize=None)
 def get_test_cases_by_tag(tag: str):
     return [
         case
@@ -126,12 +133,29 @@ def get_recipes():
     return get_test_cases_for_tag('recipe')
 
 
+def get_error_examples():
+    from transon.tests.base import undefined
+    return [
+        {
+            'name': case.__name__,
+            'doc': inspect.getdoc(case),
+            'template': case.template,
+            'data': None if case.data is undefined else case.data,
+            'error': case.error,
+            'error_type': case.error_type,
+            'action': case.action,
+        }
+        for case in get_error_cases()
+    ]
+
+
 def get_all_docs(cls=Transformer):
     return {
         'version': importlib.metadata.version('transon'),
         'doc': inspect.getdoc(cls),
         'worked_examples': get_worked_examples(),
         'recipes': get_recipes(),
+        'errors': get_error_examples(),
         'rules': [
             {
                 'rule': rule_doc,
@@ -173,7 +197,7 @@ if __name__ == '__main__':  # pragma: no cover
     def main():
         import json
         print(json.dumps(get_all_docs(), indent=4))
-        for case in get_test_cases():
+        for case in (*get_test_cases(), *get_error_cases()):
             doc = inspect.getdoc(case)
             if 'TBD' in doc:
                 print(f'no doc in {case}: {doc}')

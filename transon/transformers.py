@@ -293,7 +293,8 @@ class Transformer:
       shares no mutable structure with the input (which is never mutated regardless).
     - **A clear error model** — `DefinitionError` signals a malformed template,
       `TransformationError` signals data that does not fit; both messages include the
-      template path where the problem occurred.
+      template path where the problem occurred (`at template → …`). See the
+      **Error model** examples below for the literal messages each one produces.
     - **I/O delegates** — the `file` rule writes through a `file_writer` callback and the
       `include` rule loads sub-templates through a `template_loader` callback.
 
