@@ -31,3 +31,20 @@ def test_all_docs_expose_operators_and_functions():
     assert {entry['function']['name'] for entry in docs['functions']} == {
         function['name'] for function in get_functions_docs()
     }
+
+
+def test_all_docs_expose_worked_examples():
+    docs = get_all_docs()
+    examples = docs['worked_examples']
+    assert examples, "the worked-examples block (D-15) must not be empty"
+    names = {example['name'] for example in examples}
+    assert {
+        'WorkedExampleNestedArithmetic',
+        'WorkedExampleReshapeRecords',
+        'WorkedExampleRenameAndFlatten',
+        'WorkedExampleFilterAndProject',
+        'WorkedExampleIndexByKey',
+        'WorkedExampleOptionalFieldsAndDefaults',
+    } <= names
+    for example in examples:
+        assert example['doc'] and 'TBD' not in example['doc']

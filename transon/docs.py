@@ -181,10 +181,15 @@ def get_test_cases_for_function(name):
     return get_test_cases_for_tag(f'func:{name}')
 
 
+def get_worked_examples():
+    return get_test_cases_for_tag('worked-example')
+
+
 def get_all_docs(cls=Transformer):
     return {
         'version': importlib.metadata.version('transon'),
         'doc': inspect.getdoc(cls),
+        'worked_examples': get_worked_examples(),
         'rules': [
             {
                 'rule': rule_doc,

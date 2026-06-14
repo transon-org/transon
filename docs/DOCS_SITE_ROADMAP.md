@@ -50,7 +50,7 @@
 | D-13 | Thin page `<title>` and `<meta description>` | D. Discoverability | low | done |
 | D-19 | No "when to pick what" comparison table vs. other tools | D. Discoverability | medium | done |
 | D-14 | Blank gray screen during Pyodide load | E. First impression | medium | done |
-| D-15 | Examples are minimal — no composition / realistic cases | F. Depth & learnability | medium | needs-decision |
+| D-15 | Examples are minimal — no composition / realistic cases | F. Depth & learnability | medium | done |
 | D-16 | No task-oriented recipes / common-patterns section | F. Depth & learnability | medium | needs-decision |
 | D-17 | Error model described but never shown | F. Depth & learnability | low | needs-decision |
 | D-18 | Core semantics documented only in the spec, not on-page | F. Depth & learnability | medium | needs-decision |
@@ -428,7 +428,7 @@ for a landing page.
 
 ### D-15. Examples are minimal — no composition or realistic cases
 
-**Status**: needs-decision · **Severity**: medium · **Source**: `transon/tests/` corpus audit + page review
+**Status**: done · **Severity**: medium · **Source**: `transon/tests/` corpus audit + page review · **Decision**: option 2 (a single dedicated, corpus-backed "Worked examples" doc block rather than spreading cases across rules) · **Shipped**: engine repo (`transon`) — new `transon/tests/test_worked_examples.py` with a gallery of **six** cases tagged only `worked-example` (kept in one block, not spread per-rule), each mapped to a canonical task the Comparison-table competitors showcase: `WorkedExampleNestedArithmetic` (`(a + b) * c` via nested `expr` — "arithmetic via nested rules, no DSL"; cf. JSONata/jq expressions), `WorkedExampleReshapeRecords` (`chain`→`attr`→`map`→`object`→`expr` line-items reshape; cf. JSONata `Price * Quantity`), `WorkedExampleRenameAndFlatten` (`object` `fields` + `attr` path + `format`; cf. Jolt `shift`), `WorkedExampleFilterAndProject` (`chain`→`filter`→`map`; cf. JSONata `users[active].name` / jq `map(select)`), `WorkedExampleIndexByKey` (`map` key/value; cf. jq `INDEX` / lodash `keyBy`), and `WorkedExampleOptionalFieldsAndDefaults` (the `NO_CONTENT` skip model + `attr` `default`; cf. JSON-e `$if`). `docs.py` `get_all_docs()` now emits a top-level `worked_examples` array (harvested via the `worked-example` tag), with a drift-guard in `tests/test_docs.py` asserting all six are present so the block can't silently empty out. Site repo (`transon-org.github.io`) — new `WorkedExamples.tsx` renders a self-linking `#worked-examples` section (intro + the existing interactive `ExamplesSection` playground, which maps over the whole array, so adding examples needs no site change) above the Rules section, `IDocsData.worked_examples` added to `types.ts`, wired into `App.tsx`, and a "Worked examples" link added to `TableOfContents.tsx` (all gated on the array being present, so it no-ops on the current PyPI build and appears after the next release). `npm run build` green; full `pytest` (217) green
 
 Almost every rule renders a single, minimal example over toy data (e.g. `["a", "b"]`).
 Two things are never shown: (a) **rule composition** — rules nested inside rules, which
