@@ -51,7 +51,7 @@
 | D-19 | No "when to pick what" comparison table vs. other tools | D. Discoverability | medium | done |
 | D-14 | Blank gray screen during Pyodide load | E. First impression | medium | done |
 | D-15 | Examples are minimal — no composition / realistic cases | F. Depth & learnability | medium | done |
-| D-16 | No task-oriented recipes / common-patterns section | F. Depth & learnability | medium | needs-decision |
+| D-16 | No task-oriented recipes / common-patterns section | F. Depth & learnability | medium | done |
 | D-17 | Error model described but never shown | F. Depth & learnability | low | needs-decision |
 | D-18 | Core semantics documented only in the spec, not on-page | F. Depth & learnability | medium | needs-decision |
 
@@ -450,7 +450,7 @@ demonstrated; visitors can't see how primitives combine into real transformation
 
 ### D-16. No task-oriented recipes / common-patterns section
 
-**Status**: needs-decision · **Severity**: medium · **Source**: page structure (organized by primitive)
+**Status**: done · **Severity**: medium · **Source**: page structure (organized by primitive) · **Decision**: option 1 (corpus-backed "Recipes" doc block) — mirror the D-15 machinery: a `recipe`-tagged `TableDataBaseCase` gallery harvested into a top-level `recipes` array by `get_all_docs()`, rendered as its own interactive `#recipes` site section. Each recipe is a short, single-task "how do I do Y?" snippet (kept deliberately smaller/more focused than the D-15 worked examples, which demonstrate composition). · **Shipped**: engine repo (`transon`) — new `transon/tests/test_recipes.py` with **seven** task-titled cases tagged only `recipe`, each a minimal answer to a common "how do I…?" question distinct from the D-15 worked examples: `RecipeReadNestedValue` (`attr` `names` path), `RecipeDefaultForMissingField` (`attr` `default`), `RecipePluckFieldFromEach` (`map` `item` + `attr` — project a list to one field), `RecipeSwapKeysAndValues` (`map` `key`/`value` over a dict using the `key`/`value` accessors), `RecipeJoinListToString` (`join` with `sep`), `RecipeBuildStringFromFields` (`format` unpacking a dict), and `RecipeConvertType` (`call` `int`). `docs.py` `get_all_docs()` now emits a top-level `recipes` array (harvested via the `recipe` tag), with a drift-guard in `tests/test_docs.py` asserting all seven are present so the block can't silently empty out. Site repo (`transon-org.github.io`) — new `Recipes.tsx` renders a self-linking `#recipes` section (task→template framing + the existing interactive `ExamplesSection` playground, mapping over the whole array, so adding recipes needs no site change) below Worked examples and above Rules, `IDocsData.recipes` added to `types.ts`, wired into `App.tsx`, and a "Recipes" link added to `TableOfContents.tsx` (all gated on the array being present, so it no-ops on the current PyPI build and appears after the next release). `npm run build` green; full `pytest` (225) green.
 
 The docs are organized strictly by primitive (rule-by-rule, then operators/functions).
 There is no goal-oriented entry point: a visitor who wants to "rename keys", "flatten a

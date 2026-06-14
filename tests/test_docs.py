@@ -48,3 +48,21 @@ def test_all_docs_expose_worked_examples():
     } <= names
     for example in examples:
         assert example['doc'] and 'TBD' not in example['doc']
+
+
+def test_all_docs_expose_recipes():
+    docs = get_all_docs()
+    recipes = docs['recipes']
+    assert recipes, "the recipes block (D-16) must not be empty"
+    names = {recipe['name'] for recipe in recipes}
+    assert {
+        'RecipeReadNestedValue',
+        'RecipeDefaultForMissingField',
+        'RecipePluckFieldFromEach',
+        'RecipeSwapKeysAndValues',
+        'RecipeJoinListToString',
+        'RecipeBuildStringFromFields',
+        'RecipeConvertType',
+    } <= names
+    for recipe in recipes:
+        assert recipe['doc'] and 'TBD' not in recipe['doc']

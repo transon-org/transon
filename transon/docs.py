@@ -185,11 +185,16 @@ def get_worked_examples():
     return get_test_cases_for_tag('worked-example')
 
 
+def get_recipes():
+    return get_test_cases_for_tag('recipe')
+
+
 def get_all_docs(cls=Transformer):
     return {
         'version': importlib.metadata.version('transon'),
         'doc': inspect.getdoc(cls),
         'worked_examples': get_worked_examples(),
+        'recipes': get_recipes(),
         'rules': [
             {
                 'rule': rule_doc,
