@@ -339,20 +339,41 @@ class Transformer:
     DEFAULT_MARKER = '$'
     NO_CONTENT = NoContent()
     _functions: Dict[str, Callable] = {}
+    _function_docs: Dict[str, dict] = {}
     _operators: Dict[str, Callable] = {}
+    _operator_docs: Dict[str, dict] = {}
     _rules: Dict[str, Callable] = {}
 
     @classmethod
-    def register_function(cls, name: str):
+    def register_function(cls, name: str, *, input_type=None, output_type=None, doc=None):
         def decorator(func):
             cls._functions[name] = func
+            if doc is not None:
+                cls._function_docs[name] = {
+                    'name': name,
+                    'input': input_type,
+                    'output': output_type,
+                    'doc': doc,
+                }
             return func
         return decorator
 
     @classmethod
-    def register_operator(cls, name: str):
+    def register_operator(cls, name: str, alternative=None, *,
+                          kind=None, types=None, result=None, doc=None):
         def decorator(func):
             cls._operators[name] = func
+            if alternative is not None:
+                cls._operators[alternative] = func
+            if doc is not None:
+                cls._operator_docs[name] = {
+                    'name': name,
+                    'alternative': alternative,
+                    'kind': kind,
+                    'types': types,
+                    'result': result,
+                    'doc': doc,
+                }
             return func
         return decorator
 
@@ -403,11 +424,33 @@ class Transformer:
                     result[name] = rule
         return list(result.values())
 
+    @classmethod
+    def get_operators(cls):
+        result = {}
+        for c in cls.mro():
+            docs = getattr(c, '_operator_docs', {})
+            for name, doc in docs.items():
+                if name not in result:
+                    result[name] = doc
+        return list(result.values())
+
+    @classmethod
+    def get_functions(cls):
+        result = {}
+        for c in cls.mro():
+            docs = getattr(c, '_function_docs', {})
+            for name, doc in docs.items():
+                if name not in result:
+                    result[name] = doc
+        return list(result.values())
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         cls._operators = {}
+        cls._operator_docs = {}
         cls._rules = {}
         cls._functions = {}
+        cls._function_docs = {}
 
     def __init__(
             self,
