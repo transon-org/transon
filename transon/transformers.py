@@ -1,5 +1,6 @@
 import contextvars
 import copy
+from contextlib import contextmanager
 from typing import (
     Any,
     Callable,
@@ -533,10 +534,11 @@ class Transformer:
     def walk_param(self, param_template, context, param_name: str):
         return self.walk(param_template, context, self.path + (param_name,))
 
-    def _walk_with_path(self, path: Tuple[str, ...], func):
+    @contextmanager
+    def _walk_with_path(self, path: Tuple[str, ...]):
         token = _template_path.set(path)
         try:
-            return func()
+            yield
         finally:
             _template_path.reset(token)
 
@@ -559,13 +561,12 @@ class Transformer:
     def walk_rule(self, template, context, path):
         rule_name = template[self.marker]
         rule_path = path + (rule_name,)
-        return self._walk_with_path(
-            rule_path,
-            lambda: self.get_rule(rule_name)(self, template, context),
-        )
+        with self._walk_with_path(rule_path):
+            return self.get_rule(rule_name)(self, template, context)
 
     def walk(self, template, context, path=()):
-        return self._walk_with_path(path, lambda: self._walk(template, context, path))
+        with self._walk_with_path(path):
+            return self._walk(template, context, path)
 
     def _walk(self, template, context, path):
         if isinstance(template, list):
@@ -589,7 +590,8 @@ class Transformer:
 
     def validate(self):
         """Validate the template statically without input data."""
-        self._walk_with_path((), lambda: self._validate_template(self.template))
+        with self._walk_with_path(()):
+            self._validate_template(self.template)
 
     def _validate_template(self, template, path=()):
         if isinstance(template, list):
@@ -606,7 +608,7 @@ class Transformer:
         rule_name = template[self.marker]
         rule_path = path + (rule_name,)
 
-        def validate_body():
+        with self._walk_with_path(rule_path):
             rule = self.get_rule(rule_name)
             self._validate_rule_params(rule_name, rule, template)
             self._validate_rule_constants(rule_name, template)
@@ -624,8 +626,6 @@ class Transformer:
                         )
                 else:
                     self._validate_template(value, rule_path + (key,))
-
-        self._walk_with_path(rule_path, validate_body)
 
     def _validate_rule_params(self, rule_name, rule, template):
         known = set(getattr(rule, '__rule_params__', {}))
