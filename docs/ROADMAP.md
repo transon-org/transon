@@ -51,6 +51,9 @@
 | [R-20](#r-20-python-version-policy-37-is-eol-no-312313-in-ci) | Python version policy: 3.7 is EOL, no 3.12/3.13 in CI | medium | done |
 | [R-21](#r-21-broken-type-annotations-in-transformerspy) | Broken type annotations in `transformers.py` | low | done |
 | [R-22](#r-22-contextderive-copies-all-variables-on-every-scope) | `Context.derive` copies all variables on every scope | low | done |
+| [R-23](#r-23-switch-and-cond-lazy-dispatch-rules) | `switch` and `cond` lazy-dispatch rules | medium | accepted |
+| [R-24](#r-24-get_editor_metadata-projection-ready-export) | `get_editor_metadata()` projection-ready export | medium | accepted |
+| [R-25](#r-25-include-default-marker-inheritance) | `include` default-marker inheritance | low | accepted |
 
 ---
 
@@ -688,6 +691,67 @@ avoids O(V) copying on read-only `map`/`chain` steps.
 **Shipped**: option 1 with copy-on-write — `derive()` stores only new props; reads and
 iteration-slot accessors walk the parent chain; first `set` materializes inherited
 variables for write isolation.
+
+---
+
+## Theme F — Editor metadata & projection support
+
+> These items are the engine-side dependencies of the `transon-blockly` *template-driven editor*
+> pivot. They are **additive** (no change to existing template semantics) and are specified from the
+> consumer side in `transon-blockly/docs/metadata-contract.md` §6 and detailed in
+> [`proposals/editor-metadata-export.md`](proposals/editor-metadata-export.md). Decisions were
+> ratified as that repo's open questions OQ-012…OQ-015 (2026-06-27).
+
+### R-23. `switch` and `cond` lazy-dispatch rules
+
+**Status**: accepted (cross-repo decision OQ-012) · **Severity**: medium · **Source**: transon-blockly metadata-contract §6.1
+
+Two lazy multi-way dispatch rules where **only the selected branch is evaluated**: `switch`
+(equality on a key, cases as a JSON object, optional `default`) and `cond` (Lisp-style ordered
+`[{when, then}, …]` + optional `default`, subsuming `if`). The editor's generated codec dispatches
+on rule name / block type with these, and derives input widgets from `kind` + `options`.
+
+**Impact if not fixed**: the editor's compiler model cannot run — its projections need lazy dispatch
+to avoid evaluating every arm, and there is no in-engine substitute that preserves `NO_CONTENT`
+discipline.
+
+**Requirements**: only the chosen branch is walked; honor `NO_CONTENT`; `DefinitionError` for a
+malformed template (e.g. a `cond` arm missing `when`/`then`), `TransformationError` for bad data;
+stdlib-only, Python 3.9+, no input/template mutation; ordinary JSON rules (no new transformation
+language). SPEC-first: add the rule text to `SPECIFICATION.md`, then table-driven example cases in
+`transon/tests/`.
+
+### R-24. `get_editor_metadata()` projection-ready export
+
+**Status**: accepted (cross-repo decision OQ-015) · **Severity**: medium · **Source**: transon-blockly metadata-contract §2, §3, §6.2
+
+A dedicated, versioned editor-metadata export (separate from the docs API) emitting the contract's §2
+shape: **pre-derived variant signatures** (computed in Python from `required`/`modes`), per-param
+**`kind`** (`dynamic`/`constant`), **resolved enum domains** (`options`) for closed constants
+(`expr.op`, `call.name`), operator/function metadata, a **split** structural-catalog vs examples/docs
+payload, and a standalone `metadata_version`. Greenfield at v0.1.0.
+
+**Impact if not fixed**: the editor has no single source for its palette/toolbox/codec projections
+and would be forced to hand-maintain a parallel catalog — exactly what the pivot removes.
+
+**Requirements**: emit **engine facts only** — no Blockly shapes, colours, or widget choices (the
+editor stays the only place that knows Blockly). The editor runs engine-parity checks against this
+export, so drift is caught in CI on the editor side.
+
+### R-25. `include` default-marker inheritance
+
+**Status**: accepted (cross-repo decision OQ-014) · **Severity**: low · **Source**: transon-blockly metadata-contract §6.3
+
+When an `include`d template does not pin its own marker, it inherits the **parent's default marker**
+instead of always assuming `"$"`, so the editor's staged generator templates (the `@`/`$` compile
+phases) stay consistent across `include` boundaries.
+
+**Impact if not fixed**: staged generator-splitting breaks at `include` boundaries; the editor would
+need a workaround that the contract explicitly declines.
+
+**Requirements**: **no** free per-call `marker` argument on `include`; **no** `eval`/`apply` added
+to the engine; `quote`/`raw` declined. SPEC-first: update `SPECIFICATION.md` and the `include`
+docstring, and add a focused inheritance test. Relates to ~~R-14~~ (done) (literal-marker handling).
 
 ---
 
