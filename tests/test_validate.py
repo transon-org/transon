@@ -103,6 +103,38 @@ def test_validate_chain_funcs_must_be_list():
         transformer.validate()
 
 
+def test_validate_accepts_valid_constant_and_containers():
+    # Exercises: valid operator-domain constant, a list-valued dynamic param,
+    # the `chain` list container, and the `cond` arms container.
+    Transformer({'$': 'expr', 'op': '+', 'value': 1}).validate()
+    Transformer({'$': 'expr', 'op': '+', 'values': [{'$': 'this'}, 1]}).validate()
+    Transformer({'$': 'chain', 'funcs': [{'$': 'this'}]}).validate()
+    Transformer(
+        {'$': 'cond', 'cases': [{'when': True, 'then': 1}], 'default': 0}
+    ).validate()
+
+
+def test_validate_non_string_constant_is_skipped():
+    Transformer({'$': 'expr', 'op': {'$': 'this'}, 'value': 1}).validate()
+
+
+def test_validate_cond_cases_must_be_list():
+    transformer = Transformer({'$': 'cond', 'cases': 5})
+
+    with pytest.raises(DefinitionError, match='`cases` must be a list'):
+        transformer.validate()
+
+
+def test_validate_cond_recurses_into_arm_templates():
+    transformer = Transformer({
+        '$': 'cond',
+        'cases': [{'when': {'$': 'attr', 'nmae': 'x'}, 'then': 1}],
+    })
+
+    with pytest.raises(DefinitionError, match='unknown `nmae`'):
+        transformer.validate()
+
+
 def test_validate_nested_dead_branch_typo():
     transformer = Transformer({
         'used': {'$': 'attr', 'name': 'x'},
@@ -124,7 +156,7 @@ def test_validate_custom_rule_schema():
 
     @ExtendedTransformer.register_rule(
         'typed',
-        _required=('field',),
+        _variants=[{'field'}],
         field='Required field.',
     )
     def rule_typed(_t, _template, _context):

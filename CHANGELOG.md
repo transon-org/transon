@@ -6,6 +6,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `switch` and `cond` lazy multi-way dispatch rules: `switch` does equality
+  dispatch on a `key` against a `cases` mapping; `cond` walks ordered
+  `[{when, then}]` arms (subsuming `if`/`else`). Only the selected branch is
+  evaluated, and both honor `NO_CONTENT` and `default`. (Roadmap R-23)
+- `transon.metadata.get_editor_metadata()`: a projection-ready, versioned
+  editor-metadata export (separate from the docs API) for the `transon-blockly`
+  visual editor. Emits a split structural `catalog` / `docs` payload with
+  pre-derived variant signatures (`derive_variants`), per-parameter `kind`
+  (`dynamic`/`constant`), and resolved enum `options` for closed constants
+  (`expr.op`, `call.name`). Engine facts only — no Blockly shapes. (Roadmap R-24)
+
+### Changed
+
+- `register_rule` now declares each rule's parameter schema with a single
+  `_variants` keyword — the closed set of valid complete parameter shapes — which
+  unifies and replaces the former `_required` and `_modes` arguments. Parameters
+  shared by every variant are the always-required ones; parameters that distinguish
+  variants are the mutually exclusive groups. The required/mode set algebra is
+  derived from `_variants` internally, so validation diagnostics and editor metadata
+  are unchanged.
+- `register_rule` also gains `_constants`, `_containers`, and `_arms` keyword
+  arguments so each parameter declares its `kind` and structural shape at the rule
+  source, using the exported `enum.Enum` types `ParamKind`, `ContainerType`, and
+  `Domain`. `_arms` (built with the new `arm()` helper, which likewise takes
+  `_variants`) declares an ordered list of objects whose slots are declared and
+  validated the **same way as parameters**. Static validation is now **fully
+  generic** — driven entirely by these per-parameter descriptors with no
+  special-casing by rule or parameter name (the former hardcoded `object.fields` /
+  `expr.op` / `call.name` / `chain.funcs` and the `cond`-shaped arm branch are gone).
+  Behavior is unchanged for every previously valid template. (Roadmap R-24)
+- `include` now lets a loaded sub-template that still uses the default marker (`$`)
+  **inherit the parent transformer's marker**, keeping staged templates consistent
+  across `include` boundaries. A sub-template that pins a non-default marker keeps
+  it; there is no per-call `marker` argument. (Roadmap R-25)
+
 ## [0.1.0] - 2026-06-15
 
 First `0.1.x` milestone: the engine-semantics roadmap (`R-01…R-22`) and the

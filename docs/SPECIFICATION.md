@@ -26,10 +26,11 @@ producing JSON *output*. It is inspired by XSLT and JsonLogic.
 | Path | Purpose |
 |---|---|
 | `transon/transformers.py` | Engine core: `Transformer`, `Context`, `NoContent`, error types |
-| `transon/rules.py` | All 20 built-in rules, registered via `@Transformer.register_rule` |
+| `transon/rules.py` | All 22 built-in rules, registered via `@Transformer.register_rule` |
 | `transon/operators.py` | Operators for the `expr` rule (registered via `register_operator`) |
 | `transon/functions.py` | Functions for the `call` rule (registered via `register_function`) |
 | `transon/docs.py` | Documentation generator: harvests docstrings + test cases into JSON |
+| `transon/metadata.py` | Editor-metadata export (`get_editor_metadata`) for the visual editor (§5.1) |
 | `transon/tests/` | **Example corpus**: table-driven test cases that double as documentation |
 | `tests/` | Plain pytest tests for engine mechanics (errors, extension, docs generation) |
 | `.github/workflows/dev.yml` | CI: pytest + coverage on Python 3.9–3.13 (uv) |
@@ -224,8 +225,8 @@ Three registries exist, all class-level dicts with decorator-based registration:
 
 `register_rule` attaches metadata to the function: `__rule_name__` (the rule name),
 `__rule_params__` (a `dict[str, str]` of parameter-name → markdown documentation),
-and `__rule_schema__` (`required` parameter names and `modes` tuples for mutually
-exclusive parameter groups). This metadata feeds the documentation pipeline (§5) and
+and `__rule_schema__` (the `variants` tuple — one complete required-parameter shape
+per mutually exclusive form). This metadata feeds the documentation pipeline (§5) and
 static validation (§3.4).
 
 **Subclass isolation**: `Transformer.__init_subclass__` resets `_rules`, `_operators`,
@@ -240,7 +241,7 @@ class MyTransformer(Transformer): pass
 
 @MyTransformer.register_rule(
     'my_rule',
-    _required=('param',),
+    _variants=[{'param'}],
     param="Docs for `param`.",
 )
 def my_rule(t: Transformer, template, context: Context):
@@ -261,8 +262,16 @@ def my_rule(t: Transformer, template, context: Context):
   `names`, `map` with both `item` and `key`/`value`, `expr`/`call` with both
   `value` and `values`);
 - a parameter group is partially present (e.g. `map` with `key` but no `value`);
-- `chain.funcs` is not a list;
-- `expr.op` or `call.name` is a string literal naming an unknown operator/function.
+- a structural parameter has the wrong JSON shape — a `MAPPING` parameter that is
+  not an object, a `LIST`/`ARMS` parameter that is not an array, or an `ARMS`
+  object missing one of its declared required slots (e.g. a `cond` arm missing
+  `when`/`then`);
+- a `constant` parameter bound to a closed domain is a string literal outside that
+  domain (e.g. `expr.op`/`call.name` naming an unknown operator/function).
+
+Validation is **fully generic**: it is driven entirely by per-parameter descriptors
+declared at the rule source (below) and contains no special-casing by rule or
+parameter name.
 
 Pass `validate=True` to the constructor to validate at construction time. Validation
 is opt-in and non-breaking: `transform()` behavior is unchanged when validation is
@@ -271,12 +280,31 @@ parameter values that are not rule invocations are not evaluated.
 
 Rule authors declare validation metadata via `register_rule` keyword arguments:
 
-- `_required=()` — parameter names that must always be present.
-- `_modes=((), ('value',), ('values',))` — exactly one mode must match; an empty
-  tuple is a mode with no mode-specific parameters (e.g. unary `expr`/`call`).
+- `_variants=[{'op'}, {'op', 'value'}, {'op', 'values'}]` — a list of sets, the
+  closed set of valid complete parameter shapes; exactly one must match. Each variant
+  is the set of parameters that shape requires. Parameters shared by **all** variants
+  are the always-required ones (their absence reports `… property is required`);
+  parameters that distinguish variants are the mutually exclusive groups (overlap or
+  partial presence is rejected). A single-element list such as `[{'name'}]` means one
+  required parameter; an empty variant `[set()]` (the default) means no required
+  parameters.
+- `_constants={'op': Domain.OPERATOR}` — marks a parameter **constant** (`ParamKind`
+  read verbatim, never walked) and binds its closed enum `Domain`
+  (`OPERATOR`/`FUNCTION`), used for membership validation and for the
+  editor-metadata `options` (§5.1).
+- `_containers={'fields': ContainerType.MAPPING}` — declares a **structural**
+  parameter whose shape validation descends generically: `MAPPING` (literal keys,
+  template values) or `LIST` (template elements).
+- `_arms={'cases': arm(_variants=[{'when', 'then'}], when=..., then=...)}` — declares
+  an **`ARMS`** parameter: an ordered list of objects whose slots are declared the
+  *same way as parameters* (slot docstrings plus `_variants`/`_constants`/
+  `_containers`) and validated by the same per-parameter routine.
 
-Optional parameters need no flag — they are any declared parameter not covered by
-`_required` or `_modes`.
+The kind, container type, and domain are `enum.Enum` types (`ParamKind`,
+`ContainerType`, `Domain`), exported from `transon`. Optional parameters need no
+flag — they are any declared parameter that appears in no `_variants` entry. A
+parameter with no descriptor defaults to a dynamic template (`ParamKind.DYNAMIC`,
+`ContainerType.TEMPLATE`).
 
 ### 3.3 Rule-author helpers
 
@@ -352,13 +380,15 @@ Other lookup failures (e.g. `TypeError` indexing a string with a string) →
 | `expr` | `op` (required, constant), optionally `value` (dynamic) or `values` (dynamic) | No param → unary `op(this)`. `value` → binary `op(this, value)`. `values` → `reduce(op, values)` (**`this` is ignored**). |
 | `call` | `name` (required, constant), optionally `value` or `values` (dynamic) | No param → `fn(this)`. `value` → `fn(value)`. `values` → `fn(*values)`. `this` is ignored when params given. |
 | `format` | `pattern` (required, dynamic), `value` (optional, dynamic; defaults to `this`), `default` (optional, dynamic) | Python `str.format`. `pattern` must evaluate to a string. Returns `NO_CONTENT` when the formatting value (or any unpacked list element or dict key/value) is `NO_CONTENT`, unless `default` is provided. List value → positional unpack `pattern.format(*v)`; dict value → keyword unpack `pattern.format(**v)`; otherwise single argument. |
+| `switch` | `key` (required, dynamic), `cases` (required, `mapping`), `default` (optional, dynamic) | **Lazy** equality dispatch: evaluates `key`, then walks **only** the matching entry of `cases` (a literal-keyed mapping of templates). No match — including `key` → `NO_CONTENT` — evaluates `default` if present, else `NO_CONTENT`. Non-selected cases are never walked. |
+| `cond` | `cases` (required, `arms`), `default` (optional, dynamic) | **Lazy** ordered conditional (subsumes `if`/`else`): `cases` is an ordered list of `{when, then}` arms. Walks each `when` in order; the first truthy one selects its `then` (the only `then` walked). A `when` of `NO_CONTENT` is falsy. No match → `default` if present, else `NO_CONTENT`. |
 
 ### 4.6 Side effects & composition
 
 | Rule | Parameters | Semantics |
 |---|---|---|
 | `file` | `name`, `content` (both required, dynamic) | Calls the configured `file_writer(name, content)`. Skipped if either is `NO_CONTENT`. Always returns `NO_CONTENT` (so `map` over `file` yields `[]`). |
-| `include` | `name` (required, dynamic), `default` (optional, dynamic) | Loads a sub-`Transformer` via the configured `template_loader` and runs it against `context.this`. Variables/context do **not** cross the boundary — only the value. Sub-result `NO_CONTENT` is propagated as this transformer's `NO_CONTENT` (or `default` when provided). Nested includes are tracked by name; exceeding `max_include_depth` (constructor parameter, default 50) raises `TransformationError` with the include chain in the message. |
+| `include` | `name` (required, dynamic), `default` (optional, dynamic) | Loads a sub-`Transformer` via the configured `template_loader` and runs it against `context.this`. Variables/context do **not** cross the boundary — only the value. When the loaded sub-`Transformer` still uses the default marker (`$`), it **inherits the parent transformer's marker**; a sub-template that pins a non-default marker keeps it (there is no per-call `marker` argument). Sub-result `NO_CONTENT` is propagated as this transformer's `NO_CONTENT` (or `default` when provided). Nested includes are tracked by name; exceeding `max_include_depth` (constructor parameter, default 50) raises `TransformationError` with the include chain in the message. |
 
 ### 4.7 Built-in operators (`expr`)
 
@@ -414,6 +444,36 @@ from source artifacts**; nothing is hand-maintained separately:
 - `python -m transon.docs` prints this JSON, lists cases whose docstring still contains
   `TBD`, and prints the case count. Note: the version lookup requires the package to be
   installed (`pip install -e .` or via Poetry), otherwise `PackageNotFoundError`.
+
+### 5.1 Editor-metadata export
+
+`transon/metadata.py` provides `get_editor_metadata()` — a dedicated, versioned export,
+**separate from the docs API**, that emits projection-ready metadata for the
+`transon-blockly` visual editor (engine facts only; no Blockly shapes). It is **split**
+into a lean structural `catalog` (consumed by the editor's generators) and an
+`examples/docs` payload (descriptions + tagged examples), joined by `name`:
+
+```json
+{
+  "metadata_version": "<schema version>",
+  "engine_version": "<package version>",
+  "catalog": {
+    "rules": [{"name", "params": [{"name", "kind", "options?"}], "variants": [...]}],
+    "operators": [{"name", "alternative", "kind", "types", "result"}],
+    "functions": [{"name", "input", "output"}]
+  },
+  "docs": {"rules": [...], "operators": [...], "functions": [...]}
+}
+```
+
+- **Variant signatures** (`derive_variants`) are pre-computed in Python from
+  `_required`/`_modes`: one entry per valid mutually-exclusive parameter shape, each
+  listing its ordered visible params flagged `required` (the empty mode yields a valid
+  zero-extra-parameter variant). Consumers read these directly.
+- Per-parameter **`kind`** (`dynamic`/`constant`) comes from the rule source; a
+  `constant` parameter bound to a closed domain carries its resolved **`options`**
+  (`expr.op` → operator names + aliases, `call.name` → function names).
+- `python -m transon.metadata` prints this JSON.
 - `docs.template_loader` makes every test case's template `include`-able by its class
   name (e.g. `{"$": "include", "name": "MapListsToDict"}`).
 
@@ -473,7 +533,7 @@ Requires **Python 3.9+**.
 ## 7. Checklist: adding a new rule
 
 1. Implement in `transon/rules.py` (or a subclass for experimental work):
-   - decorate with `@Transformer.register_rule('<name>', _required=(...), _modes=(...), <param>="<markdown doc>", ...)`;
+   - decorate with `@Transformer.register_rule('<name>', _variants=[...], <param>="<markdown doc>", ...)`;
    - write a markdown docstring (it *is* the documentation);
    - use `t.require()` for mandatory params, `t.walk()` for dynamic params;
    - return `t.NO_CONTENT` for "no value", raise `DefinitionError` for template

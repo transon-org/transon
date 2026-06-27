@@ -6,6 +6,9 @@ from transon import (
     Context,
     TransformationError,
     DefinitionError,
+    ContainerType,
+    Domain,
+    arm,
 )
 
 _transon_errors = (DefinitionError, TransformationError)
@@ -119,7 +122,7 @@ def rule_value(_t: Transformer, _template, context: Context):
 
 @Transformer.register_rule(
     'set',
-    _required=('name',),
+    _variants=[{'name'}],
     name="Name of the variable. Can be dynamic. "
          "The names `this`, `item`, `key`, `value` and `index` are reserved "
          "and cannot be used as variable names. "
@@ -160,7 +163,7 @@ def rule_set(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'get',
-    _required=('name',),
+    _variants=[{'name'}],
     name="Name of the variable. Can be dynamic. "
          "The names `this`, `item`, `key`, `value` and `index` are reserved "
          "and cannot be used as variable names. "
@@ -191,7 +194,7 @@ def rule_get(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'attr',
-    _modes=(('name',), ('names',)),
+    _variants=[{'name'}, {'names'}],
     name="""
 Name of attribute to search. 
 It is possible to use a number as the name for items in arrays. 
@@ -231,7 +234,8 @@ def rule_attr(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'object',
-    _modes=(('key', 'value'), ('fields',)),
+    _variants=[{'key', 'value'}, {'fields'}],
+    _containers={'fields': ContainerType.MAPPING},
     key="Defines template for name of attribute. "
         "Mutually exclusive with `fields`.",
     value="Defines template for value of attribute. "
@@ -297,7 +301,7 @@ def _iter_contexts(t: Transformer, context: Context):
 
 @Transformer.register_rule(
     'map',
-    _modes=(('item',), ('items',), ('key', 'value')),
+    _variants=[{'item'}, {'items'}, {'key', 'value'}],
     item="Defines template for items when producing the `list`",
     items="Defines templates for series of items when producing the `list`",
     key="Defines template for key when producing the `dict`",
@@ -347,7 +351,7 @@ def rule_map(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'filter',
-    _required=('cond',),
+    _variants=[{'cond'}],
     cond="Defines template for condition",
 )
 def rule_filter(t: Transformer, template, context: Context):
@@ -383,7 +387,7 @@ def rule_filter(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'zip',
-    _required=('items',),
+    _variants=[{'items'}],
     items="Defines the list of lists",
 )
 def rule_zip(t: Transformer, template, context: Context):
@@ -404,7 +408,7 @@ def rule_zip(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'file',
-    _required=('name', 'content'),
+    _variants=[{'name', 'content'}],
     name="Defines template for file name",
     content="Defines template for file content. File content always has JSON formatted data",
 )
@@ -443,7 +447,7 @@ def _is_dict(x):
 
 @Transformer.register_rule(
     'join',
-    _required=('items',),
+    _variants=[{'items'}],
     items="List of values to concatenate.",
     sep="Defines separator for strings concatenation. Can be dynamic. "
         "Used only when all items are strings; must evaluate to a string "
@@ -484,7 +488,8 @@ def rule_join(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'chain',
-    _required=('funcs',),
+    _variants=[{'funcs'}],
+    _containers={'funcs': ContainerType.LIST},
     funcs="Define list of templates (not just rules) for chaining. "
           "The list structure is constant; each element is walked as a template.",
 )
@@ -520,8 +525,8 @@ def rule_chain(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'expr',
-    _required=('op',),
-    _modes=((), ('value',), ('values',)),
+    _variants=[{'op'}, {'op', 'value'}, {'op', 'values'}],
+    _constants={'op': Domain.OPERATOR},
     op="""
     Defines name of operation. This is always constant.
 
@@ -606,8 +611,8 @@ def rule_expr(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'call',
-    _required=('name',),
-    _modes=((), ('value',), ('values',)),
+    _variants=[{'name'}, {'name', 'value'}, {'name', 'values'}],
+    _constants={'name': Domain.FUNCTION},
     name="""
     Defines the name of function. This is always constant.
     
@@ -670,7 +675,7 @@ def rule_call(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'format',
-    _required=('pattern',),
+    _variants=[{'pattern'}],
     pattern="Defines pattern for string formatting. Can be dynamic. "
             "Must evaluate to a string (raises `TransformationError` otherwise).",
     value="Defines template for input data. Optional.",
@@ -720,7 +725,7 @@ def rule_format(t: Transformer, template, context: Context):
 
 @Transformer.register_rule(
     'include',
-    _required=('name',),
+    _variants=[{'name'}],
     name="Name or path to template. Can be dynamic. Meaning of this `name` depends on provided template loader.",
     default="Optional template for value returned when the included template produces "
             "no result. Can be dynamic.",
@@ -732,6 +737,10 @@ def rule_include(t: Transformer, template, context: Context):
 
     Only the current context value is passed to the included template — variables
     stored with `set`/`get` and iteration accessors do not cross the boundary.
+
+    When the loaded sub-template still uses the default marker (`$`), it inherits
+    the **parent transformer's marker** so staged templates stay consistent across
+    `include` boundaries. A sub-template that pins a non-default marker keeps it.
 
     Nested includes are limited by `max_include_depth` on `Transformer` (default 50).
     Exceeding the limit raises `TransformationError` with the include name chain.
@@ -745,6 +754,8 @@ def rule_include(t: Transformer, template, context: Context):
     sub_transformer = t.template_loader(name)
     sub_transformer._include_stack = stack
     sub_transformer.max_include_depth = t.max_include_depth
+    if sub_transformer.marker == Transformer.DEFAULT_MARKER:
+        sub_transformer.marker = t.marker
     result = sub_transformer.transform(
         context.this,
         no_content=sub_transformer.NO_CONTENT,
@@ -752,3 +763,78 @@ def rule_include(t: Transformer, template, context: Context):
     if result is sub_transformer.NO_CONTENT:
         return _apply_default(t, template, context, t.NO_CONTENT)
     return result
+
+
+@Transformer.register_rule(
+    'switch',
+    _variants=[{'key', 'cases'}],
+    _containers={'cases': ContainerType.MAPPING},
+    key="Template for the value to dispatch on. Can be dynamic. Compared by "
+        "equality against the (literal) keys of `cases`.",
+    cases="A mapping from case value to result template. Only the template of the "
+          "selected case is evaluated; the others are never walked.",
+    default="Optional template evaluated when no case matches (including when "
+            "`key` evaluates to `NO_CONTENT`). Can be dynamic.",
+)
+def rule_switch(t: Transformer, template, context: Context):
+    """
+    Lazy equality dispatch: evaluates `key`, then evaluates **only** the matching
+    entry of `cases`. Non-selected case templates are never walked, so `switch`
+    differs from building a dict and indexing it (which would evaluate every arm).
+
+    Matching is by equality between the evaluated `key` and the literal case keys.
+    When no case matches — including when `key` evaluates to `NO_CONTENT` — the
+    `default` template is evaluated if present, otherwise the rule produces no
+    value.
+    """
+    t_cases = t.require(template, 'cases')
+    if not isinstance(t_cases, dict):
+        t.definition_error('`cases` must be a mapping for `switch` rule')
+    t_key = t.require(template, 'key')
+    key = t.walk_param(t_key, context, 'key')
+    if key is not t.NO_CONTENT:
+        try:
+            matched = key in t_cases
+        except TypeError:
+            matched = False
+        if matched:
+            return t.walk(t_cases[key], context, t.path + (f'cases.{key}',))
+    if 'default' in template:
+        return t.walk_param(template['default'], context, 'default')
+    return t.NO_CONTENT
+
+
+@Transformer.register_rule(
+    'cond',
+    _variants=[{'cases'}],
+    _arms={'cases': arm(
+        _variants=[{'when', 'then'}],
+        when="Predicate template for this arm. Can be dynamic. The first arm whose "
+             "`when` is truthy is selected.",
+        then="Result template, evaluated only when this arm is selected. "
+             "Can be dynamic.",
+    )},
+    cases="Ordered list of `{when, then}` arms. The first arm whose `when` is "
+          "truthy selects its `then`; later arms and non-selected `then` "
+          "templates are never walked.",
+    default="Optional template evaluated when no arm matches. Can be dynamic.",
+)
+def rule_cond(t: Transformer, template, context: Context):
+    """
+    Lisp-style ordered multi-way conditional (subsumes a chained `if`/`else`).
+    Walks each arm's `when` in order; the **first** truthy `when` selects its
+    `then`, which is the only `then` evaluated. A `when` that evaluates to
+    `NO_CONTENT` is treated as falsy. When no arm matches, the `default` template
+    is evaluated if present, otherwise the rule produces no value.
+    """
+    t_cases = t.require(template, 'cases')
+    for index, arm_value in t.iter_arms('cond', 'cases', t_cases):
+        arm_path = t.path + (f'cases[{index}]',)
+        when = t.walk(arm_value['when'], context, arm_path + ('when',))
+        if when is t.NO_CONTENT:
+            continue
+        if when:
+            return t.walk(arm_value['then'], context, arm_path + ('then',))
+    if 'default' in template:
+        return t.walk_param(template['default'], context, 'default')
+    return t.NO_CONTENT

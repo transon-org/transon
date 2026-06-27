@@ -1,10 +1,13 @@
 import contextvars
 import copy
+import dataclasses
+import enum
 from contextlib import contextmanager
 from typing import (
     Any,
     Callable,
     Dict,
+    Optional,
     Tuple,
 )
 
@@ -155,6 +158,90 @@ def no_template_loader(name: str) -> 'Transformer':   # pragma: no cover
     raise DefinitionError(format_error_message(
         f'template with name `{name}` was not found'
     ))
+
+
+class ParamKind(enum.Enum):
+    """Whether a rule parameter is a walked template or a verbatim literal."""
+    DYNAMIC = 'dynamic'
+    CONSTANT = 'constant'
+
+
+class ContainerType(enum.Enum):
+    """How static validation descends into a rule parameter's value.
+
+    - ``TEMPLATE`` — a single sub-template (the default).
+    - ``MAPPING`` — an object whose keys are literal and whose values are templates.
+    - ``LIST`` — an array of templates.
+    - ``ARMS`` — an array of objects whose slots are declared like parameters.
+    """
+    TEMPLATE = 'template'
+    MAPPING = 'mapping'
+    LIST = 'list'
+    ARMS = 'arms'
+
+
+class Domain(enum.Enum):
+    """Closed enum domain a constant parameter is drawn from."""
+    OPERATOR = 'operator'
+    FUNCTION = 'function'
+
+
+@dataclasses.dataclass(frozen=True)
+class ParamSpec:
+    """Declarative metadata for a single rule parameter (or arm slot)."""
+    doc: str = ''
+    kind: ParamKind = ParamKind.DYNAMIC
+    container: ContainerType = ContainerType.TEMPLATE
+    domain: Optional[Domain] = None
+    arm: Optional['ArmSpec'] = None
+
+
+@dataclasses.dataclass(frozen=True)
+class ArmSpec:
+    """Declarative schema for the objects of an ``ARMS`` container.
+
+    Each arm is validated the **same way** as a rule's parameters: ``params`` maps
+    each slot name to its :class:`ParamSpec`, and ``required`` lists the slots every
+    arm must provide.
+    """
+    required: Tuple[str, ...]
+    params: Dict[str, ParamSpec]
+
+
+def _build_param_specs(params, constants, containers, arms):
+    specs = {}
+    for name, doc in params.items():
+        domain = constants.get(name)
+        if name in arms:
+            container = ContainerType.ARMS
+        else:
+            container = containers.get(name, ContainerType.TEMPLATE)
+        specs[name] = ParamSpec(
+            doc=doc,
+            kind=ParamKind.CONSTANT if domain is not None else ParamKind.DYNAMIC,
+            container=container,
+            domain=domain,
+            arm=arms.get(name),
+        )
+    return specs
+
+
+def arm(*, _variants, _constants=None, _containers=None, **slots) -> ArmSpec:
+    """Declare the schema of an ``ARMS`` container's objects.
+
+    Slots are declared the **same way** as rule parameters — slot docstrings as
+    keyword arguments plus ``_variants``/``_constants``/``_containers`` — so an arm
+    is effectively a small parameter set. The required slots are the intersection
+    of the declared variants.
+    """
+    variant_sets = [frozenset(variant) for variant in _variants]
+    required_set = frozenset.intersection(*variant_sets)
+    return ArmSpec(
+        required=tuple(name for name in slots if name in required_set),
+        params=_build_param_specs(
+            slots, dict(_constants or {}), dict(_containers or {}), {}
+        ),
+    )
 
 
 class Transformer:
@@ -428,14 +515,31 @@ class Transformer:
         return decorator
 
     @classmethod
-    def register_rule(cls, _rule_name: str, *, _required=(), _modes=(), **params):
+    def register_rule(
+            cls,
+            _rule_name: str,
+            *,
+            _variants=None,
+            _constants=None,
+            _containers=None,
+            _arms=None,
+            **params,
+    ):
+        constants = dict(_constants or {})
+        containers = dict(_containers or {})
+        arms = dict(_arms or {})
+        if _variants is None:
+            variants = (frozenset(),)
+        else:
+            variants = tuple(frozenset(variant) for variant in _variants)
+
         def decorator(func):
             func.__rule_name__ = _rule_name
             func.__rule_params__ = params
-            func.__rule_schema__ = {
-                'required': tuple(_required),
-                'modes': tuple(tuple(mode) for mode in _modes),
-            }
+            func.__rule_schema__ = {'variants': variants}
+            func.__rule_param_meta__ = _build_param_specs(
+                params, constants, containers, arms
+            )
             cls._rules[_rule_name] = func
             return func
         return decorator
@@ -611,26 +715,82 @@ class Transformer:
         with self._walk_with_path(rule_path):
             rule = self.get_rule(rule_name)
             self._validate_rule_params(rule_name, rule, template)
-            self._validate_rule_constants(rule_name, template)
+            specs = getattr(rule, '__rule_param_meta__', {})
             for key, value in template.items():
                 if key == self.marker:
                     continue
-                if (
-                    rule_name == 'object'
-                    and key == 'fields'
-                    and isinstance(value, dict)
-                ):
-                    for field_key, field_value in value.items():
-                        self._validate_template(
-                            field_value, rule_path + (key, field_key)
+                self._validate_param_value(
+                    rule_name, key, value, specs[key], rule_path
+                )
+
+    def _validate_param_value(self, owner, key, value, spec, path):
+        param_path = path + (key,)
+        if spec.domain is not None:
+            self._validate_constant_domain(value, spec.domain)
+        elif spec.container is ContainerType.TEMPLATE:
+            self._validate_template(value, param_path)
+        elif spec.container is ContainerType.MAPPING:
+            if not isinstance(value, dict):
+                self.definition_error(
+                    f'`{key}` must be a mapping for `{owner}` rule'
+                )
+            for entry_key, entry_value in value.items():
+                self._validate_template(entry_value, param_path + (entry_key,))
+        elif spec.container is ContainerType.LIST:
+            if not isinstance(value, list):
+                self.definition_error(
+                    f'`{key}` must be a list for `{owner}` rule'
+                )
+            for index, item in enumerate(value):
+                self._validate_template(item, param_path + (f'[{index}]',))
+        elif spec.container is ContainerType.ARMS:
+            self._check_arms(owner, key, value, spec.arm)
+            for index, arm_value in enumerate(value):
+                arm_path = param_path + (f'[{index}]',)
+                for slot, slot_spec in spec.arm.params.items():
+                    if slot in arm_value:
+                        self._validate_param_value(
+                            owner, slot, arm_value[slot], slot_spec, arm_path
                         )
-                else:
-                    self._validate_template(value, rule_path + (key,))
+
+    def _check_arms(self, owner, key, value, arm_spec):
+        if not isinstance(value, list):
+            self.definition_error(
+                f'`{key}` must be a list for `{owner}` rule'
+            )
+        for arm_value in value:
+            if (
+                not isinstance(arm_value, dict)
+                or any(slot not in arm_value for slot in arm_spec.required)
+            ):
+                slots = ' and '.join(f'`{slot}`' for slot in arm_spec.required)
+                self.definition_error(
+                    f'each `{key}` arm must include {slots} for `{owner}` rule'
+                )
+
+    def iter_arms(self, rule_name, key, value):
+        """Validate an ``ARMS`` container and yield ``(index, arm)`` for a rule body.
+
+        Uses the same declarative arm schema as static validation, so the
+        malformed-arm error is defined in a single place.
+        """
+        arm_spec = self.get_rule(rule_name).__rule_param_meta__[key].arm
+        self._check_arms(rule_name, key, value, arm_spec)
+        for index, arm_value in enumerate(value):
+            yield index, arm_value
+
+    def _validate_constant_domain(self, value, domain):
+        if not isinstance(value, str):
+            return
+        if domain is Domain.OPERATOR:
+            self.get_operator(value)
+        elif domain is Domain.FUNCTION:
+            self.get_function(value)
 
     def _validate_rule_params(self, rule_name, rule, template):
-        known = set(getattr(rule, '__rule_params__', {}))
+        param_order = list(getattr(rule, '__rule_params__', {}))
         present = {key for key in template if key != self.marker}
-        unknown = present - known
+        unknown = present - set(param_order)
         if unknown:
             names = ', '.join(f'`{name}`' for name in sorted(unknown))
             self.definition_error(
@@ -638,15 +798,16 @@ class Transformer:
             )
 
         schema = getattr(rule, '__rule_schema__', {})
-        for param in schema.get('required', ()):
-            if param not in present:
+        variant_sets = list(schema.get('variants', (frozenset(),)))
+        required = frozenset.intersection(*variant_sets)
+        for param in param_order:
+            if param in required and param not in present:
                 self.definition_error(
                     f'`{param}` property is required for `{rule_name}` rule'
                 )
 
-        modes = schema.get('modes', ())
-        if modes:
-            self._validate_rule_modes(rule_name, present, modes)
+        modes = tuple(tuple(variant - required) for variant in variant_sets)
+        self._validate_rule_modes(rule_name, present, modes)
 
     def _validate_rule_modes(self, rule_name, present, modes):
         mode_sets = [frozenset(mode) for mode in modes]
@@ -679,22 +840,6 @@ class Transformer:
         self.definition_error(
             f'no valid parameter combination for `{rule_name}` rule'
         )
-
-    def _validate_rule_constants(self, rule_name, template):
-        if rule_name == 'expr' and 'op' in template:
-            op = template['op']
-            if isinstance(op, str):
-                self.get_operator(op)
-        elif rule_name == 'call' and 'name' in template:
-            name = template['name']
-            if isinstance(name, str):
-                self.get_function(name)
-        elif rule_name == 'chain' and 'funcs' in template:
-            funcs = template['funcs']
-            if not isinstance(funcs, list):
-                self.definition_error(
-                    '`funcs` must be a list for `chain` rule'
-                )
 
     def _prepare_include(self, name):
         stack = list(self._include_stack)

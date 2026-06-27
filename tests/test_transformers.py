@@ -58,6 +58,8 @@ def test_get_rules():
         'call',
         'format',
         'include',
+        'switch',
+        'cond',
     }
 
 

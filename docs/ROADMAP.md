@@ -51,9 +51,9 @@
 | [R-20](#r-20-python-version-policy-37-is-eol-no-312313-in-ci) | Python version policy: 3.7 is EOL, no 3.12/3.13 in CI | medium | done |
 | [R-21](#r-21-broken-type-annotations-in-transformerspy) | Broken type annotations in `transformers.py` | low | done |
 | [R-22](#r-22-contextderive-copies-all-variables-on-every-scope) | `Context.derive` copies all variables on every scope | low | done |
-| [R-23](#r-23-switch-and-cond-lazy-dispatch-rules) | `switch` and `cond` lazy-dispatch rules | medium | accepted |
-| [R-24](#r-24-get_editor_metadata-projection-ready-export) | `get_editor_metadata()` projection-ready export | medium | accepted |
-| [R-25](#r-25-include-default-marker-inheritance) | `include` default-marker inheritance | low | accepted |
+| [R-23](#r-23-switch-and-cond-lazy-dispatch-rules) | `switch` and `cond` lazy-dispatch rules | medium | done |
+| [R-24](#r-24-get_editor_metadata-projection-ready-export) | `get_editor_metadata()` projection-ready export | medium | done |
+| [R-25](#r-25-include-default-marker-inheritance) | `include` default-marker inheritance | low | done |
 
 ---
 
@@ -704,7 +704,7 @@ variables for write isolation.
 
 ### R-23. `switch` and `cond` lazy-dispatch rules
 
-**Status**: accepted (cross-repo decision OQ-012) · **Severity**: medium · **Source**: transon-blockly metadata-contract §6.1
+**Status**: done (cross-repo decision OQ-012) · **Severity**: medium · **Source**: transon-blockly metadata-contract §6.1
 
 Two lazy multi-way dispatch rules where **only the selected branch is evaluated**: `switch`
 (equality on a key, cases as a JSON object, optional `default`) and `cond` (Lisp-style ordered
@@ -723,7 +723,7 @@ language). SPEC-first: add the rule text to `SPECIFICATION.md`, then table-drive
 
 ### R-24. `get_editor_metadata()` projection-ready export
 
-**Status**: accepted (cross-repo decision OQ-015) · **Severity**: medium · **Source**: transon-blockly metadata-contract §2, §3, §6.2
+**Status**: done (cross-repo decision OQ-015) · **Severity**: medium · **Source**: transon-blockly metadata-contract §2, §3, §6.2
 
 A dedicated, versioned editor-metadata export (separate from the docs API) emitting the contract's §2
 shape: **pre-derived variant signatures** (computed in Python from `required`/`modes`), per-param
@@ -740,7 +740,7 @@ export, so drift is caught in CI on the editor side.
 
 ### R-25. `include` default-marker inheritance
 
-**Status**: accepted (cross-repo decision OQ-014) · **Severity**: low · **Source**: transon-blockly metadata-contract §6.3
+**Status**: done (cross-repo decision OQ-014) · **Severity**: low · **Source**: transon-blockly metadata-contract §6.3
 
 When an `include`d template does not pin its own marker, it inherits the **parent's default marker**
 instead of always assuming `"$"`, so the editor's staged generator templates (the `@`/`$` compile
