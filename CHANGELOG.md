@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `get_editor_metadata()` no longer raises `PackageNotFoundError` when `transon`
+  is importable from source but not installed as a distribution; `engine_version`
+  degrades to `None` in that case. This lets downstream consumers (e.g. the
+  visual editor's engine-parity check against a sibling checkout) load the export.
+  (Roadmap R-24)
+
 ## [0.1.1] - 2026-06-27
 
 ### Added

@@ -20,6 +20,19 @@ from transon import docs
 METADATA_VERSION = '2.0'
 
 
+def _engine_version():
+    """The installed ``transon`` distribution version, or ``None`` when unavailable.
+
+    The export must be usable when ``transon`` is merely importable from source (e.g.
+    a sibling checkout on ``sys.path``) and not installed as a distribution, so a
+    missing distribution degrades to ``None`` rather than raising.
+    """
+    try:
+        return importlib.metadata.version('transon')
+    except importlib.metadata.PackageNotFoundError:
+        return None
+
+
 def _operator_options(cls=Transformer):
     options = []
     for entry in cls.get_operators():
@@ -148,7 +161,7 @@ def get_editor_metadata(cls=Transformer):
     functions = cls.get_functions()
     return {
         'metadata_version': METADATA_VERSION,
-        'engine_version': importlib.metadata.version('transon'),
+        'engine_version': _engine_version(),
         'catalog': {
             'rules': [_catalog_rule(rule, cls) for rule in rules],
             'operators': [_catalog_operator(entry) for entry in operators],

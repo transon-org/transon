@@ -721,6 +721,10 @@ stdlib-only, Python 3.9+, no input/template mutation; ordinary JSON rules (no ne
 language). SPEC-first: add the rule text to `SPECIFICATION.md`, then table-driven example cases in
 `transon/tests/`.
 
+**Shipped (v0.1.1)**: `rule_switch` / `rule_cond` in `transon/rules.py` (lazy; only the selected
+branch is walked; `NO_CONTENT`/`default` honored); documented in `SPECIFICATION.md` (rules table);
+example corpus `transon/tests/test_switch.py` + `test_cond.py`; error paths `tests/test_switch_cond.py`.
+
 ### R-24. `get_editor_metadata()` projection-ready export
 
 **Status**: done (cross-repo decision OQ-015) · **Severity**: medium · **Source**: transon-blockly metadata-contract §2, §3, §6.2
@@ -738,6 +742,17 @@ and would be forced to hand-maintain a parallel catalog — exactly what the piv
 editor stays the only place that knows Blockly). The editor runs engine-parity checks against this
 export, so drift is caught in CI on the editor side.
 
+**Shipped (v0.1.1)**: `transon/metadata.py::get_editor_metadata()` — split `catalog`/`docs` payload,
+pre-derived `variants` (`derive_variants`), per-param `kind` (`dynamic`/`constant`), resolved
+`options` for `expr.op`/`call.name`, standalone `metadata_version` + `engine_version`; tests
+`tests/test_metadata.py`; consumed as `from transon.metadata import get_editor_metadata` (mirroring
+`transon.docs.get_all_docs`, not re-exported from the package root). **Editor-side integration
+(resolved 2026-06-27):** `title`/`category`/`advanced`
+are intentionally **not** emitted — presentation is editor-owned (`transon-blockly`
+metadata-contract §2.1/§2.7/§2.8) and the engine stays presentation-agnostic. The editor's
+engine-parity check reads the split `catalog` shape; `switch`/`cond` are first-class authored rules
+(editor SPEC §14.16) checked like any other rule.
+
 ### R-25. `include` default-marker inheritance
 
 **Status**: done (cross-repo decision OQ-014) · **Severity**: low · **Source**: transon-blockly metadata-contract §6.3
@@ -752,6 +767,10 @@ need a workaround that the contract explicitly declines.
 **Requirements**: **no** free per-call `marker` argument on `include`; **no** `eval`/`apply` added
 to the engine; `quote`/`raw` declined. SPEC-first: update `SPECIFICATION.md` and the `include`
 docstring, and add a focused inheritance test. Relates to ~~R-14~~ (done) (literal-marker handling).
+
+**Shipped (v0.1.1)**: `transon/rules.py::rule_include` inherits the parent transformer's marker only
+when the sub-template still uses the default `$` (a pinned non-default marker is kept; no per-call
+`marker` argument); documented in `SPECIFICATION.md` (`include` row); test `tests/test_include_marker.py`.
 
 ---
 
