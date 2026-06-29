@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-06-29
+
+### Added
+
+- `type` `call` function: a **total**, non-throwing function returning a value's
+  JSON type name (`object`/`array`/`string`/`int`/`float`/`boolean`/`null`). It is
+  the one operation a `switch`/`cond` key can safely apply to a node of unknown
+  type, letting the visual editor's generated codec dispatch on JSON type with a
+  single `switch`. Flows through `get_editor_metadata()` (so `call.name` gains
+  `type`) and the docs. (Roadmap R-26)
+- `include` now propagates the active `template_loader` to recursive /
+  self-`include`ing sub-templates. The `template_loader` is always called as
+  `loader(name, context=...)` and handed an `IncludeContext` (parent loader, marker,
+  depth guard, include-stack) from which it **constructs** the sub-`Transformer`
+  itself (e.g. `context.transformer(template)`) instead of the engine mutating the
+  loaded instance — so a loader may safely return a cached/shared `Transformer`.
+  `context` is optional in the loader signature (so a loader may also be invoked
+  standalone). **Breaking:** a `template_loader` must accept the `context` keyword.
+  Adds the public `IncludeContext` and an `include_stack` constructor parameter.
+  (Roadmap R-27)
+
 ## [0.1.2] - 2026-06-29
 
 ### Fixed

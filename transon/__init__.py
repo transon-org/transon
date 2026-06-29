@@ -9,6 +9,7 @@ from .transformers import (
     ParamSpec,
     ArmSpec,
     arm,
+    IncludeContext,
 )
 from . import operators
 from . import rules

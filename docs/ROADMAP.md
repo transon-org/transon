@@ -54,6 +54,8 @@
 | [R-23](#r-23-switch-and-cond-lazy-dispatch-rules) | `switch` and `cond` lazy-dispatch rules | medium | done |
 | [R-24](#r-24-get_editor_metadata-projection-ready-export) | `get_editor_metadata()` projection-ready export | medium | done |
 | [R-25](#r-25-include-default-marker-inheritance) | `include` default-marker inheritance | low | done |
+| [R-26](#r-26-type-value-type-function) | `type` value-type function | medium | done |
+| [R-27](#r-27-include-propagates-template_loader-through-context) | `include` propagates `template_loader` through context | medium | done |
 
 ---
 
@@ -771,6 +773,55 @@ docstring, and add a focused inheritance test. Relates to ~~R-14~~ (done) (liter
 **Shipped (v0.1.1)**: `transon/rules.py::rule_include` inherits the parent transformer's marker only
 when the sub-template still uses the default `$` (a pinned non-default marker is kept; no per-call
 `marker` argument); documented in `SPECIFICATION.md` (`include` row); test `tests/test_include_marker.py`.
+
+### R-26. `type` value-type function
+
+**Status**: done · **Severity**: medium · **Source**: [`proposals/type-function.md`](proposals/type-function.md) (Deliverable 1)
+
+A **total**, non-throwing `call` function returning a value's JSON type name
+(`object`/`array`/`string`/`int`/`float`/`boolean`/`null`). It is the one operation a `switch`/`cond`
+key can safely apply to a node of unknown type, so the `transon-blockly` editor's generated codec
+collapses its per-node type dispatch to a single `switch` keyed on `type` instead of the verbose
+two-step `expr == [this, str(this)]` + first-char idiom.
+
+**Impact if not fixed**: every dispatch point in every projection template repeats the brittle two-step
+type probe; there is no total in-engine way to ask "what type is this value?".
+
+**Requirements**: total over every JSON value (never throws on well-formed data); pure, stdlib-only,
+Python 3.9+, no input mutation; flows through `get_editor_metadata()` (so `call.name` gains `type`)
+and `get_functions()` docs; ordinary function — no new transformation language. SPEC-first: add the
+function to `SPECIFICATION.md` §4.8 and `call.name` docs, then table-driven example cases.
+
+**Shipped**: `_json_type` registered as `type` in `transon/functions.py` (tokens
+`object|array|string|int|float|boolean|null`); documented in `SPECIFICATION.md` (§4.8 + `call.name`
+table) and `rules.py` `call.name` param; example corpus `transon/tests/test_type.py`; metadata
+parity updated in `tests/test_metadata.py`.
+
+### R-27. `include` propagates `template_loader` through context
+
+**Status**: done · **Severity**: medium · **Source**: [`proposals/type-function.md`](proposals/type-function.md) (Deliverable 2)
+
+A recursive/self-`include`ing codec skeleton needs the sub-`Transformer` built by `include` to inherit
+the parent's `template_loader` (it already inherited the include-stack/marker/depth). Rather than adding
+another in-place mutation of the loaded instance — unsafe when a loader returns a cached/shared
+`Transformer` — the inherited include-context is **passed through the loader** so the sub-transformer is
+constructed correctly.
+
+**Impact if not fixed**: self-referential codecs fail to re-resolve ("include not resolvable") unless
+every host re-patches the loader on each resolved include (the editor's Node adapter and the production
+Pyodide host would each need the identical workaround).
+
+**Requirements**: do not mutate the loaded instance; `include` always calls the `template_loader` as
+`loader(name, context=...)`, handing it an `IncludeContext` from which it constructs the
+sub-`Transformer` with the inherited loader/marker/depth/stack; `context` is optional in the loader
+signature so a loader may also be invoked standalone; additive, no template-semantics change.
+SPEC-first: update the `include` row + constructor parameters in `SPECIFICATION.md`.
+
+**Shipped**: `IncludeContext` in `transon/transformers.py` (and a new `include_stack` constructor
+parameter); `rule_include` always passes the context and the loader constructs the sub-`Transformer`
+(e.g. `context.transformer(template)`); the engine never mutates the loaded instance; documented in
+`SPECIFICATION.md` (`include` row + constructor) and the `rule_include` docstring; tests
+`tests/test_include_loader_context.py`.
 
 ---
 

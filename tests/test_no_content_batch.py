@@ -142,8 +142,8 @@ def test_format_default_parameter():
 
 
 def test_include_default_parameter():
-    def loader(name):
-        return Transformer({'$': 'attr', 'name': 'missing'})
+    def loader(name, context=None):
+        return context.transformer({'$': 'attr', 'name': 'missing'})
 
     transformer = Transformer(
         {'$': 'include', 'name': 'sub', 'default': 'fallback'},

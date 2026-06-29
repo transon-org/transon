@@ -59,12 +59,9 @@ def get_test_case_by_name(name: str):
             return case
 
 
-def template_loader(name: str):
+def template_loader(name: str, context=None):
     case = get_test_case_by_name(name)
-    return Transformer(
-        case.template,
-        template_loader=template_loader,
-    )
+    return context.transformer(case.template)
 
 
 def get_rules_docs(cls=Transformer):

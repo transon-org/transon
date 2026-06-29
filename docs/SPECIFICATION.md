@@ -186,9 +186,10 @@ Transformer(
     *,
     validate=False,                # if True, run validate() before use
     file_writer=no_file_writer,    # Callable[[str, Any], None] — used by the `file` rule
-    template_loader=no_template_loader,  # Callable[[str], Transformer] — used by `include`
+    template_loader=no_template_loader,  # loader(name, context=IncludeContext) -> Transformer — used by `include`
     marker='$',                    # rule marker key
     max_include_depth=50,          # nested `include` depth limit (see `include` rule)
+    include_stack=None,            # inherited include chain; set by `include` propagation
 )
 transformer.transform(data, no_content=None, *, copy_output=False) -> output
 transformer.validate()            # static template check; raises DefinitionError
@@ -388,7 +389,7 @@ Other lookup failures (e.g. `TypeError` indexing a string with a string) →
 | Rule | Parameters | Semantics |
 |---|---|---|
 | `file` | `name`, `content` (both required, dynamic) | Calls the configured `file_writer(name, content)`. Skipped if either is `NO_CONTENT`. Always returns `NO_CONTENT` (so `map` over `file` yields `[]`). |
-| `include` | `name` (required, dynamic), `default` (optional, dynamic) | Loads a sub-`Transformer` via the configured `template_loader` and runs it against `context.this`. Variables/context do **not** cross the boundary — only the value. When the loaded sub-`Transformer` still uses the default marker (`$`), it **inherits the parent transformer's marker**; a sub-template that pins a non-default marker keeps it (there is no per-call `marker` argument). Sub-result `NO_CONTENT` is propagated as this transformer's `NO_CONTENT` (or `default` when provided). Nested includes are tracked by name; exceeding `max_include_depth` (constructor parameter, default 50) raises `TransformationError` with the include chain in the message. |
+| `include` | `name` (required, dynamic), `default` (optional, dynamic) | Loads a sub-`Transformer` via the configured `template_loader` and runs it against `context.this`. Variables/context do **not** cross the boundary — only the value. The `template_loader` is always called as `loader(name, context=...)` and handed an `IncludeContext` (parent loader, marker, depth guard, include-stack); it **constructs** the sub-`Transformer` itself (e.g. via `context.transformer(template)`). The sub-`Transformer` therefore inherits the parent transformer's marker by default (so a sub-template using the default marker stays consistent across the boundary; pass an explicit `marker` to `context.transformer` to pin a different one), the parent's `template_loader` propagates so recursive/self-`include`ing templates re-resolve without per-host patching, and the loaded instance is never mutated. Sub-result `NO_CONTENT` is propagated as this transformer's `NO_CONTENT` (or `default` when provided). Nested includes are tracked by name; exceeding `max_include_depth` (constructor parameter, default 50) raises `TransformationError` with the include chain in the message. |
 
 ### 4.7 Built-in operators (`expr`)
 
@@ -403,7 +404,10 @@ Each operator has a mnemonic and a code-style alias mapping to the same Python
 
 ### 4.8 Built-in functions (`call`)
 
-`str`, `int`, `float` — the Python builtins, registered directly.
+`str`, `int`, `float` — the Python builtins, registered directly. `type` — returns the JSON
+type name of any value (`object`/`array`/`string`/`int`/`float`/`boolean`/`null`); it is
+**total** (never raises on well-formed JSON), so it is the one operation a `switch`/`cond`
+key can safely apply to a node of unknown type.
 
 ---
 

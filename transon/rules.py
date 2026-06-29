@@ -9,6 +9,7 @@ from transon import (
     ContainerType,
     Domain,
     arm,
+    IncludeContext,
 )
 
 _transon_errors = (DefinitionError, TransformationError)
@@ -623,6 +624,7 @@ def rule_expr(t: Transformer, template, context: Context):
     | str   |  any  |  str   | 
     | int   |  str  |  int   | 
     | float |  str  | float  | 
+    | type  |  any  | string | 
 
 """,
     value="Defines template for single parameter value",
@@ -738,9 +740,15 @@ def rule_include(t: Transformer, template, context: Context):
     Only the current context value is passed to the included template — variables
     stored with `set`/`get` and iteration accessors do not cross the boundary.
 
-    When the loaded sub-template still uses the default marker (`$`), it inherits
-    the **parent transformer's marker** so staged templates stay consistent across
-    `include` boundaries. A sub-template that pins a non-default marker keeps it.
+    The `template_loader` is always called as `loader(name, context=...)`, where
+    `context` is an `IncludeContext` carrying the parent's loader, marker, depth
+    guard, and include-stack. The loader is responsible for **constructing** the
+    sub-`Transformer` with them (e.g. via `context.transformer(template)`), which
+    inherits the parent's marker by default — so a sub-template using the default
+    marker stays consistent across the boundary, recursive / self-`include`ing
+    templates re-resolve without each host re-patching the loader, and the loaded
+    instance is never mutated. Pass an explicit `marker` to `context.transformer`
+    to pin a different marker for the sub-template.
 
     Nested includes are limited by `max_include_depth` on `Transformer` (default 50).
     Exceeding the limit raises `TransformationError` with the include name chain.
@@ -751,11 +759,13 @@ def rule_include(t: Transformer, template, context: Context):
     t_name = t.require(template, 'name')
     name = t.walk_param(t_name, context, 'name')
     stack = t._prepare_include(name)
-    sub_transformer = t.template_loader(name)
-    sub_transformer._include_stack = stack
-    sub_transformer.max_include_depth = t.max_include_depth
-    if sub_transformer.marker == Transformer.DEFAULT_MARKER:
-        sub_transformer.marker = t.marker
+    include_context = IncludeContext(
+        template_loader=t.template_loader,
+        marker=t.marker,
+        max_include_depth=t.max_include_depth,
+        include_stack=tuple(stack),
+    )
+    sub_transformer = t.template_loader(name, context=include_context)
     result = sub_transformer.transform(
         context.this,
         no_content=sub_transformer.NO_CONTENT,

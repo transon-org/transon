@@ -39,9 +39,9 @@ class TableDataBaseCase(unittest.TestCase):
         if cls.result is undefined:
             raise unittest.SkipTest("no result")
 
-    def template_loader(self, name: str):
+    def template_loader(self, name: str, context=None):
         from transon.docs import template_loader
-        return template_loader(name)
+        return template_loader(name, context)
 
     def test(self):
         self.is_valid()
@@ -101,9 +101,9 @@ class ErrorBaseCase(unittest.TestCase):
         if cls.action == 'transform' and cls.data is undefined:
             raise unittest.SkipTest("no data")
 
-    def template_loader(self, name: str):
+    def template_loader(self, name: str, context=None):
         from transon.docs import template_loader
-        return template_loader(name)
+        return template_loader(name, context)
 
     def test(self):
         self.is_valid()

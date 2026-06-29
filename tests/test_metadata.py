@@ -62,7 +62,7 @@ def test_call_name_options_resolved():
         param for param in call['params'] if param['name'] == 'name'
     )
     assert name_param['kind'] == 'constant'
-    assert name_param['options'] == ['str', 'int', 'float']
+    assert name_param['options'] == ['str', 'int', 'float', 'type']
 
 
 def test_docs_payload_joins_by_name():

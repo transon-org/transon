@@ -14,12 +14,12 @@ def test_include_without_loader_raises_definition_error():
         transformer.transform(0)
 
 
-def _cycle_loader(name):
+def _cycle_loader(name, context=None):
     templates = {
         'A': {'$': 'include', 'name': 'B'},
         'B': {'$': 'include', 'name': 'A'},
     }
-    return Transformer(templates[name], template_loader=_cycle_loader)
+    return context.transformer(templates[name])
 
 
 def test_include_cycle_raises_transformation_error_with_chain():
@@ -36,13 +36,13 @@ def test_include_cycle_raises_transformation_error_with_chain():
         transformer.transform(0)
 
 
-def _linear_loader(name):
+def _linear_loader(name, context=None):
     templates = {
         '1': {'$': 'include', 'name': '2'},
         '2': {'$': 'include', 'name': '3'},
         '3': 'leaf',
     }
-    return Transformer(templates[name], template_loader=_linear_loader)
+    return context.transformer(templates[name])
 
 
 def test_include_depth_limit_raises_transformation_error_with_chain():

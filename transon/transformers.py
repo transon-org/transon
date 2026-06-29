@@ -143,7 +143,9 @@ class NoContent:
 
 
 FileWriterType = Callable[[str, Any], None]
-TemplateLoaderType = Callable[[str], 'Transformer']
+# `include` always calls the loader as ``loader(name, context=IncludeContext)``; the
+# ``context`` is optional so a loader may also be invoked standalone.
+TemplateLoaderType = Callable[..., 'Transformer']
 
 DEFAULT_MAX_INCLUDE_DEPTH = 50
 
@@ -154,7 +156,7 @@ def no_file_writer(name: str, data):  # pragma: no cover
 
 
 # noinspection PyUnusedLocal
-def no_template_loader(name: str) -> 'Transformer':   # pragma: no cover
+def no_template_loader(name: str, context=None) -> 'Transformer':   # pragma: no cover
     raise DefinitionError(format_error_message(
         f'template with name `{name}` was not found'
     ))
@@ -615,13 +617,14 @@ class Transformer:
             template_loader: TemplateLoaderType = no_template_loader,
             marker: str = DEFAULT_MARKER,
             max_include_depth: int = DEFAULT_MAX_INCLUDE_DEPTH,
+            include_stack: Optional[Tuple[str, ...]] = None,
     ):
         self.template = template
         self.file_writer = file_writer
         self.template_loader = template_loader
         self.marker = marker
         self.max_include_depth = max_include_depth
-        self._include_stack = []
+        self._include_stack = list(include_stack) if include_stack else []
         if validate:
             self.validate()
 
@@ -876,3 +879,39 @@ class Transformer:
         if copy_output:
             return copy.deepcopy(result)
         return result
+
+
+@dataclasses.dataclass(frozen=True)
+class IncludeContext:
+    """The parent transformer's include-context, passed to a ``template_loader``.
+
+    ``include`` always calls the loader as ``loader(name, context=IncludeContext)``.
+    The loader is responsible for **constructing** the sub-``Transformer`` with these
+    inherited settings (marker, depth guard, include-stack, and the parent's loader so
+    recursive/self-referential templates re-resolve). Passing the settings in at
+    construction — rather than mutating the loaded instance — lets a loader return a
+    cached/shared template without leaking one caller's include-state into another.
+
+    Use :meth:`transformer` for the common case, or read the fields directly when
+    constructing a ``Transformer`` subclass.
+    """
+    template_loader: 'TemplateLoaderType'
+    marker: str
+    max_include_depth: int
+    include_stack: Tuple[str, ...] = ()
+
+    def transformer(self, template, *, marker=None, **kwargs):
+        """Build a ``Transformer`` for ``template`` carrying this include-context.
+
+        The parent's ``template_loader`` is inherited (so a self-``include`` recurses)
+        unless overridden via ``kwargs``. ``marker`` defaults to the parent's marker
+        — pass an explicit ``marker`` to pin a different one for the sub-template.
+        """
+        kwargs.setdefault('template_loader', self.template_loader)
+        return Transformer(
+            template,
+            marker=self.marker if marker is None else marker,
+            max_include_depth=self.max_include_depth,
+            include_stack=self.include_stack,
+            **kwargs,
+        )
