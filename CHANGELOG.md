@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-07-02
+
+### Added
+
+- Every example serialized by the docs/metadata APIs now carries its corpus
+  `tags` (engine facts: what a case demonstrates), so consumers can dedupe
+  multi-tagged cases by `name` and group examples without re-deriving anything.
+  `get_editor_metadata()` additionally exposes the two curated example tiers —
+  `docs.worked_examples` and `docs.recipes` — mirroring `get_all_docs()`.
+  Additive only — `METADATA_VERSION` bumps `2.1` → `2.2`; no change to rules,
+  validation, or template semantics. (Roadmap R-29)
+- Curated example corpus grown to cover every rule family a first-time user
+  meets: five new recipes (`switch` code→label dispatch, `cond` range
+  bucketing, `set`/`get` compute-once-use-twice, `zip` list pairing, `filter` +
+  `expr` comparison) and one new worked example (conditional enrichment inside
+  a `map` with `switch`/`cond` branch logic). Content only. (Roadmap R-30)
+
 ## [0.1.4] - 2026-07-02
 
 ### Added

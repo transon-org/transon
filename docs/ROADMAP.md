@@ -57,6 +57,8 @@
 | [R-26](#r-26-type-value-type-function) | `type` value-type function | medium | done |
 | [R-27](#r-27-include-propagates-template_loader-through-context) | `include` propagates `template_loader` through context | medium | done |
 | [R-28](#r-28-export-structural-param-facts-container--arm-in-the-editor-metadata) | Export structural param facts (`container` + `arm`) in the editor metadata | medium | done |
+| [R-29](#r-29-export-example-tags--curated-example-tiers-in-the-editor-metadata) | Export example tags + curated example tiers in the editor metadata | medium | done |
+| [R-30](#r-30-grow-the-curated-example-corpus-recipes--worked-examples) | Grow the curated example corpus (recipes + worked examples) | low | done |
 
 ---
 
@@ -856,6 +858,54 @@ honest rendering). Tests extend `tests/test_metadata.py`.
 an `arms` list with the `when`/`then` slot docstrings; `METADATA_VERSION` `2.0` → `2.1`; no change
 to rules, validation, or the walker. Tests in `tests/test_metadata.py` (container/arm export,
 no-key-for-`TEMPLATE` sweep, docs arm descriptions, version bump).
+
+### R-29. Export example tags + curated example tiers in the editor metadata
+
+**Status**: done · **Severity**: medium ·
+**Source**: [`proposals/editor-metadata-example-tiers.md`](proposals/editor-metadata-example-tiers.md) (Deliverable 1)
+
+The tagged `TableDataBaseCase` corpus is the engine's single example source, and it already holds
+two curated tiers (`worked-example`, `recipe`) that `get_all_docs()` exposes as first-class blocks.
+But `get_editor_metadata()` exposed neither, and the shared example serializer
+(`docs.get_test_cases_for_tag()`) stripped `tags` — the corpus's own organizing metadata. The
+editor's Examples surface could only flatten the per-entry reference examples into one long list of
+fixture-named cases, and had to dedupe re-inlined multi-tagged cases by content hash.
+
+**Impact if not fixed**: a reference corpus posing as a demo showcase in the editor; consumers
+re-derive grouping/dedup facts the engine already owns.
+
+**Requirements**: additive only — emit `tags` on every serialized example (flows into
+`get_all_docs()` too; the docs site ignores unknown fields) and add `docs.worked_examples` /
+`docs.recipes` blocks to `get_editor_metadata()` mirroring `get_all_docs()`; conventions stated in
+docstrings (curated cases carry **only** their tier tag; reference cases never carry a tier tag);
+no display order, difficulty, titles, or presentation vocabulary (editor-owned); bump
+`METADATA_VERSION` `2.1` → `2.2`. Tests extend `tests/test_metadata.py`.
+
+**Shipped**: `docs.get_test_cases_for_tag()` emits `'tags': list(case.tags)`;
+`get_editor_metadata()` docs payload gains `worked_examples` + `recipes` (same serializer);
+`METADATA_VERSION` `2.1` → `2.2`; conventions documented in the `get_worked_examples()` /
+`get_recipes()` / `get_editor_metadata()` docstrings. Tests in `tests/test_metadata.py` (tags on
+entry-, param-, operator-, and function-level examples; tier blocks non-empty and tier-tag-only;
+reference examples never tier-tagged; version bump).
+
+### R-30. Grow the curated example corpus (recipes + worked examples)
+
+**Status**: done · **Severity**: low ·
+**Source**: [`proposals/editor-metadata-example-tiers.md`](proposals/editor-metadata-example-tiers.md) (Deliverable 2)
+
+The curated tiers predated `switch`/`cond` (R-23) and skipped several rules users reach for early
+(`set`/`get`, `zip`, comparison-based `filter`). Content-only change: every rule family a
+first-time user meets (`accessors`, `map`/`filter`, `object`, `expr`, `switch`/`cond`, `set`/`get`,
+`zip`, `format`/`join`/`call`) must appear in at least one curated case, at the existing docstring
+quality bar (task-framed bold title + *"Task: …"* line).
+
+**Shipped**: five recipes — `RecipeMapCodeToLabel` (`switch` + `default`),
+`RecipeBucketValueByRanges` (`cond` arms with `expr` comparisons), `RecipeComputeOnceUseTwice`
+(`set`/`get` in a `chain`), `RecipePairUpTwoLists` (`zip` + `map`/`object`),
+`RecipeKeepItemsMatchingCondition` (`filter` + `expr` comparison) — and one worked example,
+`WorkedExampleConditionalEnrichmentInsideMap` (`map` + `object` + `switch` + `cond`), in
+`transon/tests/test_recipes.py` / `test_worked_examples.py`. `tests/test_docs.py` name lists
+extended plus a rule-family coverage sweep over the curated corpus.
 
 ---
 

@@ -94,6 +94,14 @@ def get_rule_parameter_docs(rule_name, cls=Transformer):
 
 
 def get_test_cases_for_tag(tag):
+    """Serialize every corpus case carrying ``tag`` to the shared example shape.
+
+    ``tags`` is included verbatim — the corpus's own organizing metadata (what a
+    case demonstrates, an engine fact) travels with every example, so consumers
+    can dedupe multi-tagged cases by ``name`` and group/filter without
+    re-deriving anything. No display order, difficulty, titles, or other
+    presentation vocabulary is emitted — that is consumer-owned.
+    """
     return [
         {
             'name': case.__name__,
@@ -101,6 +109,7 @@ def get_test_cases_for_tag(tag):
             'template': case.template,
             'data': case.data,
             'result': case.result,
+            'tags': list(case.tags),
         }
         for case in get_test_cases_by_tag(tag)
     ]
@@ -123,10 +132,22 @@ def get_test_cases_for_function(name):
 
 
 def get_worked_examples():
+    """The curated worked-example tier: end-to-end, real-world-framed cases.
+
+    Convention: curated cases carry **only** their tier tag
+    (``['worked-example']``) so they never appear in the per-rule/param
+    reference galleries; reference cases never carry a tier tag.
+    """
     return get_test_cases_for_tag('worked-example')
 
 
 def get_recipes():
+    """The curated recipe tier: task-oriented "how do I…" cases.
+
+    Convention: curated cases carry **only** their tier tag (``['recipe']``)
+    so they never appear in the per-rule/param reference galleries; reference
+    cases never carry a tier tag.
+    """
     return get_test_cases_for_tag('recipe')
 
 

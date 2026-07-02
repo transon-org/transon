@@ -220,3 +220,63 @@ class WorkedExampleOptionalFieldsAndDefaults(base.TableDataBaseCase):
         'email': 'ada@example.com',
         'tier': 'free',
     }
+
+
+class WorkedExampleConditionalEnrichmentInsideMap(base.TableDataBaseCase):
+    """
+    **Conditional enrichment inside a map (per-record branch logic).**
+
+    *The shape most real templates take*: iterate a list of records and rebuild
+    each one with fields that depend on the record's own values. `map` drives the
+    iteration and `object` shapes each output record; inside it, `switch`
+    dispatches a short plan code to its display label (with a `default` for
+    unknown codes), while `cond` buckets the numeric `seats` field with an `expr`
+    comparison. Only the selected branch of each dispatch is ever evaluated —
+    where JSONata would write nested ternaries and jq an `if/elif` chain, transon
+    keeps every branch a plain JSON template.
+    """
+    tags = ['worked-example']
+    template = {
+        '$': 'map',
+        'item': {
+            '$': 'object',
+            'fields': {
+                'name': {'$': 'attr', 'name': 'name'},
+                'plan': {
+                    '$': 'switch',
+                    'key': {'$': 'attr', 'name': 'plan'},
+                    'cases': {
+                        'pro': 'Professional',
+                        'ent': 'Enterprise',
+                    },
+                    'default': 'Free',
+                },
+                'size': {
+                    '$': 'chain',
+                    'funcs': [
+                        {'$': 'attr', 'name': 'seats'},
+                        {
+                            '$': 'cond',
+                            'cases': [
+                                {
+                                    'when': {'$': 'expr', 'op': '<', 'value': 10},
+                                    'then': 'small',
+                                },
+                            ],
+                            'default': 'large',
+                        },
+                    ],
+                },
+            },
+        },
+    }
+    data = [
+        {'name': 'Initech', 'plan': 'ent', 'seats': 250},
+        {'name': 'Hooli', 'plan': 'pro', 'seats': 8},
+        {'name': 'Pied Piper', 'plan': 'trial', 'seats': 3},
+    ]
+    result = [
+        {'name': 'Initech', 'plan': 'Enterprise', 'size': 'large'},
+        {'name': 'Hooli', 'plan': 'Professional', 'size': 'small'},
+        {'name': 'Pied Piper', 'plan': 'Free', 'size': 'small'},
+    ]

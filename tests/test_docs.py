@@ -45,6 +45,7 @@ def test_all_docs_expose_worked_examples():
         'WorkedExampleFilterAndProject',
         'WorkedExampleIndexByKey',
         'WorkedExampleOptionalFieldsAndDefaults',
+        'WorkedExampleConditionalEnrichmentInsideMap',
     } <= names
     for example in examples:
         assert example['doc'] and 'TBD' not in example['doc']
@@ -63,9 +64,51 @@ def test_all_docs_expose_recipes():
         'RecipeJoinListToString',
         'RecipeBuildStringFromFields',
         'RecipeConvertType',
+        'RecipeMapCodeToLabel',
+        'RecipeBucketValueByRanges',
+        'RecipeComputeOnceUseTwice',
+        'RecipePairUpTwoLists',
+        'RecipeKeepItemsMatchingCondition',
     } <= names
     for recipe in recipes:
         assert recipe['doc'] and 'TBD' not in recipe['doc']
+
+
+def _collect_rule_names(template, found):
+    if isinstance(template, dict):
+        if '$' in template:
+            found.add(template['$'])
+        for value in template.values():
+            _collect_rule_names(value, found)
+    elif isinstance(template, list):
+        for item in template:
+            _collect_rule_names(item, found)
+
+
+def test_curated_corpus_covers_first_user_rule_families():
+    """Roadmap R-30: every rule family a first-time user meets appears in at
+    least one curated case (worked example or recipe)."""
+    docs = get_all_docs()
+    used = set()
+    for case in (*docs['worked_examples'], *docs['recipes']):
+        _collect_rule_names(case['template'], used)
+    families = [
+        {'attr', 'this', 'key', 'value', 'index'},  # accessors
+        {'map'},
+        {'filter'},
+        {'object'},
+        {'expr'},
+        {'switch'},
+        {'cond'},
+        {'set'},
+        {'get'},
+        {'zip'},
+        {'format'},
+        {'join'},
+        {'call'},
+    ]
+    for family in families:
+        assert used & family, f'no curated case demonstrates any of {family}'
 
 
 def test_all_docs_expose_error_model():

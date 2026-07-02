@@ -19,7 +19,7 @@ from transon import ContainerType
 from transon import Domain
 from transon import docs
 
-METADATA_VERSION = '2.1'
+METADATA_VERSION = '2.2'
 
 
 def _engine_version():
@@ -190,6 +190,15 @@ def get_editor_metadata(cls=Transformer):
 
     The result has a standalone ``metadata_version``, the ``engine_version``, and a
     split ``catalog`` (structural) / ``docs`` (examples) payload joined by ``name``.
+
+    Every serialized example carries the corpus ``tags`` (engine facts: what a
+    case demonstrates), so consumers can dedupe multi-tagged cases by ``name``
+    and group examples without re-deriving anything. The ``docs`` payload also
+    exposes the two curated tiers — ``worked_examples`` and ``recipes`` —
+    mirroring :func:`transon.docs.get_all_docs`. Curated cases carry **only**
+    their tier tag and never appear in the per-entry reference example lists;
+    reference cases never carry a tier tag. No display order, difficulty,
+    titles, or other presentation vocabulary is emitted — that is editor-owned.
     """
     rules = cls.get_rules()
     operators = cls.get_operators()
@@ -206,6 +215,8 @@ def get_editor_metadata(cls=Transformer):
             'rules': [_docs_rule(rule, cls) for rule in rules],
             'operators': [_docs_operator(entry) for entry in operators],
             'functions': [_docs_function(entry) for entry in functions],
+            'worked_examples': docs.get_worked_examples(),
+            'recipes': docs.get_recipes(),
         },
     }
 
