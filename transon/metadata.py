@@ -7,17 +7,19 @@ the ``transon-blockly`` visual editor consumes (see that repo's
 (tooltips/examples), joined by ``name``.
 
 The export states **engine facts only**: pre-derived variant signatures, per-param
-``kind`` (dynamic vs constant), and resolved enum domains (``options``). No Blockly
+``kind`` (dynamic vs constant), resolved enum domains (``options``), and structural
+facts (``container``/``arm``) the engine already declares and validates. No Blockly
 shapes, colours, or widget choices — those live in the editor's projection.
 """
 import importlib.metadata
 import inspect
 
 from transon import Transformer
+from transon import ContainerType
 from transon import Domain
 from transon import docs
 
-METADATA_VERSION = '2.0'
+METADATA_VERSION = '2.1'
 
 
 def _engine_version():
@@ -85,15 +87,36 @@ def derive_variants(rule):
     return signatures
 
 
+def _catalog_param(name, spec, cls):
+    """Serialize one :class:`ParamSpec` (rule param or arm slot) to catalog shape.
+
+    Keys are omitted when they hold the default (``container: template``, no
+    ``options``, no ``arm``), so unannotated params look exactly as they did in 2.0.
+    Recursive through ``arm`` so a future container/constant arm slot folds in
+    with no export change.
+    """
+    entry = {'name': name, 'kind': spec.kind.value}
+    if spec.domain is not None:
+        entry['options'] = _resolve_options(spec.domain, cls)
+    if spec.container is not ContainerType.TEMPLATE:
+        entry['container'] = spec.container.value
+    if spec.arm is not None:
+        entry['arm'] = {
+            'required': list(spec.arm.required),
+            'params': [
+                _catalog_param(slot_name, slot_spec, cls)
+                for slot_name, slot_spec in spec.arm.params.items()
+            ],
+        }
+    return entry
+
+
 def _catalog_params(rule, cls):
     specs = getattr(rule, '__rule_param_meta__', {})
-    params = []
-    for name, spec in specs.items():
-        entry = {'name': name, 'kind': spec.kind.value}
-        if spec.domain is not None:
-            entry['options'] = _resolve_options(spec.domain, cls)
-        params.append(entry)
-    return params
+    return [
+        _catalog_param(name, spec, cls)
+        for name, spec in specs.items()
+    ]
 
 
 def _catalog_rule(rule, cls):
@@ -115,19 +138,31 @@ def _catalog_function(entry):
     return {key: entry.get(key) for key in ('name', 'input', 'output')}
 
 
+def _docs_param(rule, name, param):
+    entry = {
+        'name': param['name'],
+        'description': param['doc'],
+        'examples': docs.get_test_cases_for_rule_param(name, param['name']),
+    }
+    spec = getattr(rule, '__rule_param_meta__', {}).get(param['name'])
+    if spec is not None and spec.arm is not None:
+        entry['arms'] = [
+            {
+                'name': slot_name,
+                'description': inspect.cleandoc(slot_spec.doc),
+            }
+            for slot_name, slot_spec in spec.arm.params.items()
+        ]
+    return entry
+
+
 def _docs_rule(rule, cls):
     name = rule.__rule_name__
     return {
         'name': name,
         'description': inspect.getdoc(rule),
         'params': [
-            {
-                'name': param['name'],
-                'description': param['doc'],
-                'examples': docs.get_test_cases_for_rule_param(
-                    name, param['name']
-                ),
-            }
+            _docs_param(rule, name, param)
             for param in docs.get_rule_parameter_docs(name, cls)
         ],
         'examples': docs.get_test_cases_for_rule(name),

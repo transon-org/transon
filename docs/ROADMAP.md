@@ -56,6 +56,7 @@
 | [R-25](#r-25-include-default-marker-inheritance) | `include` default-marker inheritance | low | done |
 | [R-26](#r-26-type-value-type-function) | `type` value-type function | medium | done |
 | [R-27](#r-27-include-propagates-template_loader-through-context) | `include` propagates `template_loader` through context | medium | done |
+| [R-28](#r-28-export-structural-param-facts-container--arm-in-the-editor-metadata) | Export structural param facts (`container` + `arm`) in the editor metadata | medium | done |
 
 ---
 
@@ -822,6 +823,39 @@ parameter); `rule_include` always passes the context and the loader constructs t
 (e.g. `context.transformer(template)`); the engine never mutates the loaded instance; documented in
 `SPECIFICATION.md` (`include` row + constructor) and the `rule_include` docstring; tests
 `tests/test_include_loader_context.py`.
+
+### R-28. Export structural param facts (`container` + `arm`) in the editor metadata
+
+**Status**: done (cross-repo decision 2026-07-02, `transon-blockly` UAT #1/#2 brainstorm —
+engine-first shape hints; editor-side shape catalog rejected) · **Severity**: medium ·
+**Source**: [`proposals/editor-metadata-structural-params.md`](proposals/editor-metadata-structural-params.md)
+
+`get_editor_metadata()` (R-24) drops two structural facts the engine already declares at the rule
+source and enforces in validation/the walk: `ParamSpec.container`
+(`template`/`mapping`/`list`/`arms` — `chain.funcs`, `object.fields`, `switch.cases`, `cond.cases`)
+and `ParamSpec.arm` (the `ArmSpec` slot schema for `cond.cases`: required `when`/`then` + per-slot
+specs). The `transon-blockly` editor needs them to project structured rule parameters as single
+coherent blocks (repeating inputs / when-then groups / key-value rows) instead of compositions of
+generic array/object blocks.
+
+**Impact if not fixed**: the editor either renders every dynamic param as one generic socket
+(structured templates degrade into raw-JSON block assemblies — its UAT findings #1/#2) or
+re-declares these facts in a parallel editor-side catalog, exactly the duplication R-24 removed.
+
+**Requirements**: additive only — emit `container` when not `template` (omit for the default) and
+`arm: {required, params}` for `ARMS` params (recursive serializer, same shape as rule params;
+faithful to `ArmSpec` — no invented `variants` key); optionally arm-slot docstrings in the docs
+payload; bump `METADATA_VERSION` `2.0` → `2.1`; **engine facts only** (no widget/presentation
+vocabulary, contract §2.8); no change to rules, walker, validation, or template semantics; do NOT
+annotate `TEMPLATE` params (`map.items` etc. accept dynamic templates — a single socket is the
+honest rendering). Tests extend `tests/test_metadata.py`.
+
+**Shipped**: `_catalog_param` in `transon/metadata.py` serializes each `ParamSpec` recursively —
+`container` emitted when not the default `template`, `arm: {required, params}` for `ARMS` params
+(arm slots use the same serialization as rule params); the docs payload's `cond.cases` entry gains
+an `arms` list with the `when`/`then` slot docstrings; `METADATA_VERSION` `2.0` → `2.1`; no change
+to rules, validation, or the walker. Tests in `tests/test_metadata.py` (container/arm export,
+no-key-for-`TEMPLATE` sweep, docs arm descriptions, version bump).
 
 ---
 

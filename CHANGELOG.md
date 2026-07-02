@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-07-02
+
+### Added
+
+- `get_editor_metadata()` now exports the structural param facts the engine already
+  declares and validates: `container` (`mapping`/`list`/`arms`; omitted for the
+  default `template`) on `chain.funcs`, `object.fields`, `switch.cases`, and
+  `cond.cases`, plus the `arm: {required, params}` slot schema for `ARMS` params
+  (serialized recursively with the same shape as rule params). The docs payload's
+  `cond.cases` entry gains an `arms` list carrying the `when`/`then` slot
+  docstrings. Additive only — `METADATA_VERSION` bumps `2.0` → `2.1`; no change to
+  rules, validation, or template semantics. (Roadmap R-28)
+
 ## [0.1.3] - 2026-06-29
 
 ### Added
