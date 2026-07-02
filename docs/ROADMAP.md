@@ -59,6 +59,7 @@
 | [R-28](#r-28-export-structural-param-facts-container--arm-in-the-editor-metadata) | Export structural param facts (`container` + `arm`) in the editor metadata | medium | done |
 | [R-29](#r-29-export-example-tags--curated-example-tiers-in-the-editor-metadata) | Export example tags + curated example tiers in the editor metadata | medium | done |
 | [R-30](#r-30-grow-the-curated-example-corpus-recipes--worked-examples) | Grow the curated example corpus (recipes + worked examples) | low | done |
+| [R-31](#r-31-normalize-exports-to-one-flat-example-corpus-name-references) | Normalize exports to one flat example corpus (name references) | medium | done |
 
 ---
 
@@ -906,6 +907,35 @@ quality bar (task-framed bold title + *"Task: …"* line).
 `WorkedExampleConditionalEnrichmentInsideMap` (`map` + `object` + `switch` + `cond`), in
 `transon/tests/test_recipes.py` / `test_worked_examples.py`. `tests/test_docs.py` name lists
 extended plus a rule-family coverage sweep over the curated corpus.
+
+### R-31. Normalize exports to one flat example corpus (name references)
+
+**Status**: done · **Severity**: medium ·
+**Source**: [`proposals/example-corpus-normalization.md`](proposals/example-corpus-normalization.md)
+
+Both export APIs re-inlined the full example object under every entry a case's tags attached it
+to: 121 corpus cases became 264 inlined objects, ~60 % of each ~135 KB payload was repeated
+example bodies, and two untagged cases (`AttrSimplePathDoesNotExist1/2`) appeared in **no** export
+at all. The R-29 RFC explicitly deferred the fix ("normalize to one flat tagged corpus") as a
+`3.0` candidate.
+
+**Impact if not fixed**: payload duplication grows with every new multi-tagged case; consumers
+keep content-hash dedupe workarounds; untagged orphans stay invisible.
+
+**Requirements**: shape-breaking, both APIs — a flat `examples` block (every case serialized
+exactly once, `tags` kept) with every other `examples` field (rule/param/operator/function +
+curated tiers) an ordered list of `name` references into it; the join stays engine-owned
+(consumers resolve names, never re-derive tag conventions); `errors` stays inline (no
+duplication there); tag the two orphan cases; bump `METADATA_VERSION` `2.2` → `3.0`; align
+`SPECIFICATION.md` §5/§5.1/§6.1; coordinated consumer migrations (docs site + `transon-blockly`
+contract §2.7, SPEC-first there).
+
+**Shipped**: `docs.get_example_corpus()` + `serialize_case()` + `get_example_names_for_*` name
+helpers replace the inline per-tag serializers; `get_all_docs()` and `get_editor_metadata()`
+emit the flat corpus + name references; orphans tagged `attr:names`; `METADATA_VERSION` `2.2` →
+`3.0`. Corpus invariants tested in `tests/test_docs.py` / `tests/test_metadata.py`: unique names,
+every reference resolves, every case reachable, curated cases tier-tag-only, reference examples
+never tier-tagged. `SPECIFICATION.md` §5/§5.1/§6.1 rewritten to the new shapes.
 
 ---
 

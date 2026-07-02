@@ -38,7 +38,7 @@ class AttrSimplePathDoesNotExist1(base.TableDataBaseCase):
     Actual path is not correct at its second component.
     Template results with no value.
     """
-    tags = []
+    tags = ['attr:names']
     template = {
         '$': 'attr',
         'names': ['a', 'x', 'c'],
@@ -59,7 +59,7 @@ class AttrSimplePathDoesNotExist2(base.TableDataBaseCase):
     Actual path is not correct at its second component.
     Template results with no value.
     """
-    tags = []
+    tags = ['attr:names']
     template = {
         '$': 'attr',
         'names': [0, 1, 0],

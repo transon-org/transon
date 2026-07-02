@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-07-02
+
+### Changed
+
+- **Breaking (export shape only):** examples in the docs/metadata APIs are
+  normalized. `get_all_docs()` and `get_editor_metadata()` now embed one flat
+  `examples` corpus (every case serialized exactly once, with `tags`), and every
+  other `examples` field — rule-, parameter-, operator-, and function-level,
+  plus the `worked_examples`/`recipes` tiers — is an ordered list of `name`
+  references into it. The `errors` block stays inline. Previously 121 corpus
+  cases were re-inlined as 264 example objects (~60 % of each payload).
+  `METADATA_VERSION` bumps `2.2` → `3.0`; no change to rules, validation, or
+  template semantics. The two previously untagged corpus cases
+  (`AttrSimplePathDoesNotExist1/2`) are now tagged `attr:names` and appear in
+  the exports. (Roadmap R-31)
+
 ## [0.1.5] - 2026-07-02
 
 ### Added

@@ -93,62 +93,80 @@ def get_rule_parameter_docs(rule_name, cls=Transformer):
     ]
 
 
-def get_test_cases_for_tag(tag):
-    """Serialize every corpus case carrying ``tag`` to the shared example shape.
+def serialize_case(case):
+    """Serialize one corpus case to the shared example shape.
 
     ``tags`` is included verbatim — the corpus's own organizing metadata (what a
     case demonstrates, an engine fact) travels with every example, so consumers
-    can dedupe multi-tagged cases by ``name`` and group/filter without
-    re-deriving anything. No display order, difficulty, titles, or other
-    presentation vocabulary is emitted — that is consumer-owned.
+    can group/filter without re-deriving anything. No display order, difficulty,
+    titles, or other presentation vocabulary is emitted — that is consumer-owned.
     """
-    return [
-        {
-            'name': case.__name__,
-            'doc': inspect.getdoc(case),
-            'template': case.template,
-            'data': case.data,
-            'result': case.result,
-            'tags': list(case.tags),
-        }
-        for case in get_test_cases_by_tag(tag)
-    ]
+    return {
+        'name': case.__name__,
+        'doc': inspect.getdoc(case),
+        'template': case.template,
+        'data': case.data,
+        'result': case.result,
+        'tags': list(case.tags),
+    }
 
 
-def get_test_cases_for_rule(rule_name):
-    return get_test_cases_for_tag(rule_name)
+def get_example_corpus():
+    """The flat example corpus: every valid case serialized **exactly once**.
+
+    This is the single example block both export APIs embed; every other
+    ``examples`` field is an ordered list of ``name`` references into it.
+    Case names are unique across the corpus (they double as ``include``-able
+    template names via :func:`template_loader`), so ``name`` is the join key.
+    """
+    return [serialize_case(case) for case in get_test_cases()]
 
 
-def get_test_cases_for_rule_param(rule_name, param_name):
-    return get_test_cases_for_tag(f'{rule_name}:{param_name}')
+def get_example_names_for_tag(tag):
+    """Ordered names of the corpus cases carrying ``tag``.
+
+    The tag join is **engine-owned**: consumers resolve these names against
+    :func:`get_example_corpus` and never re-derive membership from the tag
+    conventions (``"<rule>"``, ``"<rule>:<param>"``, ``"op:<alternative>"``,
+    ``"func:<name>"``, tier tags).
+    """
+    return [case.__name__ for case in get_test_cases_by_tag(tag)]
 
 
-def get_test_cases_for_operator(alternative):
-    return get_test_cases_for_tag(f'op:{alternative}')
+def get_example_names_for_rule(rule_name):
+    return get_example_names_for_tag(rule_name)
 
 
-def get_test_cases_for_function(name):
-    return get_test_cases_for_tag(f'func:{name}')
+def get_example_names_for_rule_param(rule_name, param_name):
+    return get_example_names_for_tag(f'{rule_name}:{param_name}')
 
 
-def get_worked_examples():
-    """The curated worked-example tier: end-to-end, real-world-framed cases.
+def get_example_names_for_operator(alternative):
+    return get_example_names_for_tag(f'op:{alternative}')
+
+
+def get_example_names_for_function(name):
+    return get_example_names_for_tag(f'func:{name}')
+
+
+def get_worked_example_names():
+    """Names of the curated worked-example tier: end-to-end, real-world-framed cases.
 
     Convention: curated cases carry **only** their tier tag
     (``['worked-example']``) so they never appear in the per-rule/param
     reference galleries; reference cases never carry a tier tag.
     """
-    return get_test_cases_for_tag('worked-example')
+    return get_example_names_for_tag('worked-example')
 
 
-def get_recipes():
-    """The curated recipe tier: task-oriented "how do I…" cases.
+def get_recipe_names():
+    """Names of the curated recipe tier: task-oriented "how do I…" cases.
 
     Convention: curated cases carry **only** their tier tag (``['recipe']``)
     so they never appear in the per-rule/param reference galleries; reference
     cases never carry a tier tag.
     """
-    return get_test_cases_for_tag('recipe')
+    return get_example_names_for_tag('recipe')
 
 
 def get_error_examples():
@@ -168,26 +186,30 @@ def get_error_examples():
 
 
 def get_all_docs(cls=Transformer):
+    """The complete docs-site JSON document.
+
+    Examples are **normalized**: the flat ``examples`` block carries every
+    corpus case exactly once (:func:`get_example_corpus`), and every other
+    ``examples`` field — rule-, parameter-, operator-, and function-level,
+    plus the ``worked_examples`` / ``recipes`` tiers — is an ordered list of
+    ``name`` references into it. The ``errors`` block stays inline (error
+    cases live in a different shape and appear exactly once).
+    """
     return {
         'version': importlib.metadata.version('transon'),
         'doc': inspect.getdoc(cls),
-        'worked_examples': get_worked_examples(),
-        'recipes': get_recipes(),
+        'examples': get_example_corpus(),
+        'worked_examples': get_worked_example_names(),
+        'recipes': get_recipe_names(),
         'errors': get_error_examples(),
         'rules': [
             {
                 'rule': rule_doc,
-                'examples': [
-                    case
-                    for case in get_test_cases_for_rule(rule_doc['name'])
-                ],
+                'examples': get_example_names_for_rule(rule_doc['name']),
                 'params': [
                     {
                         'param': param,
-                        'examples': [
-                            case
-                            for case in get_test_cases_for_rule_param(rule_doc['name'], param['name'])
-                        ]
+                        'examples': get_example_names_for_rule_param(rule_doc['name'], param['name']),
                     }
                     for param in get_rule_parameter_docs(rule_doc['name'], cls)
                 ]
@@ -197,14 +219,14 @@ def get_all_docs(cls=Transformer):
         'operators': [
             {
                 'operator': operator_doc,
-                'examples': get_test_cases_for_operator(operator_doc['alternative']),
+                'examples': get_example_names_for_operator(operator_doc['alternative']),
             }
             for operator_doc in get_operators_docs()
         ],
         'functions': [
             {
                 'function': function_doc,
-                'examples': get_test_cases_for_function(function_doc['name']),
+                'examples': get_example_names_for_function(function_doc['name']),
             }
             for function_doc in get_functions_docs()
         ],

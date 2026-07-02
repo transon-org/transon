@@ -19,7 +19,7 @@ from transon import ContainerType
 from transon import Domain
 from transon import docs
 
-METADATA_VERSION = '2.2'
+METADATA_VERSION = '3.0'
 
 
 def _engine_version():
@@ -142,7 +142,7 @@ def _docs_param(rule, name, param):
     entry = {
         'name': param['name'],
         'description': param['doc'],
-        'examples': docs.get_test_cases_for_rule_param(name, param['name']),
+        'examples': docs.get_example_names_for_rule_param(name, param['name']),
     }
     spec = getattr(rule, '__rule_param_meta__', {}).get(param['name'])
     if spec is not None and spec.arm is not None:
@@ -165,7 +165,7 @@ def _docs_rule(rule, cls):
             _docs_param(rule, name, param)
             for param in docs.get_rule_parameter_docs(name, cls)
         ],
-        'examples': docs.get_test_cases_for_rule(name),
+        'examples': docs.get_example_names_for_rule(name),
     }
 
 
@@ -173,7 +173,7 @@ def _docs_operator(entry):
     return {
         'name': entry['name'],
         'doc': entry.get('doc'),
-        'examples': docs.get_test_cases_for_operator(entry.get('alternative')),
+        'examples': docs.get_example_names_for_operator(entry.get('alternative')),
     }
 
 
@@ -181,7 +181,7 @@ def _docs_function(entry):
     return {
         'name': entry['name'],
         'doc': entry.get('doc'),
-        'examples': docs.get_test_cases_for_function(entry['name']),
+        'examples': docs.get_example_names_for_function(entry['name']),
     }
 
 
@@ -191,14 +191,16 @@ def get_editor_metadata(cls=Transformer):
     The result has a standalone ``metadata_version``, the ``engine_version``, and a
     split ``catalog`` (structural) / ``docs`` (examples) payload joined by ``name``.
 
-    Every serialized example carries the corpus ``tags`` (engine facts: what a
-    case demonstrates), so consumers can dedupe multi-tagged cases by ``name``
-    and group examples without re-deriving anything. The ``docs`` payload also
-    exposes the two curated tiers — ``worked_examples`` and ``recipes`` —
-    mirroring :func:`transon.docs.get_all_docs`. Curated cases carry **only**
-    their tier tag and never appear in the per-entry reference example lists;
-    reference cases never carry a tier tag. No display order, difficulty,
-    titles, or other presentation vocabulary is emitted — that is editor-owned.
+    Examples are **normalized** (3.0): ``docs.examples`` is the flat corpus —
+    every case serialized exactly once, carrying its ``tags`` (engine facts:
+    what a case demonstrates) — and every other ``examples`` field (rule-,
+    parameter-, operator-, and function-level, plus the ``worked_examples`` /
+    ``recipes`` tiers) is an ordered list of ``name`` references into it. The
+    join is engine-owned: consumers resolve names, never re-derive membership
+    from tags. Curated cases carry **only** their tier tag and never appear in
+    the per-entry reference lists; reference cases never carry a tier tag. No
+    display order, difficulty, titles, or other presentation vocabulary is
+    emitted — that is editor-owned.
     """
     rules = cls.get_rules()
     operators = cls.get_operators()
@@ -212,11 +214,12 @@ def get_editor_metadata(cls=Transformer):
             'functions': [_catalog_function(entry) for entry in functions],
         },
         'docs': {
+            'examples': docs.get_example_corpus(),
             'rules': [_docs_rule(rule, cls) for rule in rules],
             'operators': [_docs_operator(entry) for entry in operators],
             'functions': [_docs_function(entry) for entry in functions],
-            'worked_examples': docs.get_worked_examples(),
-            'recipes': docs.get_recipes(),
+            'worked_examples': docs.get_worked_example_names(),
+            'recipes': docs.get_recipe_names(),
         },
     }
 

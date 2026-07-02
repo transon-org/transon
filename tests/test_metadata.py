@@ -17,7 +17,8 @@ def test_get_editor_metadata_shape():
     }
     assert set(metadata['catalog']) == {'rules', 'operators', 'functions'}
     assert set(metadata['docs']) == {
-        'rules', 'operators', 'functions', 'worked_examples', 'recipes',
+        'examples', 'rules', 'operators', 'functions',
+        'worked_examples', 'recipes',
     }
 
 
@@ -131,8 +132,8 @@ def _catalog_param(metadata, rule_name, param_name):
 # Roadmap R-28: structural param facts (`container` + `arm`) in the export.
 
 def test_metadata_version_is_current():
-    assert METADATA_VERSION == '2.2'
-    assert get_editor_metadata()['metadata_version'] == '2.2'
+    assert METADATA_VERSION == '3.0'
+    assert get_editor_metadata()['metadata_version'] == '3.0'
 
 
 def test_list_container_exported():
@@ -201,71 +202,89 @@ def test_docs_params_without_arms_have_no_arms_key():
             assert 'arms' not in param, (rule['name'], param['name'])
 
 
-# Roadmap R-29: example tags + curated example tiers in the export.
+# Roadmap R-29 (tags + curated tiers) reshaped by R-31 (flat corpus + name
+# references): docs.examples carries every case exactly once; every other
+# examples field is an ordered list of name references into it.
 
 TIER_TAGS = {'worked-example', 'recipe'}
 
 
-def _assert_examples_tagged(examples, owner):
-    for example in examples:
-        assert isinstance(example.get('tags'), list), (owner, example['name'])
-        assert example['tags'], (owner, example['name'])
+def _corpus_by_name(metadata):
+    corpus = metadata['docs']['examples']
+    return {example['name']: example for example in corpus}
 
 
-def test_rule_and_param_examples_carry_tags():
-    metadata = get_editor_metadata()
-    for rule in metadata['docs']['rules']:
-        _assert_examples_tagged(rule['examples'], rule['name'])
+def _iter_reference_lists(metadata):
+    """Yield ``(owner, name_list)`` for every reference-example field."""
+    docs_payload = metadata['docs']
+    for rule in docs_payload['rules']:
+        yield rule['name'], rule['examples']
         for param in rule['params']:
-            _assert_examples_tagged(
-                param['examples'], (rule['name'], param['name']),
-            )
+            yield (rule['name'], param['name']), param['examples']
+    for block in ('operators', 'functions'):
+        for entry in docs_payload[block]:
+            yield (block, entry['name']), entry['examples']
 
 
-def test_operator_and_function_examples_carry_tags():
+def test_corpus_entries_carry_full_shape_and_tags():
     metadata = get_editor_metadata()
-    for entry in metadata['docs']['operators']:
-        _assert_examples_tagged(entry['examples'], entry['name'])
-    for entry in metadata['docs']['functions']:
-        _assert_examples_tagged(entry['examples'], entry['name'])
+    corpus = metadata['docs']['examples']
+    assert corpus, 'docs.examples must not be empty'
+    for example in corpus:
+        assert set(example) == {
+            'name', 'doc', 'template', 'data', 'result', 'tags',
+        }
+        assert isinstance(example['tags'], list), example['name']
+        assert example['tags'], example['name']
+
+
+def test_corpus_names_are_unique():
+    metadata = get_editor_metadata()
+    names = [example['name'] for example in metadata['docs']['examples']]
+    assert len(names) == len(set(names))
+
+
+def test_every_reference_resolves_into_the_corpus():
+    metadata = get_editor_metadata()
+    by_name = _corpus_by_name(metadata)
+    for owner, name_list in _iter_reference_lists(metadata):
+        assert isinstance(name_list, list), owner
+        for name in name_list:
+            assert isinstance(name, str), (owner, name)
+            assert name in by_name, (owner, name)
+    for block in ('worked_examples', 'recipes'):
+        for name in metadata['docs'][block]:
+            assert name in by_name, (block, name)
+
+
+def test_every_corpus_case_is_reachable():
+    metadata = get_editor_metadata()
+    referenced = set()
+    for _, name_list in _iter_reference_lists(metadata):
+        referenced.update(name_list)
+    referenced.update(metadata['docs']['worked_examples'])
+    referenced.update(metadata['docs']['recipes'])
+    corpus_names = {ex['name'] for ex in metadata['docs']['examples']}
+    orphans = corpus_names - referenced
+    assert not orphans, f'corpus cases referenced nowhere: {sorted(orphans)}'
 
 
 def test_curated_tier_blocks_exported():
     metadata = get_editor_metadata()
-    for block in ('worked_examples', 'recipes'):
-        examples = metadata['docs'][block]
-        assert examples, f'docs.{block} must not be empty'
-        for example in examples:
-            assert set(example) == {
-                'name', 'doc', 'template', 'data', 'result', 'tags',
-            }
-
-
-def test_curated_cases_carry_only_their_tier_tag():
-    metadata = get_editor_metadata()
+    by_name = _corpus_by_name(metadata)
     for block, tier_tag in (
         ('worked_examples', 'worked-example'),
         ('recipes', 'recipe'),
     ):
-        for example in metadata['docs'][block]:
-            assert example['tags'] == [tier_tag], example['name']
+        names = metadata['docs'][block]
+        assert names, f'docs.{block} must not be empty'
+        for name in names:
+            assert by_name[name]['tags'] == [tier_tag], name
 
 
 def test_reference_examples_never_carry_a_tier_tag():
     metadata = get_editor_metadata()
-    for rule in metadata['docs']['rules']:
-        for example in rule['examples']:
-            assert not TIER_TAGS & set(example['tags']), (
-                rule['name'], example['name'],
-            )
-        for param in rule['params']:
-            for example in param['examples']:
-                assert not TIER_TAGS & set(example['tags']), (
-                    rule['name'], param['name'], example['name'],
-                )
-    for block in ('operators', 'functions'):
-        for entry in metadata['docs'][block]:
-            for example in entry['examples']:
-                assert not TIER_TAGS & set(example['tags']), (
-                    block, entry['name'], example['name'],
-                )
+    by_name = _corpus_by_name(metadata)
+    for owner, name_list in _iter_reference_lists(metadata):
+        for name in name_list:
+            assert not TIER_TAGS & set(by_name[name]['tags']), (owner, name)

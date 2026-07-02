@@ -425,26 +425,56 @@ from source artifacts**; nothing is hand-maintained separately:
 - `get_test_cases()` imports every module under `transon.tests` and collects all
   `TableDataBaseCase` subclasses having complete `template`/`data`/`result`.
 - Cases are matched to rules by **tags**: tag `"<rule>"` attaches the case as a
-  rule-level example; tag `"<rule>:<param>"` attaches it as a parameter-level example.
+  rule-level example; tag `"<rule>:<param>"` as a parameter-level example; tag
+  `"op:<alternative>"` / `"func:<name>"` as an operator-/function-level example; the
+  tier tags `"worked-example"` / `"recipe"` place a case in a curated tier.
+- Examples are **normalized** (Roadmap R-31): the flat `examples` block serializes
+  every corpus case **exactly once** (`get_example_corpus()`), and every other
+  `examples` field is an ordered list of `name` **references** into it. The tag join
+  is engine-owned — consumers resolve names against the corpus and never re-derive
+  membership from tag conventions. Only the `errors` block stays inline (error cases
+  live in a different shape and appear exactly once).
 - `get_all_docs()` returns the complete JSON document:
 
 ```json
 {
   "version": "<package version>",
   "doc": "<Transformer class docstring>",
+  "examples": [
+    {"name": "...", "doc": "...", "template": ..., "data": ..., "result": ..., "tags": [...]},
+    ...
+  ],
+  "worked_examples": ["<case name>", ...],
+  "recipes": ["<case name>", ...],
+  "errors": [
+    {"name", "doc", "template", "data", "error", "error_type", "action"}, ...
+  ],
   "rules": [
     {
       "rule": {"name": "...", "doc": "..."},
-      "examples": [{"name", "doc", "template", "data", "result"}, ...],
+      "examples": ["<case name>", ...],
       "params": [
         {"param": {"name": "...", "doc": "..."},
-         "examples": [...]}
+         "examples": ["<case name>", ...]}
       ]
     }
+  ],
+  "operators": [
+    {"operator": {"name", "alternative", "kind", "types", "result", "doc"},
+     "examples": ["<case name>", ...]}
+  ],
+  "functions": [
+    {"function": {"name", "input", "output", "doc"},
+     "examples": ["<case name>", ...]}
   ]
 }
 ```
 
+- Corpus invariants (tested in `tests/test_docs.py` / `tests/test_metadata.py`): case
+  names are unique; every name referenced anywhere resolves to exactly one corpus
+  entry; every corpus case is reachable from at least one reference list; curated
+  cases carry **only** their tier tag and never appear in reference galleries;
+  reference cases never carry a tier tag.
 - `python -m transon.docs` prints this JSON, lists cases whose docstring still contains
   `TBD`, and prints the case count. Note: the version lookup requires the package to be
   installed (`pip install -e .` or via Poetry), otherwise `PackageNotFoundError`.
@@ -455,18 +485,32 @@ from source artifacts**; nothing is hand-maintained separately:
 **separate from the docs API**, that emits projection-ready metadata for the
 `transon-blockly` visual editor (engine facts only; no Blockly shapes). It is **split**
 into a lean structural `catalog` (consumed by the editor's generators) and an
-`examples/docs` payload (descriptions + tagged examples), joined by `name`:
+`examples/docs` payload (descriptions + the flat example corpus), joined by `name`:
 
 ```json
 {
   "metadata_version": "<schema version>",
   "engine_version": "<package version>",
   "catalog": {
-    "rules": [{"name", "params": [{"name", "kind", "options?"}], "variants": [...]}],
+    "rules": [{"name",
+               "params": [{"name", "kind", "options?", "container?", "arm?"}],
+               "variants": [...]}],
     "operators": [{"name", "alternative", "kind", "types", "result"}],
     "functions": [{"name", "input", "output"}]
   },
-  "docs": {"rules": [...], "operators": [...], "functions": [...]}
+  "docs": {
+    "examples": [
+      {"name": "...", "doc": "...", "template": ..., "data": ..., "result": ..., "tags": [...]},
+      ...
+    ],
+    "rules": [{"name", "description",
+               "params": [{"name", "description", "examples": ["<case name>", ...], "arms?"}],
+               "examples": ["<case name>", ...]}],
+    "operators": [{"name", "doc", "examples": ["<case name>", ...]}],
+    "functions": [{"name", "doc", "examples": ["<case name>", ...]}],
+    "worked_examples": ["<case name>", ...],
+    "recipes": ["<case name>", ...]
+  }
 }
 ```
 
@@ -476,7 +520,14 @@ into a lean structural `catalog` (consumed by the editor's generators) and an
   zero-extra-parameter variant). Consumers read these directly.
 - Per-parameter **`kind`** (`dynamic`/`constant`) comes from the rule source; a
   `constant` parameter bound to a closed domain carries its resolved **`options`**
-  (`expr.op` → operator names + aliases, `call.name` → function names).
+  (`expr.op` → operator names + aliases, `call.name` → function names). Structural
+  facts are emitted when not the default: `container` (`mapping`/`list`/`arms`;
+  omitted for `template`) and, for `arms` params, the `arm: {required, params}` slot
+  schema (the docs payload mirrors it with per-slot `arms` descriptions).
+- Examples are **normalized** exactly as in `get_all_docs()` (§5, Roadmap R-31):
+  `docs.examples` is the flat corpus (each case once, with `tags`); all other
+  `examples` fields and the curated `worked_examples` / `recipes` tiers are ordered
+  `name` references into it. The same corpus invariants apply.
 - `python -m transon.metadata` prints this JSON.
 - `docs.template_loader` makes every test case's template `include`-able by its class
   name (e.g. `{"$": "include", "name": "MapListsToDict"}`).
@@ -509,8 +560,13 @@ Mechanics:
 - Classes that omit `template`/`data`/`result` are **abstract bases** (skipped via
   `unittest.SkipTest`) — used to share a template across multiple data/result cases
   (see `base_attr.py`, `base_join.py`).
-- `tags` is mandatory. Use `"<rule>"` and/or `"<rule>:<param>"` strings; every tag makes
-  the case appear as an example in the generated docs for that rule/parameter.
+- `tags` is mandatory and must be non-empty. Use `"<rule>"` and/or `"<rule>:<param>"`
+  strings (plus `"op:<alternative>"` / `"func:<name>"` for operator/function examples);
+  every tag makes the case referenced as an example in the generated docs for that
+  entry. Curated cases carry exactly one tier tag (`"worked-example"` or `"recipe"`)
+  and nothing else. An untagged case would be unreachable from every reference list —
+  the corpus reachability test (`tests/test_docs.py`, `tests/test_metadata.py`) fails
+  on it.
 - Docstrings are user-facing documentation. `python -m transon.docs` reports any case
   whose doc contains `TBD`.
 - `conftest.py` registers assert-rewriting for `base.py`.
