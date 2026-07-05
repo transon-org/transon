@@ -54,7 +54,7 @@ do. This is not marginal, because the codec walks a *rule at every level*. Profi
 editor encoder over a 30-deep input (peak 801 live frames) shows the recursion is dominated by a
 lockstep triple:
 
-```
+```text
  184  walk        ← 46% of the whole stack is the walk/_walk pair …
  184  _walk       ← … and exactly half of that is the redundant _walk layer
  184  walk_rule
@@ -170,7 +170,8 @@ def test_self_include_reaches_min_depth_within_default_recursion_limit():
     assert sys.getrecursionlimit() <= 1000, "guard is only meaningful at the default recursion limit"
     t = Transformer(WALK, template_loader=_loader, max_include_depth=MIN_SELF_INCLUDE_DEPTH + 50)
     # Must NOT raise RecursionError. Reintroducing walk/_walk doubling drops the reach below this.
-    assert t.transform(_nest(MIN_SELF_INCLUDE_DEPTH)) == "leaf"
+    # WALK is an identity rebuild ({"k": <child>} in, {"k": <child>} out), so it reproduces the input.
+    assert t.transform(_nest(MIN_SELF_INCLUDE_DEPTH)) == _nest(MIN_SELF_INCLUDE_DEPTH)
 
 def test_exceeding_max_include_depth_is_a_clean_transformation_error_not_recursionerror():
     # The *logical* limit must still trip first, cleanly, well inside the call-stack budget.

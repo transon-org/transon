@@ -32,7 +32,7 @@ def _nest(n):
 
 # Calibrated between the pre-fix reach (~57 on CPython 3.x) and the post-fix reach (~75), ~8 levels
 # of margin each side, and comfortably above the editor codec's deepest self-`include` target
-# (G_encode, depth 41). Re-confirm on the CI matrix (3.9–3.13) when landing.
+# (G_encode, depth 41). Re-confirm on the CI matrix (3.9-3.13) when landing.
 MIN_SELF_INCLUDE_DEPTH = 65
 
 
