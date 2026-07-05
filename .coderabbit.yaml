@@ -1,0 +1,231 @@
+# yaml-language-server: $schema=https://storage.googleapis.com/coderabbit_public_assets/schema.v2.json
+#
+# CodeRabbit configuration for `transon` — a homogeneous JSON-to-JSON template engine.
+# Review guidance below is derived from docs/SPECIFICATION.md, docs/ROADMAP.md, and
+# the .cursor/rules/*.mdc project rules. See docs/AI_DEVELOPMENT.md for the wider setup.
+
+language: en-US
+early_access: false
+
+reviews:
+  # Fewer, higher-signal comments — this is a small, mature library with strong,
+  # explicitly-documented invariants; the value is catching contract violations,
+  # not style nits. Switch to "assertive" for broader coverage.
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  review_status: true
+  collapse_walkthrough: false
+  changed_files_summary: true
+  sequence_diagrams: false
+  poem: false
+  related_issues: true
+  related_prs: true
+
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+
+  # Review everything except generated / vendored / cache artifacts.
+  path_filters:
+    - "!dist/**"
+    - "!uv.lock"
+    - "!**/__pycache__/**"
+    - "!.venv/**"
+    - "!.coverage"
+    - "!.idea/**"
+    - "!skills-lock.json"
+
+  path_instructions:
+    # ---- Whole package: runtime & dependency invariants -------------------------
+    - path: "transon/**/*.py"
+      instructions: |
+        Target runtime is Python 3.9+ (CI matrix runs 3.9–3.13). Flag any syntax or
+        stdlib API that is not available on 3.9, e.g. the `X | Y` runtime union
+        operator in evaluated annotations (3.10), `match` statements (3.10),
+        `except*` groups / `tomllib` (3.11), `itertools.pairwise` (3.10). PEP 585
+        builtin generics (`list[int]`, `dict[str, int]`) are fine on 3.9.
+        The package has ZERO runtime dependencies (stdlib only) — flag any new
+        third-party import added under `transon/`; test-only tooling belongs in
+        `[dependency-groups].dev` of pyproject.toml, not here.
+
+    # ---- Engine core -------------------------------------------------------------
+    - path: "transon/transformers.py"
+      instructions: |
+        Engine core: `Transformer`, `Context`, `NoContent`, error types. Enforce the
+        invariants from docs/SPECIFICATION.md §10:
+        - `transform()` must NEVER mutate the input data or the template. Pass-through
+          rules (`this`/`attr`/`get`/`item`/…) intentionally return references into the
+          input (the output may alias input substructure) — do not add per-rule copying;
+          deep-copy only happens at the boundary when `copy_output=True`.
+        - `NO_CONTENT` is a singleton sentinel compared by IDENTITY (`is NO_CONTENT`) and
+          is falsy in boolean context. Preserve its skipping semantics in
+          `map`/`object`/`file`/`filter`/`join`.
+        - Registries (`_rules`/`_operators`/`_functions`) are MRO-resolved and reset per
+          subclass via `__init_subclass__`; a subclass registration must never mutate the
+          base class or sibling subclasses.
+        - Reserved context names (`this`,`item`,`key`,`value`,`index`) must stay rejected
+          for `set`/`get`.
+        - Error model: `DefinitionError` = malformed template; `TransformationError` =
+          valid template but incompatible input data. Keep the template-location suffix in
+          error messages.
+
+    # ---- Rules -------------------------------------------------------------------
+    - path: "transon/rules.py"
+      instructions: |
+        Every rule is registered with
+        `@Transformer.register_rule('<name>', _variants=[...], <param>='markdown doc', ...)`.
+        The rule function DOCSTRING and each `**param` doc kwarg are USER-FACING
+        documentation rendered on the docs site — they must be complete markdown and must
+        never contain `TBD`.
+        - Fetch mandatory params via `t.require()`; evaluate every "dynamic" param through
+          `t.walk()` (rule params are themselves templates). Read "constant" params
+          verbatim.
+        - Return `t.NO_CONTENT` for "no value"; honor `NO_CONTENT` inputs where skipping is
+          the documented contract. Raise `DefinitionError` for template mistakes,
+          `TransformationError` for data mismatches. Derive child scopes with
+          `context.derive(...)`; never mutate `context.this` in place.
+        - Keep `_variants` (one set per mutually-exclusive COMPLETE parameter shape)
+          accurate — it drives static `validate()`. Adding/renaming a param means updating
+          `_variants`/`_constants`/`_containers`/`_arms` accordingly.
+        - A new or renamed rule requires tagged example cases in `transon/tests/` and an
+          update to the expected set in `tests/test_transformers.py::test_get_rules`.
+        - Do NOT silently "fix" quirky behavior. Any behavior change to an existing rule
+          needs an explicit decision recorded in docs/ROADMAP.md and a CHANGELOG.md entry.
+
+    # ---- Operators & functions ---------------------------------------------------
+    - path: "transon/{operators,functions}.py"
+      instructions: |
+        Operators (`register_operator`, consumed by the `expr` rule) and functions
+        (`register_function`, consumed by the `call` rule). When adding or changing one,
+        also update the markdown reference tables embedded in the `expr` `op` / `call`
+        `name` parameter docs inside `transon/rules.py`, and add tagged example cases
+        (`op:<alias>` / `func:<name>`). Prefer total, predictable behavior — e.g. the
+        `type` function is documented as total (never raises on well-formed JSON).
+
+    # ---- Docs / editor-metadata generators --------------------------------------
+    - path: "transon/{docs,metadata}.py"
+      instructions: |
+        Documentation and editor-metadata generators. Preserve the example-corpus
+        normalization invariants (SPECIFICATION §5 / Roadmap R-31):
+        - The flat `examples` / `docs.examples` block serializes every corpus case EXACTLY
+          ONCE; every other `examples` field is an ordered list of `name` references into
+          it.
+        - Case names are unique; every referenced name resolves to exactly one corpus
+          entry; every corpus case is reachable from at least one reference list.
+        - Curated cases carry ONLY their tier tag (`worked-example`/`recipe`) and never
+          appear in reference galleries; reference cases never carry a tier tag.
+        `get_editor_metadata()` is a versioned export separate from the docs API — bump
+        `metadata_version` when its shape changes. Changes here should be covered by
+        `tests/test_docs.py` / `tests/test_metadata.py`.
+
+    # ---- Example corpus (shipped, doubles as documentation) ---------------------
+    - path: "transon/tests/**/*.py"
+      instructions: |
+        This is the table-driven EXAMPLE CORPUS — every concrete case doubles as published
+        documentation on the docs site. Each concrete `TableDataBaseCase` subclass needs:
+        - a user-facing docstring (write it for template authors; never leave `TBD`);
+        - a non-empty `tags` list: `'<rule>'` and/or `'<rule>:<param>'`, plus
+          `op:<alias>`/`func:<name>` where relevant. Curated cases carry exactly ONE tier
+          tag (`worked-example` or `recipe`) and nothing else;
+        - `template` / `data` / `result`.
+        Class names must be UNIQUE across the whole corpus (they are also `include`-able
+        template names). Expected top-level `NO_CONTENT` results are written `result = None`.
+        A class omitting `template`/`data`/`result` is an abstract base (auto-skipped) used
+        to share one template across data/result variants. Flag any concrete case that is
+        untagged — it is unreachable and fails the corpus reachability tests.
+
+    # ---- Engine-mechanics tests (not shipped) -----------------------------------
+    - path: "tests/**/*.py"
+      instructions: |
+        Plain pytest for engine MECHANICS: error paths, registry extension/isolation,
+        `file_writer` mocking, docs/metadata smoke tests — anything that does not fit the
+        template/data/result table format (those belong in `transon/tests/`). Prefer
+        asserting the exception TYPE (`DefinitionError` vs `TransformationError`) and the
+        template-path location in the message. Keep assertions parametrized where practical
+        and Python 3.9-compatible.
+
+    # ---- Status-tracked docs -----------------------------------------------------
+    - path: "docs/ROADMAP.md"
+      instructions: |
+        Each Roadmap item's status must AGREE in four places: (1) the Checklist table
+        `Status` column, (2) the item's `**Status**:` header, (3) inline `~~R-xx~~`
+        strikethrough mentions (strikethrough ⇒ `done`/`rejected`), and (4) `CHANGELOG.md`
+        `(Roadmap R-xx, …)` references (which imply the item shipped: `done`/`in-progress`).
+        Allowed statuses: `needs-decision`, `accepted`, `in-progress`, `done`, `rejected`.
+        No mixed lists: once any item in a list carries a field (status/owner/severity/
+        checkbox), every item — including newly added ones — must carry it. When a PR
+        changes an item's status or adds an item, verify all four places; note that
+        `python scripts/check_roadmap.py` must print `consistent` (also enforced by
+        `tests/test_roadmap_consistency.py`).
+
+    - path: "CHANGELOG.md"
+      instructions: |
+        A `(Roadmap R-xx, …)` reference implies the item shipped — its status in
+        docs/ROADMAP.md must be `done` or `in-progress` (see the ROADMAP status rule).
+        Behavior changes to shipped engine semantics must have a CHANGELOG entry, since
+        templates in the wild may rely on the old behavior. Keep entries aligned with the
+        version bump in pyproject.toml.
+
+    # ---- Spec ---------------------------------------------------------------------
+    - path: "docs/SPECIFICATION.md"
+      instructions: |
+        Descriptive spec of CURRENT engine behavior only (open questions live in
+        docs/ROADMAP.md). If a PR changes engine behavior under `transon/`, check that the
+        relevant section here is updated to match; if the doc asserts behavior, verify the
+        claim against the implementation. Don't let the rule reference (§4), error model
+        (§2.4), or the invariants list (§10) drift from the code.
+
+    # ---- Packaging ---------------------------------------------------------------
+    - path: "pyproject.toml"
+      instructions: |
+        Version is the SINGLE SOURCE OF TRUTH (`[project].version`, read at runtime via
+        importlib.metadata); a release bump must match the pushed git tag (release.yml
+        checks this) and have a matching CHANGELOG.md entry. `requires-python` is `>=3.9`.
+        The package must stay stdlib-only — flag any addition to `[project].dependencies`;
+        dev/test tooling belongs under `[dependency-groups].dev`.
+
+  tools:
+    ruff:
+      enabled: true
+    gitleaks:
+      enabled: true
+    # Redundant with ruff (and would need their own config in-repo).
+    flake8:
+      enabled: false
+    pylint:
+      enabled: false
+    # The docs are large, intentionally hand-formatted markdown (wide tables, ASCII
+    # diagrams); default markdownlint rules would be noise. Guidance lives in
+    # path_instructions above instead.
+    markdownlint:
+      enabled: false
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  # Feed CodeRabbit the project's existing written guidance so reviews reason from the
+  # same source of truth the maintainers do. `.cursor/rules/*.mdc` are scoped to the
+  # files they govern; the spec applies to the whole engine.
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - files: "docs/SPECIFICATION.md"
+        applyTo: "transon/**"
+      - files: ".cursor/rules/transon-overview.mdc"
+        applyTo: "transon/**"
+      - files: ".cursor/rules/adding-rules.mdc"
+        applyTo: "transon/*.py"
+      - files: ".cursor/rules/testing-conventions.mdc"
+        applyTo: "transon/tests/**,tests/**"
+      - files: ".cursor/rules/status-consistency.mdc"
+        applyTo: "docs/ROADMAP.md,CHANGELOG.md"
+  learnings:
+    scope: auto
+  pull_requests:
+    scope: auto
+  web_search:
+    enabled: true
