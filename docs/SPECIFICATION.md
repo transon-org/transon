@@ -391,6 +391,15 @@ Other lookup failures (e.g. `TypeError` indexing a string with a string) →
 | `file` | `name`, `content` (both required, dynamic) | Calls the configured `file_writer(name, content)`. Skipped if either is `NO_CONTENT`. Always returns `NO_CONTENT` (so `map` over `file` yields `[]`). |
 | `include` | `name` (required, dynamic), `default` (optional, dynamic) | Loads a sub-`Transformer` via the configured `template_loader` and runs it against `context.this`. Variables/context do **not** cross the boundary — only the value. The `template_loader` is always called as `loader(name, context=...)` and handed an `IncludeContext` (parent loader, marker, depth guard, include-stack); it **constructs** the sub-`Transformer` itself (e.g. via `context.transformer(template)`). The sub-`Transformer` therefore inherits the parent transformer's marker by default (so a sub-template using the default marker stays consistent across the boundary; pass an explicit `marker` to `context.transformer` to pin a different one), the parent's `template_loader` propagates so recursive/self-`include`ing templates re-resolve without per-host patching, and the loaded instance is never mutated. Sub-result `NO_CONTENT` is propagated as this transformer's `NO_CONTENT` (or `default` when provided). Nested includes are tracked by name; exceeding `max_include_depth` (constructor parameter, default 50) raises `TransformationError` with the include chain in the message. |
 
+> **Recursion budget.** Walking one level of template nesting consumes a bounded, small number of
+> Python call-stack frames — one core recursion frame per node (no `walk`/`_walk`-style doubling).
+> Because the generated `transon-blockly` editor codec self-`include`s once per document node
+> (AD-030), its reachable nesting depth is governed by this budget, not by `max_include_depth`. The
+> engine therefore transforms self-`include`ing templates at nesting depths well past the editor's
+> deepest generator (`G_encode`, depth 41) within CPython's default recursion limit (1000).
+> Exceeding `max_include_depth` MUST surface as the `include` depth-limit `TransformationError`,
+> never a raw `RecursionError`. (Roadmap R-32.)
+
 ### 4.7 Built-in operators (`expr`)
 
 Each operator has a mnemonic and a code-style alias mapping to the same Python
@@ -652,6 +661,11 @@ tagged example cases.
 - `NO_CONTENT` skipping semantics in `map`/`object`/`file`/`filter` are part of the
   public contract (relied on by the corpus, e.g. `test_no_content.py`).
 - Iteration order: dict iteration follows insertion order (Python 3.7+ guarantee).
+- Recursion budget: walking one template-nesting level costs one core call-stack frame
+  (no `walk`/`_walk`-style per-node doubling), so self-`include`ing templates reach
+  depths well past `G_encode` (41) before the host stack overflows; over-depth surfaces
+  as the `include` depth-limit `TransformationError`, never a raw `RecursionError`
+  (§4.6 "Recursion budget", Roadmap R-32).
 
 ---
 

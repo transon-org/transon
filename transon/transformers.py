@@ -672,17 +672,24 @@ class Transformer:
             return self.get_rule(rule_name)(self, template, context)
 
     def walk(self, template, context, path=()):
-        with self._walk_with_path(path):
-            return self._walk(template, context, path)
-
-    def _walk(self, template, context, path):
-        if isinstance(template, list):
-            return self.walk_list(template, context, path)
-        if isinstance(template, dict):
-            if self.marker in template:
-                return self.walk_rule(template, context, path)
-            return self.walk_dict(template, context, path)
-        return self.walk_scalar(template, context, path)
+        # Recursion budget (Roadmap R-32; SPECIFICATION.md "Recursion budget"): one
+        # core recursion frame per template node — no `walk`/`_walk` doubling. The
+        # template-path `ContextVar` is set inline via `try/finally` rather than a
+        # `@contextmanager` generator, so descending one nesting level costs a single
+        # stack frame. This is what lets a self-`include`ing template (the editor
+        # codec, AD-030) reach depths well past `max_include_depth` before the host
+        # call stack overflows — do not reintroduce a per-node wrapper frame here.
+        token = _template_path.set(path)
+        try:
+            if isinstance(template, list):
+                return self.walk_list(template, context, path)
+            if isinstance(template, dict):
+                if self.marker in template:
+                    return self.walk_rule(template, context, path)
+                return self.walk_dict(template, context, path)
+            return self.walk_scalar(template, context, path)
+        finally:
+            _template_path.reset(token)
 
     def write_file(self, name, content):
         self.file_writer(name, content)
