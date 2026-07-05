@@ -60,6 +60,7 @@
 | [R-29](#r-29-export-example-tags--curated-example-tiers-in-the-editor-metadata) | Export example tags + curated example tiers in the editor metadata | medium | done |
 | [R-30](#r-30-grow-the-curated-example-corpus-recipes--worked-examples) | Grow the curated example corpus (recipes + worked examples) | low | done |
 | [R-31](#r-31-normalize-exports-to-one-flat-example-corpus-name-references) | Normalize exports to one flat example corpus (name references) | medium | done |
+| [R-32](#r-32-bounded-per-level-recursion-budget-for-self-include-walks) | Bounded per-level recursion budget for self-`include` walks | medium | done |
 
 ---
 
@@ -936,6 +937,55 @@ emit the flat corpus + name references; orphans tagged `attr:names`; `METADATA_V
 `3.0`. Corpus invariants tested in `tests/test_docs.py` / `tests/test_metadata.py`: unique names,
 every reference resolves, every case reachable, curated cases tier-tag-only, reference examples
 never tier-tagged. `SPECIFICATION.md` §5/§5.1/§6.1 rewritten to the new shapes.
+
+---
+
+### R-32. Bounded per-level recursion budget for self-include walks
+
+**Status**: done · **Severity**: medium ·
+**Source**: [`proposals/transformer-recursion-depth-budget.md`](proposals/transformer-recursion-depth-budget.md)
+
+`walk()` does no work of its own — it opens the template-path context and delegates to `_walk()`,
+so **every** descent through a template node costs a `walk` **and** a `_walk` frame. Profiling the
+`transon-blockly` editor codec (which self-`include`s once per document node, AD-030) shows the
+redundant `_walk` layer is ~23 % of the live stack. The effect: a self-`include`ing template
+overflows CPython's call stack (default limit 1000) with a raw `RecursionError` **before**
+`max_include_depth` (50) is reached — so that logical limit is unreachable for recursive codecs, and
+the editor's own deepest generator (`G_encode`, nesting depth 41) cannot be loaded at all.
+
+**Impact if not fixed**: `max_include_depth` stays fictional for self-referential templates; deep
+inputs fail with an uncatalogued raw `RecursionError` instead of the documented `include` depth-limit
+`TransformationError`; `transon-blockly` cannot self-host its deepest projection (SPEC §6.5, FR-121).
+
+**Options**:
+
+1. **Collapse `walk` into `_walk`** — one core recursion frame per node, path `ContextVar` set inline
+   (`try/finally`, no `@contextmanager` generator). Behavior-identical; removes ~23 % of per-walk
+   stack cost. Measured: editor codec reach 37 → 49, `G_encode` (41) encodes; self-`include` walk
+   57 → 75. **(Recommended)**
+2. Also fold `walk_rule`'s own `_walk_with_path` (further headroom, not needed now) — deferred.
+3. `sys.setrecursionlimit(…)` — moves the guard, not the cost; risks a hard C-stack segfault on
+   constrained hosts (Pyodide/WASM). **Rejected.**
+
+**Decision (2026-07-05)**: option 1. Behavior-preserving recursion-safety fix.
+
+**Requirements**: fold `_walk`'s body into `walk` (`transformers.py`), keeping `walk()`'s signature
+and all `t.walk(…)` call sites unchanged; add a **Recursion budget** invariant to `SPECIFICATION.md`
+(one core frame per nesting level; self-`include`ing templates reach well past `G_encode`'s depth 41
+within the default recursion limit; over-depth raises the `include` depth-limit `TransformationError`,
+never `RecursionError`); add `tests/test_recursion_depth.py` guarding the reachable depth **and** the
+absence of the `walk`/`_walk` doubling (both red today, green after the fix — land in the same commit);
+changelog entry (recursion-safety, no behavior change to existing templates); minor version bump.
+`transon-blockly` then raises `CODEC_MAX_INCLUDE_DEPTH` 25 → ~40 as a separate, engine-gated change.
+
+**Shipped**: `walk`/`_walk` collapsed into a single frame in `transformers.py` (path `ContextVar`
+set inline via `try/finally`; `walk()`'s signature and every `t.walk(…)` call site unchanged;
+`_walk_with_path` retained for `walk_rule`/`validate`). Measured self-`include` reach lifts **57 →
+75** at CPython's default recursion limit, clearing `G_encode` (41) with margin; all 304 existing
+tests unchanged. `SPECIFICATION.md` §4.6 gains the normative **Recursion budget** invariant (also
+listed in §10). `tests/test_recursion_depth.py` guards the reachable depth, the clean over-depth
+`TransformationError`, and the absence of the `walk`/`_walk` doubling. The `transon-blockly`
+`CODEC_MAX_INCLUDE_DEPTH` raise remains a separate, engine-gated follow-up.
 
 ---
 

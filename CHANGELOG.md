@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-07-06
+
+### Fixed
+
+- **Recursion safety (no behavior change to existing templates).** Collapsed the
+  `walk`/`_walk` pair in the template walker into a single core recursion frame per
+  node (the template-path `ContextVar` is now set inline via `try/finally` instead of a
+  `@contextmanager`). Every existing template produces the same output and the same
+  errors; this only *raises the nesting depth at which the engine runs out of host call
+  stack*. Because the generated `transon-blockly` editor codec self-`include`s once per
+  document node (AD-030), its reachable depth was governed by this per-level frame cost,
+  not by `max_include_depth` — so deep self-`include`ing templates overflowed CPython's
+  default 1000-frame stack with a raw `RecursionError` before the documented `include`
+  depth limit was ever reached. Removing the redundant per-node frame lifts the reachable
+  self-`include` depth **57 → 75** at the default recursion limit, so the editor's deepest
+  generator (`G_encode`, nesting depth 41) now loads and round-trips with margin.
+  `SPECIFICATION.md` §4.6 gains a normative **Recursion budget** invariant (over-depth
+  MUST surface as the `include` depth-limit `TransformationError`, never a raw
+  `RecursionError`), and `tests/test_recursion_depth.py` locks the reachable depth and the
+  absence of the `walk`/`_walk` doubling. `walk()`'s signature and public API are
+  unchanged. (Roadmap R-32)
+
 ## [0.1.6] - 2026-07-02
 
 ### Changed
