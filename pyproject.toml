@@ -1,6 +1,6 @@
 [project]
 name = "transon"
-version = "0.1.7"
+version = "0.1.8"
 description = "Homogeneous JSON template engine"
 readme = "README.md"
 license = "MIT"

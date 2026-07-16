@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-07-16
+
 ### Added
 
 - **Built-in function library (additive published surface).** Thirty new `call` functions —
@@ -21,7 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   updated; corpus examples + error-path tests. Deferred: `parse_date`, `json_*`,
   `urlencode`, random `uuid4`/`now()`. Downstream follow-ups: `transon-authoring` refuse
   fixtures flip + eval baseline reset; `transon-blockly` generator shrink via `in`.
-  Targets the forthcoming 0.2.0 release (held with RFC 0008). (Roadmap R-33)
+  (Roadmap R-33)
 
 ## [0.1.7] - 2026-07-06
 

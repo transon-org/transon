@@ -1013,8 +1013,8 @@ flatten / concat as `map`+`expr` `values` reductions, and no direct `length`.
 - Extra additions: `capitalize`, `slice` (strings + arrays); `reversed` also accepts strings;
   `regex_match` returns groups-or-`null` (condition use via `bool`).
 - `min`/`max` empty policy: `TransformationError` unless an explicit `default` is supplied.
-- Release: land under `[Unreleased]` for the forthcoming **0.2.0** (held with RFC 0008
-  language-reference export); no version bump in this change alone.
+- Release: shipped in **0.1.8**. RFC 0008 (language-reference export) remains a separate
+  follow-up.
 
 **Shipped**: 30 new `call` functions in `transon/functions.py` (wrappers that convert documented
 failures to `TransformationError`); `split` rule in `transon/rules.py`; total `in` operator in
