@@ -53,6 +53,7 @@ def test_expr_op_options_resolved():
     assert op_param['kind'] == 'constant'
     assert 'lt' in op_param['options']
     assert '<' in op_param['options']
+    assert 'in' in op_param['options']
 
 
 def test_call_name_options_resolved():
@@ -65,7 +66,11 @@ def test_call_name_options_resolved():
         param for param in call['params'] if param['name'] == 'name'
     )
     assert name_param['kind'] == 'constant'
-    assert name_param['options'] == ['str', 'int', 'float', 'type']
+    assert name_param['options'] == list(Transformer._functions)
+    assert {
+        'str', 'int', 'float', 'type', 'bool', 'upper', 'length', 'from_epoch',
+        'regex_match', 'uuid5', 'b64encode',
+    } <= set(name_param['options'])
 
 
 def test_docs_payload_joins_by_name():
