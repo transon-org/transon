@@ -488,6 +488,83 @@ def rule_join(t: Transformer, template, context: Context):
 
 
 @Transformer.register_rule(
+    'split',
+    _variants=[{'sep'}],
+    sep="Separator used to split the current context value. Can be dynamic. "
+        "For a string input must evaluate to a non-empty string. For an array "
+        "input may be a single non-array element (split on `==`) or a non-empty "
+        "array (split on each contiguous subsequence). Empty string/array `sep` "
+        "raises `TransformationError`.",
+)
+def rule_split(t: Transformer, template, context: Context):
+    """
+    Splits a string or an array on a separator — the inverse of string/list `join`.
+
+    - String input → list of strings. `sep` must be a non-empty string.
+    - Array input → list of lists. `sep` is either a single non-array element
+      (split where elements equal `sep`) or a non-empty array (split on each
+      contiguous occurrence of that subsequence). Because an array `sep` means
+      subsequence, you cannot split on a separator *element* that is itself an
+      array.
+    - `NO_CONTENT` input → `NO_CONTENT`.
+    - Any other input type → `TransformationError`.
+    """
+    value = context.this
+    if value is t.NO_CONTENT:
+        return t.NO_CONTENT
+    sep = t.walk_param(t.require(template, 'sep'), context, 'sep')
+    if sep is t.NO_CONTENT:
+        t.transformation_error('`sep` must not evaluate to `NO_CONTENT`')
+    if isinstance(value, str):
+        if not isinstance(sep, str) or sep == '':
+            t.transformation_error(
+                '`sep` must evaluate to a non-empty string for string split'
+            )
+        return value.split(sep)
+    if isinstance(value, list):
+        if isinstance(sep, list):
+            if not sep:
+                t.transformation_error(
+                    '`sep` must be a non-empty array when used as a subsequence'
+                )
+            return _split_array_subsequence(value, sep)
+        return _split_array_element(value, sep)
+    t.transformation_error(
+        f'`split` requires a string or array, got {type(value).__name__}'
+    )
+
+
+def _split_array_element(items, sep):
+    result = []
+    current = []
+    for item in items:
+        if item == sep:
+            result.append(current)
+            current = []
+        else:
+            current.append(item)
+    result.append(current)
+    return result
+
+
+def _split_array_subsequence(items, sep):
+    result = []
+    current = []
+    n = len(sep)
+    i = 0
+    while i < len(items):
+        if items[i:i + n] == sep:
+            result.append(current)
+            current = []
+            i += n
+        else:
+            current.append(items[i])
+            i += 1
+    result.append(current)
+    return result
+
+
+@Transformer.register_rule(
     'chain',
     _variants=[{'funcs'}],
     _containers={'funcs': ContainerType.LIST},
@@ -549,6 +626,7 @@ def rule_chain(t: Transformer, template, context: Context):
     | &&           | and         | binary | any            | any            |
     | &#124;&#124; | or          | binary | any            | any            |
     | !            | not         | unary  | boolean        | boolean        |
+    | in           | in          | binary | any            | boolean        |
 
     You can use code-style or mnemonic name (i.e. operator or alternative). 
 """,
@@ -619,12 +697,42 @@ def rule_expr(t: Transformer, template, context: Context):
     
     ###### Possible values:
 
-    | name  | input | output |
-    |-------|:-----:|:------:|
-    | str   |  any  |  str   | 
-    | int   |  str  |  int   | 
-    | float |  str  | float  | 
-    | type  |  any  | string | 
+    | name          | input                | output         |
+    |---------------|:--------------------:|:--------------:|
+    | str           | any                  | str            |
+    | int           | str                  | int            |
+    | float         | str                  | float          |
+    | type          | any                  | string         |
+    | bool          | any                  | boolean        |
+    | upper         | string               | string         |
+    | lower         | string               | string         |
+    | capitalize    | string               | string         |
+    | replace       | string               | string         |
+    | removeprefix  | string               | string         |
+    | removesuffix  | string               | string         |
+    | strip         | string               | string         |
+    | lstrip        | string               | string         |
+    | rstrip        | string               | string         |
+    | slice         | string, array        | string, array  |
+    | from_epoch    | number               | string         |
+    | to_epoch      | string               | int            |
+    | length        | string, array, object| int            |
+    | flatten       | array                | array          |
+    | sum           | array                | number         |
+    | min           | array                | any            |
+    | max           | array                | any            |
+    | sorted        | array                | array          |
+    | reversed      | string, array        | string, array  |
+    | unique        | array                | array          |
+    | abs           | number               | number         |
+    | floor         | number               | int            |
+    | ceil          | number               | int            |
+    | round         | number               | number         |
+    | b64encode     | string               | string         |
+    | b64decode     | string               | string         |
+    | uuid5         | string               | string         |
+    | regex_match   | string               | array, null    |
+    | regex_replace | string               | string         |
 
 """,
     value="Defines template for single parameter value",

@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Built-in function library (additive published surface).** Thirty new `call` functions —
+  string helpers (`upper`/`lower`/`capitalize`/`replace`/`removeprefix`/`removesuffix`/
+  `strip`/`lstrip`/`rstrip`), `slice` (strings + arrays), epoch dates
+  (`from_epoch`/`to_epoch` with optional format), collections
+  (`length`/`flatten`/`sum`/`min`/`max`/`sorted`/`reversed`/`unique`), numerics
+  (`abs`/`floor`/`ceil`/`round`), `bool`, encoding (`b64encode`/`b64decode`),
+  deterministic `uuid5`, and regex (`regex_match`/`regex_replace`) — each wrapping
+  documented failure modes as `TransformationError` so bare `ValueError` never escapes
+  `rule_call`. New `split` rule (string → list of strings; array → list of lists;
+  `NO_CONTENT` passthrough). New total binary `in` membership operator. Spec §4.7/§4.8
+  updated; corpus examples + error-path tests. Deferred: `parse_date`, `json_*`,
+  `urlencode`, random `uuid4`/`now()`. Downstream follow-ups: `transon-authoring` refuse
+  fixtures flip + eval baseline reset; `transon-blockly` generator shrink via `in`.
+  Targets the forthcoming 0.2.0 release (held with RFC 0008). (Roadmap R-33)
+
 ## [0.1.7] - 2026-07-06
 
 ### Fixed

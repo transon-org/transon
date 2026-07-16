@@ -71,3 +71,23 @@ Transformer.register_operator(
     '!', 'not', kind='unary', types='boolean', result='boolean',
     doc='Logical negation (Python `not`).',
 )(operator.not_)
+
+
+def _in(a, b):
+    """Total membership: is ``a`` a member of ``b``? Never raises."""
+    if isinstance(b, list):
+        return a in b
+    if isinstance(b, str):
+        return isinstance(a, str) and a in b
+    if isinstance(b, dict):
+        return isinstance(a, str) and a in b
+    return False
+
+
+Transformer.register_operator(
+    'in', 'in', kind='binary', types='any', result='boolean',
+    doc='Membership: `true` when the left operand is a member of the right. '
+        'Array → element membership; string → substring (left must be a string, '
+        'else `false`); object → key presence (left must be a string, else `false`); '
+        'any other container → `false`. Total — never raises.',
+)(_in)

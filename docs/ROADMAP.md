@@ -61,7 +61,7 @@
 | [R-30](#r-30-grow-the-curated-example-corpus-recipes--worked-examples) | Grow the curated example corpus (recipes + worked examples) | low | done |
 | [R-31](#r-31-normalize-exports-to-one-flat-example-corpus-name-references) | Normalize exports to one flat example corpus (name references) | medium | done |
 | [R-32](#r-32-bounded-per-level-recursion-budget-for-self-include-walks) | Bounded per-level recursion budget for self-`include` walks | medium | done |
-| [R-33](#r-33-grow-the-built-in-function-library) | Grow the built-in function library (string / numeric / collection helpers) | medium | needs-decision |
+| [R-33](#r-33-grow-the-built-in-function-library) | Grow the built-in function library (string / numeric / collection helpers) | medium | done |
 
 ---
 
@@ -992,41 +992,33 @@ listed in §10). `tests/test_recursion_depth.py` guards the reachable depth, the
 
 ### R-33. Grow the built-in function library
 
-**Status**: needs-decision · **Severity**: medium ·
+**Status**: done · **Severity**: medium ·
 **Source**: [`proposals/0007-builtin-function-library.md`](proposals/0007-builtin-function-library.md)
 
-The engine ships four functions (`str`/`int`/`float`/`type`) — structurally complete for
-transformation, but it forces two recurring costs the downstream `transon-authoring` skill has
-measured against real payloads (AWS/Stripe/GitHub). (1) **Genuine gaps become refusals**: no
-string-case, substring/prefix, or date function, so `"usd"→"USD"`, `refs/heads/main→main`, and
-`epoch→ISO` are simply impossible. (2) **Common idioms are verbose and turn-expensive**: count /
-flatten / concat are `map`+`expr` `values` reductions (and `expr` `values` raises on an empty list,
-so each needs a guard), and there is no direct `length`.
+The engine shipped four functions (`str`/`int`/`float`/`type`) — structurally complete for
+transformation, but it forced two recurring costs the downstream `transon-authoring` skill
+measured against real payloads (AWS/Stripe/GitHub). (1) **Genuine gaps became refusals**: no
+string-case, substring/prefix, or date function. (2) **Common idioms were verbose**: count /
+flatten / concat as `map`+`expr` `values` reductions, and no direct `length`.
 
-**Impact if not fixed**: real webhook/resource payloads keep hitting hard refusals for ordinary
-operations; authoring the aggregation boilerplate burns tool-turn budget at every call site.
+**Decision** (wider than the RFC's recommended Tier-1 + count/flatten/length cut):
 
-**Options** (full detail in the proposal):
+- **Tier 1 + all of Tier 2**, plus accepted Tier-3 items: `b64encode`/`b64decode`, deterministic
+  `uuid5`, and **regex now** (Python `re` dialect; ReDoS is a host responsibility — widens the
+  RFC's own "own RFC" recommendation for regex). Deferred: `parse_date`, `json_*`, `urlencode`.
+- `split` ships as a **rule** (string + array; `NO_CONTENT` passthrough), not a function.
+- Membership ships as a total binary **`in` operator**, not a `contains` function.
+- Date surface: epoch-only with format support both ways — `from_epoch(n[, fmt])` /
+  `to_epoch(s[, fmt])` (fixed ISO by default; shared locale-free directive whitelist).
+- Extra additions: `capitalize`, `slice` (strings + arrays); `reversed` also accepts strings;
+  `regex_match` returns groups-or-`null` (condition use via `bool`).
+- `min`/`max` empty policy: `TransformationError` unless an explicit `default` is supplied.
+- Release: land under `[Unreleased]` for the forthcoming **0.2.0** (held with RFC 0008
+  language-reference export); no version bump in this change alone.
 
-1. **Tier 1 + count/flatten/length subset** for a 0.2.0 minor: string helpers (`upper`/`lower`/
-   `split`/`replace`/`removeprefix`/`removesuffix`/`strip*`), epoch dates (`from_epoch`/
-   `format_epoch`), and `length`/`flatten`/`sum`. Closes the three refuse cases; collapses the
-   reduce idioms. **(Recommended)**
-2. Wider batch also pulling `min`/`max`/`sorted`/`unique`/`contains`/`round`/`bool` — defer until the
-   empty/mixed-type error policy is decided.
-3. Defer `parse_date`, `json_*`, and **regex** to their own RFCs (regex carries ReDoS + dialect
-   portability that need separate treatment).
-
-**Hard constraints (bound the list)**: functions must be **pure/deterministic** — no `now()`/
-`random`/`uuid`/I/O (the `transon-blockly` codec projections and `transon-authoring`
-`verify()`/engine-frozen fixtures all assume reproducibility); multi-arg comes free via `call`
-`values` (no rule change); and every function must keep errors inside the transon model — `rule_call`
-catches only `TypeError`, so a bare `ValueError` (e.g. `min([])`) would escape as a raw Python
-exception (the R-02 defect), meaning each must be total, take a `default`, or raise a transon error.
-Each must register a `doc` + one example (metadata visibility per R-24/R-29/R-31).
-
-**Decision**: _pending._ Open calls: 0.2.0 scope; `min`/`max`/`sorted` empty & mixed-type policy;
-epoch-only vs `parse_date`; single release vs Tier-1/Tier-2 split.
+**Shipped**: 30 new `call` functions in `transon/functions.py` (wrappers that convert documented
+failures to `TransformationError`); `split` rule in `transon/rules.py`; total `in` operator in
+`transon/operators.py`; corpus examples + error-path tests; `SPECIFICATION.md` §4.7/§4.8 updated.
 
 ---
 

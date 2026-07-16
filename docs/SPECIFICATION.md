@@ -26,7 +26,7 @@ producing JSON *output*. It is inspired by XSLT and JsonLogic.
 | Path | Purpose |
 |---|---|
 | `transon/transformers.py` | Engine core: `Transformer`, `Context`, `NoContent`, error types |
-| `transon/rules.py` | All 22 built-in rules, registered via `@Transformer.register_rule` |
+| `transon/rules.py` | All 23 built-in rules, registered via `@Transformer.register_rule` |
 | `transon/operators.py` | Operators for the `expr` rule (registered via `register_operator`) |
 | `transon/functions.py` | Functions for the `call` rule (registered via `register_function`) |
 | `transon/docs.py` | Documentation generator: harvests docstrings + test cases into JSON |
@@ -145,6 +145,7 @@ of a value (distinct from JSON `null`/Python `None`). Semantics:
   - `filter`: a condition evaluating to `NO_CONTENT` excludes the element.
   - `join`: items that evaluate to `NO_CONTENT` are omitted before concatenation; when
     no items remain the result is `NO_CONTENT` unless `default` is provided.
+  - `split`: when `context.this` is `NO_CONTENT`, returns `NO_CONTENT` (passthrough).
 - **`format`**: returns `NO_CONTENT` when the formatting value (or any unpacked list
   element or dict key/value) is `NO_CONTENT`, unless `default` is provided.
 - **Top-level `transform()`**: by default maps a top-level `NO_CONTENT` result to
@@ -156,7 +157,7 @@ of a value (distinct from JSON `null`/Python `None`). Semantics:
 | Exception | Meaning | Raised when |
 |---|---|---|
 | `DefinitionError` | The template is malformed | Unknown rule/operator/function name; missing required rule parameter (`Transformer.require` or `Transformer.validate()`); unknown rule parameters; ambiguous or incomplete mutually-exclusive parameter groups (`validate()`); `attr` with neither `name` nor `names`; `map` with no valid parameter combination; reserved variable name (`this`, `item`, `key`, `value`, `index`) used with `set`/`get`; iteration accessors (`item`, `key`, `value`, `index`) or `parent` used outside their valid scope; `expr`/`call` with a non-list or empty `values` parameter; non-list `chain.funcs` (`validate()`); `include` with no configured `template_loader` (default loader) |
-| `TransformationError` | The template is valid but input data is incompatible | `map`/`filter` over a non-iterable (not list/dict); `join` over mixed-type items; `attr` lookup with an incompatible index type; `zip` over non-iterable items; `expr` operator applied to incompatible operand types; `call` with incompatible argument types; `format` pattern referencing a missing key or index; `set`/`get` when a dynamic `name` evaluates to `NO_CONTENT`; `include` depth limit exceeded (nested include chain too deep) |
+| `TransformationError` | The template is valid but input data is incompatible | `map`/`filter` over a non-iterable (not list/dict); `join` over mixed-type items; `split` on a non-string/non-array input or with an invalid `sep`; `attr` lookup with an incompatible index type; `zip` over non-iterable items; `expr` operator applied to incompatible operand types; `call` with incompatible argument types or a function that rejects its arguments (e.g. empty `min`/`max`, bad epoch, invalid regex); `format` pattern referencing a missing key or index; `set`/`get` when a dynamic `name` evaluates to `NO_CONTENT`; `include` depth limit exceeded (nested include chain too deep) |
 
 Both are exported from the package root. By default, errors are raised lazily during
 `transform()` — there is no automatic validation. Opt in with `Transformer.validate()`
@@ -372,6 +373,7 @@ Other lookup failures (e.g. `TypeError` indexing a string with a string) →
 | `filter` | `cond` (required, dynamic) | Keeps elements where `cond` is truthy (and not `NO_CONTENT`). Preserves container type: list→list, dict→dict. |
 | `zip` | `items` (required, dynamic) | Transposes iterables like Python's `zip`: each output row is a **list** (`[list(row) for row in zip(*items)]`). Non-iterable items → `TransformationError`. |
 | `join` | `items` (required, dynamic), `sep` (dynamic, strings only, default `""`), `default` (optional, dynamic) | Type-homogeneous concatenation: all-strings → `sep.join`; all-lists → flatten one level; all-dicts → merged dict (later keys win). Items that evaluate to `NO_CONTENT` are omitted before concatenation. When no items remain → `NO_CONTENT` (or `default` when provided). Mixed types → `TransformationError`. `sep` must evaluate to a string when joining strings. |
+| `split` | `sep` (required, dynamic) | Inverse of string/list `join`. Input `NO_CONTENT` → `NO_CONTENT`. String input: `sep` must be a non-empty string → list of strings (empty `sep` → `TransformationError`). Array input: result is a list of lists; `sep` is a single non-array element (split on `==`) or a non-empty array (split on each contiguous subsequence occurrence). Empty-array `sep` → `TransformationError`. Because an array `sep` means subsequence, you cannot split on a separator *element* that is itself an array. Other input types → `TransformationError`. |
 | `chain` | `funcs` (required; list of templates) | Function composition: walks each template in order, each result becomes `this` of a derived context for the next. `chain(f1, f2, f3)(x) == f3(f2(f1(x)))`. |
 
 ### 4.5 Computation
@@ -402,21 +404,78 @@ Other lookup failures (e.g. `TypeError` indexing a string with a string) →
 
 ### 4.7 Built-in operators (`expr`)
 
-Each operator has a mnemonic and a code-style alias mapping to the same Python
-`operator` module function:
+Each operator has a mnemonic and a code-style alias. Most map to the Python
+`operator` module; `in` is a total membership predicate:
 
 | Mnemonic | Alias | Python impl | Note |
 |---|---|---|---|
 | `lt le eq ne ge gt` | `< <= == != >= >` | `operator.lt` … | comparisons |
 | `add sub mul div mod` | `+ - * / %` | `operator.add` …, `truediv` for `div` | `+` also concatenates strings/lists |
 | `and or not` | `&& \|\| !` | logical `and`/`or`/`not` | Python truthiness; returns operands, not always `bool` |
+| `in` | `in` | membership | **Total** (never raises). Binary `op(a, b)` = "`a` is a member of `b`": array → element membership; string → substring (`a` must be a string, else `false`); object → key presence (`a` must be a string, else `false`); any other container → `false`. |
 
 ### 4.8 Built-in functions (`call`)
 
-`str`, `int`, `float` — the Python builtins, registered directly. `type` — returns the JSON
-type name of any value (`object`/`array`/`string`/`int`/`float`/`boolean`/`null`); it is
-**total** (never raises on well-formed JSON), so it is the one operation a `switch`/`cond`
-key can safely apply to a node of unknown type.
+Existing conversion family: `str`, `int`, `float` (Python builtins), `type` (JSON type
+name — **total** over well-formed JSON), and `bool` (Python truthiness — **total**).
+
+Every other built-in is a wrapper that converts documented failure modes into
+`TransformationError` itself (`rule_call` only catches `TypeError`). Multi-argument
+forms use `call` `values`.
+
+#### Strings
+
+| name | args | notes |
+|---|---|---|
+| `upper` `lower` `capitalize` | unary | non-string → `TransformationError` |
+| `replace` | `[s, old, new]` | total on strings |
+| `removeprefix` `removesuffix` | `[s, fix]` | prefix/suffix removal (not character-set strip) |
+| `strip` `lstrip` `rstrip` | unary or `[s, chars]` | character-set trimming |
+
+#### Strings and arrays
+
+| name | args | notes |
+|---|---|---|
+| `slice` | `[x, start]` or `[x, start, stop]` | `x` string or array; Python slice semantics (negative indices, out-of-range clamps). Non-int index or other `x` type → `TransformationError`. |
+| `reversed` | unary | array → reversed array; string → reversed string; other → `TransformationError` |
+
+#### Epoch dates (UTC only)
+
+| name | args | notes |
+|---|---|---|
+| `from_epoch` | unary or `[n, fmt]` | Epoch **seconds** (int/float) → string. Default format is fixed ISO-8601 `YYYY-MM-DDThh:mm:ssZ`. Fractional seconds are **truncated**. Non-numeric / NaN / inf / out-of-range → `TransformationError`. |
+| `to_epoch` | `[s]` or `[s, fmt]` | String → epoch seconds (int). Default accepts the same fixed ISO form. Parse failure → `TransformationError`. |
+
+Shared format whitelist (locale-free, deterministic): `%Y %m %d %H %M %S %j %z %%`
+plus literal text. Any other directive (including `%a %b %c %x %X %p %Z`) →
+`TransformationError`.
+
+#### Collections and numerics
+
+| name | args | notes |
+|---|---|---|
+| `length` | unary | string / array / object → int; other → `TransformationError` |
+| `flatten` | unary | one level; non-array input or non-array element → `TransformationError` |
+| `sum` | unary | array of numbers; `sum([]) == 0`; booleans and non-numeric elements → `TransformationError` |
+| `min` `max` | `[array]` or `[array, default]` | empty without `default` → `TransformationError` |
+| `sorted` | unary | homogeneous scalars only; mixed types → `TransformationError` |
+| `unique` | unary | first-occurrence order; dict/list elements → `TransformationError` |
+| `abs` `floor` `ceil` | unary | numbers only (`math.floor`/`ceil`); non-number → `TransformationError` |
+| `round` | unary or `[x, ndigits]` | numbers only |
+
+#### Encoding, hashing, regex
+
+| name | args | notes |
+|---|---|---|
+| `b64encode` | unary | str → UTF-8 → standard-alphabet base64 str |
+| `b64decode` | unary | invalid base64 or non-UTF-8 payload → `TransformationError` |
+| `uuid5` | `[namespace, name]` | Deterministic UUID; `namespace` is `dns`/`url`/`oid`/`x500` or a UUID string. Random `uuid4` is deliberately absent (determinism). |
+| `regex_match` | `[s, pattern]` | On match: array of capture groups (`groups()`; unmatched optionals → `null`); with no groups: `[full match]`. On no match: `null`. Condition use: `bool(regex_match(...))`. Invalid pattern → `TransformationError`. |
+| `regex_replace` | `[s, pattern, repl]` | str; invalid pattern → `TransformationError` |
+
+**Regex dialect** is Python `re` (the same engine on CPython and the Pyodide reference
+host). ReDoS exposure is a **host** responsibility (e.g. per-case timeouts); the engine
+does not limit pattern complexity.
 
 ---
 

@@ -144,3 +144,46 @@ class OperatorModulo(base.TableDataBaseCase):
     }
     data = 9
     result = 1
+
+
+class OperatorInArray(base.TableDataBaseCase):
+    """
+    `in` returns `true` when the left operand is an element of an array.
+    Total — never raises.
+    """
+    tags = ['op:in', 'expr:value']
+    template = {
+        '$': 'expr',
+        'op': 'in',
+        'value': ['a', 'b', 'c'],
+    }
+    data = 'b'
+    result = True
+
+
+class OperatorInObjectKey(base.TableDataBaseCase):
+    """
+    `in` returns `true` when the left operand is a key of an object.
+    """
+    tags = ['op:in', 'expr:value']
+    template = {
+        '$': 'expr',
+        'op': 'in',
+        'value': {'name': 'Ada', 'role': 'engineer'},
+    }
+    data = 'name'
+    result = True
+
+
+class OperatorInString(base.TableDataBaseCase):
+    """
+    `in` returns `true` when the left operand is a substring of a string.
+    """
+    tags = ['op:in', 'expr:value']
+    template = {
+        '$': 'expr',
+        'op': 'in',
+        'value': 'transon',
+    }
+    data = 'son'
+    result = True

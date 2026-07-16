@@ -53,6 +53,7 @@ def test_get_rules():
         'zip',
         'file',
         'join',
+        'split',
         'chain',
         'expr',
         'call',
