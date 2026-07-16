@@ -164,7 +164,7 @@ def _from_epoch(n, fmt=None):
     _validate_epoch_fmt(fmt)
     try:
         return dt.strftime(fmt)
-    except (ValueError, OverflowError) as exc:
+    except (ValueError, OverflowError) as exc:  # pragma: no cover - whitelist formats succeed
         _error(f'`from_epoch` failed to format: {exc}')
 
 
@@ -259,7 +259,7 @@ def _sorted(value):
             return 'string'
         if isinstance(item, (int, float)):
             return 'number'
-        return type(item).__name__
+        return type(item).__name__  # pragma: no cover - guarded by _is_scalar
 
     kinds = {_kind(item) for item in value}
     if len(kinds) > 1:

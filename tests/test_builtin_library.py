@@ -168,3 +168,86 @@ def test_no_bare_value_error_from_min():
         pass
     except ValueError:  # pragma: no cover
         pytest.fail('bare ValueError escaped rule_call')
+
+
+def test_strip_variants_and_slice_edges():
+    assert _call('strip', values=['xxhelloxx', 'x']) == 'hello'
+    assert _call('lstrip', '  hi') == 'hi'
+    assert _call('rstrip', 'hi  ') == 'hi'
+    with pytest.raises(TransformationError, match='string or array'):
+        _call('slice', values=[1, 0])
+    with pytest.raises(TransformationError, match='stop must be an int'):
+        _call('slice', values=['abc', 0, '1'])
+
+
+def test_epoch_fmt_and_range_edges():
+    with pytest.raises(TransformationError, match='must be a string'):
+        _call('from_epoch', values=[0, 1])
+    with pytest.raises(TransformationError, match='trailing'):
+        _call('from_epoch', values=[0, '%Y-%'])
+    with pytest.raises(TransformationError, match='out of range'):
+        _call('from_epoch', 10 ** 20)
+    # timezone-aware parse hits the astimezone branch
+    assert isinstance(
+        _call('to_epoch', values=['2024-01-01T00:00:00+0000', '%Y-%m-%dT%H:%M:%S%z']),
+        int,
+    )
+
+
+def test_collection_type_guards():
+    assert _call('length', {'a': 1}) == 1
+    with pytest.raises(TransformationError, match='requires an array'):
+        _call('flatten', 'nope')
+    with pytest.raises(TransformationError, match='requires an array'):
+        _call('sum', 'nope')
+    with pytest.raises(TransformationError, match='requires an array'):
+        _call('min', values=['nope'])
+    with pytest.raises(TransformationError, match='1 or 2 arguments'):
+        _call('min', values=[[1], 2, 3])
+    with pytest.raises(TransformationError, match='1 or 2 arguments'):
+        _call('max', values=[[1], 2, 3])
+    assert _call('max', values=[[1, 5, 2]]) == 5
+    assert _call('sorted', []) == []
+    with pytest.raises(TransformationError, match='requires an array'):
+        _call('sorted', 'abc')
+    with pytest.raises(TransformationError, match='scalar elements'):
+        _call('sorted', [[1], [2]])
+    with pytest.raises(TransformationError, match='requires an array'):
+        _call('unique', 'abc')
+    with pytest.raises(TransformationError, match='requires a number'):
+        _call('abs', 'x')
+    with pytest.raises(TransformationError, match='ndigits must be an int'):
+        _call('round', values=[1.5, '2'])
+    assert _call('round', 1.5) == 2
+
+
+def test_uuid5_and_regex_no_groups():
+    ns = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'  # NAMESPACE_DNS
+    assert _call('uuid5', values=[ns, 'example.com']) == (
+        'cfbff0d1-9375-5685-968c-48ce8b15ae17'
+    )
+    assert _call('regex_match', values=['abc', r'b']) == ['b']
+    with pytest.raises(TransformationError, match='requires a string'):
+        _call('regex_match', values=[1, 'a'])
+    with pytest.raises(TransformationError, match='requires a string'):
+        _call('regex_replace', values=['a', 1, 'x'])
+
+
+def test_b64decode_non_utf8_payload():
+    # encode raw bytes that are not valid UTF-8
+    import base64
+    payload = base64.b64encode(b'\xff\xfe').decode('ascii')
+    with pytest.raises(TransformationError, match='not UTF-8'):
+        _call('b64decode', payload)
+
+
+def test_sorted_homogeneous_null_and_bool():
+    # Python 3 refuses to order None against None.
+    with pytest.raises(TransformationError, match='comparable'):
+        _call('sorted', [None, None])
+    assert _call('sorted', [True, False]) == [False, True]
+
+
+def test_min_incomparable_elements():
+    with pytest.raises(TransformationError, match='comparable'):
+        _call('min', values=[[1, 'a']])
