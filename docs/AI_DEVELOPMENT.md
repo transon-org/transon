@@ -3,6 +3,15 @@
 This project is set up for AI-assisted development with [Cursor](https://cursor.com).
 This document describes the infrastructure: rules, skills, and recommended MCP servers.
 
+## Entry points (`AGENTS.md`, `CLAUDE.md`)
+
+The tool-neutral operating contract for agents is the repo-root
+[`AGENTS.md`](../AGENTS.md) — it points every agent at this document and at the
+harness bodies in `.cursor/`, which are binding regardless of tool. Cursor
+auto-applies the rules by glob; other tools must load them manually per the scope
+table in `AGENTS.md`. [`CLAUDE.md`](../CLAUDE.md) is a slim pointer so Claude Code
+loads the same contract — no rules live there; edit `AGENTS.md` instead.
+
 ## Rules (`.cursor/rules/`)
 
 Project-specific rules are hand-written and committed to the repo (no external rule
