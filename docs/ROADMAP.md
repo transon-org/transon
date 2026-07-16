@@ -61,6 +61,7 @@
 | [R-30](#r-30-grow-the-curated-example-corpus-recipes--worked-examples) | Grow the curated example corpus (recipes + worked examples) | low | done |
 | [R-31](#r-31-normalize-exports-to-one-flat-example-corpus-name-references) | Normalize exports to one flat example corpus (name references) | medium | done |
 | [R-32](#r-32-bounded-per-level-recursion-budget-for-self-include-walks) | Bounded per-level recursion budget for self-`include` walks | medium | done |
+| [R-33](#r-33-grow-the-built-in-function-library) | Grow the built-in function library (string / numeric / collection helpers) | medium | needs-decision |
 
 ---
 
@@ -706,7 +707,7 @@ variables for write isolation.
 > These items are the engine-side dependencies of the `transon-blockly` *template-driven editor*
 > pivot. They are **additive** (no change to existing template semantics) and are specified from the
 > consumer side in `transon-blockly/docs/metadata-contract.md` §6 and detailed in
-> [`proposals/editor-metadata-export.md`](proposals/editor-metadata-export.md). Decisions were
+> [`proposals/0001-editor-metadata-export.md`](proposals/0001-editor-metadata-export.md). Decisions were
 > ratified as that repo's open questions OQ-012…OQ-015 (2026-06-27).
 
 ### R-23. `switch` and `cond` lazy-dispatch rules
@@ -781,7 +782,7 @@ when the sub-template still uses the default `$` (a pinned non-default marker is
 
 ### R-26. `type` value-type function
 
-**Status**: done · **Severity**: medium · **Source**: [`proposals/type-function.md`](proposals/type-function.md) (Deliverable 1)
+**Status**: done · **Severity**: medium · **Source**: [`proposals/0002-type-function.md`](proposals/0002-type-function.md) (Deliverable 1)
 
 A **total**, non-throwing `call` function returning a value's JSON type name
 (`object`/`array`/`string`/`int`/`float`/`boolean`/`null`). It is the one operation a `switch`/`cond`
@@ -804,7 +805,7 @@ parity updated in `tests/test_metadata.py`.
 
 ### R-27. `include` propagates `template_loader` through context
 
-**Status**: done · **Severity**: medium · **Source**: [`proposals/type-function.md`](proposals/type-function.md) (Deliverable 2)
+**Status**: done · **Severity**: medium · **Source**: [`proposals/0002-type-function.md`](proposals/0002-type-function.md) (Deliverable 2)
 
 A recursive/self-`include`ing codec skeleton needs the sub-`Transformer` built by `include` to inherit
 the parent's `template_loader` (it already inherited the include-stack/marker/depth). Rather than adding
@@ -832,7 +833,7 @@ parameter); `rule_include` always passes the context and the loader constructs t
 
 **Status**: done (cross-repo decision 2026-07-02, `transon-blockly` UAT #1/#2 brainstorm —
 engine-first shape hints; editor-side shape catalog rejected) · **Severity**: medium ·
-**Source**: [`proposals/editor-metadata-structural-params.md`](proposals/editor-metadata-structural-params.md)
+**Source**: [`proposals/0003-editor-metadata-structural-params.md`](proposals/0003-editor-metadata-structural-params.md)
 
 `get_editor_metadata()` (R-24) drops two structural facts the engine already declares at the rule
 source and enforces in validation/the walk: `ParamSpec.container`
@@ -864,7 +865,7 @@ no-key-for-`TEMPLATE` sweep, docs arm descriptions, version bump).
 ### R-29. Export example tags + curated example tiers in the editor metadata
 
 **Status**: done · **Severity**: medium ·
-**Source**: [`proposals/editor-metadata-example-tiers.md`](proposals/editor-metadata-example-tiers.md) (Deliverable 1)
+**Source**: [`proposals/0004-editor-metadata-example-tiers.md`](proposals/0004-editor-metadata-example-tiers.md) (Deliverable 1)
 
 The tagged `TableDataBaseCase` corpus is the engine's single example source, and it already holds
 two curated tiers (`worked-example`, `recipe`) that `get_all_docs()` exposes as first-class blocks.
@@ -893,7 +894,7 @@ reference examples never tier-tagged; version bump).
 ### R-30. Grow the curated example corpus (recipes + worked examples)
 
 **Status**: done · **Severity**: low ·
-**Source**: [`proposals/editor-metadata-example-tiers.md`](proposals/editor-metadata-example-tiers.md) (Deliverable 2)
+**Source**: [`proposals/0004-editor-metadata-example-tiers.md`](proposals/0004-editor-metadata-example-tiers.md) (Deliverable 2)
 
 The curated tiers predated `switch`/`cond` (R-23) and skipped several rules users reach for early
 (`set`/`get`, `zip`, comparison-based `filter`). Content-only change: every rule family a
@@ -912,7 +913,7 @@ extended plus a rule-family coverage sweep over the curated corpus.
 ### R-31. Normalize exports to one flat example corpus (name references)
 
 **Status**: done · **Severity**: medium ·
-**Source**: [`proposals/example-corpus-normalization.md`](proposals/example-corpus-normalization.md)
+**Source**: [`proposals/0005-example-corpus-normalization.md`](proposals/0005-example-corpus-normalization.md)
 
 Both export APIs re-inlined the full example object under every entry a case's tags attached it
 to: 121 corpus cases became 264 inlined objects, ~60 % of each ~135 KB payload was repeated
@@ -943,7 +944,7 @@ never tier-tagged. `SPECIFICATION.md` §5/§5.1/§6.1 rewritten to the new shape
 ### R-32. Bounded per-level recursion budget for self-include walks
 
 **Status**: done · **Severity**: medium ·
-**Source**: [`proposals/transformer-recursion-depth-budget.md`](proposals/transformer-recursion-depth-budget.md)
+**Source**: [`proposals/0006-transformer-recursion-depth-budget.md`](proposals/0006-transformer-recursion-depth-budget.md)
 
 `walk()` does no work of its own — it opens the template-path context and delegates to `_walk()`,
 so **every** descent through a template node costs a `walk` **and** a `_walk` frame. Profiling the
@@ -986,6 +987,46 @@ tests unchanged. `SPECIFICATION.md` §4.6 gains the normative **Recursion budget
 listed in §10). `tests/test_recursion_depth.py` guards the reachable depth, the clean over-depth
 `TransformationError`, and the absence of the `walk`/`_walk` doubling. The `transon-blockly`
 `CODEC_MAX_INCLUDE_DEPTH` raise remains a separate, engine-gated follow-up.
+
+---
+
+### R-33. Grow the built-in function library
+
+**Status**: needs-decision · **Severity**: medium ·
+**Source**: [`proposals/0007-builtin-function-library.md`](proposals/0007-builtin-function-library.md)
+
+The engine ships four functions (`str`/`int`/`float`/`type`) — structurally complete for
+transformation, but it forces two recurring costs the downstream `transon-authoring` skill has
+measured against real payloads (AWS/Stripe/GitHub). (1) **Genuine gaps become refusals**: no
+string-case, substring/prefix, or date function, so `"usd"→"USD"`, `refs/heads/main→main`, and
+`epoch→ISO` are simply impossible. (2) **Common idioms are verbose and turn-expensive**: count /
+flatten / concat are `map`+`expr` `values` reductions (and `expr` `values` raises on an empty list,
+so each needs a guard), and there is no direct `length`.
+
+**Impact if not fixed**: real webhook/resource payloads keep hitting hard refusals for ordinary
+operations; authoring the aggregation boilerplate burns tool-turn budget at every call site.
+
+**Options** (full detail in the proposal):
+
+1. **Tier 1 + count/flatten/length subset** for a 0.2.0 minor: string helpers (`upper`/`lower`/
+   `split`/`replace`/`removeprefix`/`removesuffix`/`strip*`), epoch dates (`from_epoch`/
+   `format_epoch`), and `length`/`flatten`/`sum`. Closes the three refuse cases; collapses the
+   reduce idioms. **(Recommended)**
+2. Wider batch also pulling `min`/`max`/`sorted`/`unique`/`contains`/`round`/`bool` — defer until the
+   empty/mixed-type error policy is decided.
+3. Defer `parse_date`, `json_*`, and **regex** to their own RFCs (regex carries ReDoS + dialect
+   portability that need separate treatment).
+
+**Hard constraints (bound the list)**: functions must be **pure/deterministic** — no `now()`/
+`random`/`uuid`/I/O (the `transon-blockly` codec projections and `transon-authoring`
+`verify()`/engine-frozen fixtures all assume reproducibility); multi-arg comes free via `call`
+`values` (no rule change); and every function must keep errors inside the transon model — `rule_call`
+catches only `TypeError`, so a bare `ValueError` (e.g. `min([])`) would escape as a raw Python
+exception (the R-02 defect), meaning each must be total, take a `default`, or raise a transon error.
+Each must register a `doc` + one example (metadata visibility per R-24/R-29/R-31).
+
+**Decision**: _pending._ Open calls: 0.2.0 scope; `min`/`max`/`sorted` empty & mixed-type policy;
+epoch-only vs `parse_date`; single release vs Tier-1/Tier-2 split.
 
 ---
 

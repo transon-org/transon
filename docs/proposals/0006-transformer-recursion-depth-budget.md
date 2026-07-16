@@ -1,18 +1,20 @@
-# RFC: Bounded per-level recursion budget (make self-`include` depth reachable)
+# RFC 0006 — Bounded per-level recursion budget (make self-`include` depth reachable)
 
-- **Status:** Accepted (2026-07-05) — decision recorded as Roadmap **R-32** (`accepted`); ready to
-  implement. **Awaiting implementation** (the engine change lands with the SPEC invariant + the
-  regression guard below, and only then does `transon-blockly` raise its codec depth cap).
-- **Type:** Recursion-safety fix. **Behavior-preserving for every existing template** — no output
-  changes, no error-message changes for in-range templates. It only *raises the nesting depth at
-  which the transformer stops working*, and converts a class of raw `RecursionError`s into the
-  already-documented `include` depth-limit `TransformationError`.
-- **Roadmap:** tracked as **R-32** in `docs/ROADMAP.md`.
-- **Driver:** the engine-side counterpart of a `transon-blockly` self-hosting limit. The editor
-  derives its encoder/decoder as Transon-template *projections* run by this engine (no hand-written
-  codec, `transon-blockly` AD-030). The generated codec **self-`include`s once per document node**,
-  so its reachable nesting depth is bounded by *this engine's* per-level call-stack cost — not by
-  `max_include_depth`. Today that ceiling sits below the editor's own deepest generator.
+- **Status:** Implemented (v0.1.7, 2026-07-06)
+- **Created:** 2026-07-05
+- **Roadmap:** R-32 (`done`)
+- **Type:** Recursion-safety fix — behavior-preserving for every existing template (no output or error-message change for in-range templates); it only raises the reachable nesting depth and converts a class of raw `RecursionError`s into the documented `include` depth-limit `TransformationError`
+- **Consumers:** `transon-blockly` (raises `CODEC_MAX_INCLUDE_DEPTH` as a separate, engine-gated follow-up)
+- **Supersedes / Superseded by:** — / —
+
+> **Context.** Engine-side counterpart of a `transon-blockly` self-hosting limit. The editor derives
+> its encoder/decoder as Transon-template *projections* run by this engine (no hand-written codec,
+> `transon-blockly` AD-030). The generated codec **self-`include`s once per document node**, so its
+> reachable nesting depth is bounded by *this engine's* per-level call-stack cost — not by
+> `max_include_depth`. Before this fix that ceiling sat below the editor's own deepest generator.
+>
+> The RFC body below is preserved as written at proposal time (future tense); the Status line and
+> Roadmap R-32 (`done`, with a *Shipped* note) are authoritative for the outcome.
 
 ## Why
 

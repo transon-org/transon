@@ -1,18 +1,18 @@
-# RFC: Export example tags + curated example tiers in the editor metadata
+# RFC 0004 — Export example tags + curated example tiers in the editor metadata
 
-- **Status:** Proposed (2026-07-02). Engine-side counterpart of the `transon-blockly` demo/examples
-  enhancement: the editor's Examples surface currently flattens the reference corpus into one
-  ~147-entry dropdown of test-fixture-named cases, because the export gives it no curation signal.
-  The consumer contract update (`transon-blockly/docs/metadata-contract.md` §2.7) follows this RFC;
-  editor behavior changes there are SPEC-first in that repo (its FR-009 / §12.8).
-- **Type:** Additive metadata-**export** change (Deliverable 1) plus **content-only** corpus growth
-  (Deliverable 2) — no new rules, no change to template semantics, validation, or the docs API
-  shape. `METADATA_VERSION` `2.1` → `2.2`.
-- **Roadmap:** proposed as R-29 (Deliverable 1) and R-30 (Deliverable 2) in `docs/ROADMAP.md`,
-  following R-23..R-28 (the editor-metadata export series).
-- **Relationship to R-24/R-28:** completes the *docs payload* the way R-28 completed the
-  *structural catalog*: the engine already owns the facts (case tags, curated tiers) but the export
-  drops them.
+- **Status:** Implemented (v0.1.5, 2026-07-02)
+- **Created:** 2026-07-02
+- **Roadmap:** R-29 (export tags + tiers), R-30 (grow curated corpus) — both `done`
+- **Type:** Additive metadata-**export** change (adds `tags` to serialized examples, flowing into both `get_editor_metadata()` and `get_all_docs()`) + **content-only** corpus growth — no new rules, no change to template semantics or validation, and no existing docs-API field changes shape. `METADATA_VERSION` `2.1` → `2.2`
+- **Consumers:** `transon-blockly` (`docs/metadata-contract.md` §2.7; SPEC-first there, its FR-009 / §12.8)
+- **Supersedes / Superseded by:** — / —
+
+> **Context.** Engine-side counterpart of the `transon-blockly` demo/examples enhancement: the
+> editor's Examples surface currently flattens the reference corpus into one ~147-entry dropdown of
+> test-fixture-named cases, because the export gives it no curation signal. Completes the *docs
+> payload* the way [RFC 0003](0003-editor-metadata-structural-params.md) (R-28) completed the
+> *structural catalog*: the engine already owns the facts (case tags, curated tiers) but the export
+> drops them.
 
 ## Why
 

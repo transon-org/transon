@@ -1,19 +1,17 @@
-# RFC: Normalize exports to one flat example corpus (name references, no inlining)
+# RFC 0005 — Normalize exports to one flat example corpus (name references, no inlining)
 
-- **Status:** Implemented (2026-07-02) — engine side shipped as R-31 (`METADATA_VERSION` `3.0`);
-  consumer migrations (Deliverable 2) tracked in the consumer repos. Originally proposed
-  2026-07-02. Picks up the option explicitly deferred in the R-29 RFC
-  (`editor-metadata-example-tiers.md`, "Options considered and deferred"): *normalize the docs
-  payload to one flat tagged corpus; entries reference examples by name*. R-29 shipped the enabling
-  half (`name` + `tags` on every serialized example); this RFC removes the inlining itself.
-- **Type:** **Shape-breaking** change to both export APIs — `get_all_docs()` (docs-site API) and
-  `get_editor_metadata()` (editor export). No new rules, no change to template semantics,
-  validation, or the corpus content. `METADATA_VERSION` `2.2` → `3.0`.
-- **Roadmap:** R-31 in `docs/ROADMAP.md` (done), following R-29/R-30 (example tags + curated
-  tiers).
-- **Consumers:** `transon-org.github.io` (docs site + playground) and `transon-blockly`
-  (contract `metadata-contract.md` §2.7 — SPEC-first update in that repo). Both are ours; the
-  migrations are coordinated, small, and listed below.
+- **Status:** Implemented (v0.1.6, 2026-07-02)
+- **Created:** 2026-07-02
+- **Roadmap:** R-31 (`done`)
+- **Type:** **Shape-breaking** change to both export APIs (`get_all_docs()`, `get_editor_metadata()`) — no new rules, no change to template semantics/validation or corpus content. `METADATA_VERSION` `2.2` → `3.0`
+- **Consumers:** `transon-org.github.io` (docs site + playground); `transon-blockly` (`docs/metadata-contract.md` §2.7, SPEC-first there)
+- **Supersedes / Superseded by:** — / —
+
+> **Context.** Picks up the option explicitly deferred in
+> [RFC 0004](0004-editor-metadata-example-tiers.md) (R-29, "Options considered and deferred"):
+> *normalize the docs payload to one flat tagged corpus; entries reference examples by name*. R-29
+> shipped the enabling half (`name` + `tags` on every serialized example); this RFC removes the
+> inlining itself. Both consumers are ours; the migrations are coordinated, small, and listed below.
 
 ## Why
 
@@ -166,7 +164,7 @@ to sweep other discrepancies — the shape sketches are already stale against 2.
 
 ## Cross-repo provenance
 
-- Prior art: `docs/proposals/editor-metadata-example-tiers.md` (R-29) — this RFC is its deferred
+- Prior art: [RFC 0004](0004-editor-metadata-example-tiers.md) (R-29) — this RFC is its deferred
   "normalize to one flat tagged corpus" option, promoted.
 - Consumer contract: `transon-blockly/docs/metadata-contract.md` §2.7 (currently specifies inline
   examples) — contract update follows this RFC, SPEC-first in that repo.
