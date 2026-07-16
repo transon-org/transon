@@ -624,6 +624,7 @@ def rule_chain(t: Transformer, template, context: Context):
     | &&           | and         | binary | any            | any            |
     | &#124;&#124; | or          | binary | any            | any            |
     | !            | not         | unary  | boolean        | boolean        |
+    | in           | in          | binary | any            | boolean        |
 
     You can use code-style or mnemonic name (i.e. operator or alternative). 
 """,
@@ -694,12 +695,42 @@ def rule_expr(t: Transformer, template, context: Context):
     
     ###### Possible values:
 
-    | name  | input | output |
-    |-------|:-----:|:------:|
-    | str   |  any  |  str   | 
-    | int   |  str  |  int   | 
-    | float |  str  | float  | 
-    | type  |  any  | string | 
+    | name          | input                | output         |
+    |---------------|:--------------------:|:--------------:|
+    | str           | any                  | str            |
+    | int           | str                  | int            |
+    | float         | str                  | float          |
+    | type          | any                  | string         |
+    | bool          | any                  | boolean        |
+    | upper         | string               | string         |
+    | lower         | string               | string         |
+    | capitalize    | string               | string         |
+    | replace       | string               | string         |
+    | removeprefix  | string               | string         |
+    | removesuffix  | string               | string         |
+    | strip         | string               | string         |
+    | lstrip        | string               | string         |
+    | rstrip        | string               | string         |
+    | slice         | string, array        | string, array  |
+    | from_epoch    | number               | string         |
+    | to_epoch      | string               | int            |
+    | length        | string, array, object| int            |
+    | flatten       | array                | array          |
+    | sum           | array                | number         |
+    | min           | array                | any            |
+    | max           | array                | any            |
+    | sorted        | array                | array          |
+    | reversed      | string, array        | string, array  |
+    | unique        | array                | array          |
+    | abs           | number               | number         |
+    | floor         | number               | int            |
+    | ceil          | number               | int            |
+    | round         | number               | number         |
+    | b64encode     | string               | string         |
+    | b64decode     | string               | string         |
+    | uuid5         | string               | string         |
+    | regex_match   | string               | array          |
+    | regex_replace | string               | string         |
 
 """,
     value="Defines template for single parameter value",
