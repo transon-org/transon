@@ -1,13 +1,15 @@
-# RFC: Editor-metadata export + projection-support rules
+# RFC 0001 — Editor-metadata export + projection-support rules
 
-- **Status:** Proposed (2026-06-27). Engine-side counterpart of the `transon-blockly`
-  *template-driven editor* pivot. The editor contract is recorded in
-  `transon-blockly/docs/metadata-contract.md` §6 (§6.1–§6.3); this RFC is the engine repo's home for
-  the work that contract depends on.
-- **Type:** New engine capabilities (additive on top of v0.1.0; no behavior change to existing
-  templates).
-- **Roadmap:** tracked as R-23 (`switch`/`cond`), R-24 (`get_editor_metadata()`), R-25
-  (`include` default-marker inheritance) in `docs/ROADMAP.md`.
+- **Status:** Implemented (v0.1.1–0.1.2)
+- **Created:** 2026-06-27
+- **Roadmap:** R-23 (`switch`/`cond`), R-24 (`get_editor_metadata()`), R-25 (`include` default-marker inheritance) — all `done`
+- **Type:** Additive engine capabilities — no behavior change to existing templates
+- **Consumers:** `transon-blockly` (`docs/metadata-contract.md` §6.1–§6.3)
+- **Supersedes / Superseded by:** — / —
+
+> **Context.** Engine-side counterpart of the `transon-blockly` *template-driven editor* pivot. The
+> editor contract is recorded in `transon-blockly/docs/metadata-contract.md` §6 (§6.1–§6.3); this RFC
+> is the engine repo's home for the work that contract depends on.
 
 ## Why
 

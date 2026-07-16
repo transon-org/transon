@@ -1,17 +1,17 @@
-# RFC: `type` value-type function (+ `include` loader propagation)
+# RFC 0002 — `type` value-type function (+ `include` loader propagation)
 
-- **Status:** Implemented (2026-06-29) — both deliverables shipped (Roadmap R-26 `type` function and
-  R-27 `include` `template_loader` propagation, both `done`). Engine-side counterpart of the
-  `transon-blockly` *template-driven editor* pivot. The editor contract is recorded in
-  `transon-blockly/docs/metadata-contract.md` §6.4; this RFC is the engine repo's home for the work
-  that contract depends on.
-- **Type:** New engine capability (additive on top of v0.1.x; **no behavior change to existing
-  templates**).
-- **Roadmap:** tracked as R-26 (`type` function) and R-27 (`include` `template_loader` propagation)
-  in `docs/ROADMAP.md`, following R-23..R-25 (the editor-metadata export RFC).
-- **Relationship to R-23..R-25:** independent and additive. Those delivered the editor-metadata
-  export + `switch`/`cond` + `include` marker inheritance. This RFC adds the one remaining primitive
-  the *generated codec* needs to walk arbitrary JSON.
+- **Status:** Implemented (v0.1.3, 2026-06-29)
+- **Created:** 2026-06-29
+- **Roadmap:** R-26 (`type` function), R-27 (`include` `template_loader` propagation) — both `done`
+- **Type:** Additive engine capability — no behavior change to existing templates
+- **Consumers:** `transon-blockly` (`docs/metadata-contract.md` §6.4)
+- **Supersedes / Superseded by:** — / —
+
+> **Context.** Engine-side counterpart of the `transon-blockly` *template-driven editor* pivot; the
+> editor contract is recorded in `transon-blockly/docs/metadata-contract.md` §6.4. Follows
+> [RFC 0001](0001-editor-metadata-export.md) (R-23..R-25) and is independent and additive: those
+> delivered the editor-metadata export + `switch`/`cond` + `include` marker inheritance; this RFC adds
+> the one remaining primitive the *generated codec* needs to walk arbitrary JSON.
 
 ## Why
 
