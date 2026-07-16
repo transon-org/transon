@@ -1,9 +1,9 @@
 # RFC 0007 — Grow the built-in function library (string / numeric / collection helpers)
 
-- **Status:** Proposed — `needs-decision`
+- **Status:** Implemented — pending 0.2.0 packaging (held with RFC 0008)
 - **Created:** 2026-07-16
-- **Roadmap:** R-33 (`needs-decision`) — targets a **0.2.0** minor release
-- **Type:** Additive engine capability — every addition is a newly-named function/operator; no behavior change to existing templates
+- **Roadmap:** R-33 (`done`) — targets a **0.2.0** minor release (with RFC 0008)
+- **Type:** Additive engine capability — every addition is a newly-named function/operator/rule; no behavior change to existing templates
 - **Consumers:** `transon-authoring` (skill; pins the registry snapshot), `transon-blockly` (optional membership-predicate follow-up)
 - **Supersedes / Superseded by:** — / —
 
