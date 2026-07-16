@@ -14,7 +14,7 @@ from transon.transformers import format_error_message
 
 
 _ISO_EPOCH_FMT = '%Y-%m-%dT%H:%M:%SZ'
-_EPOCH_FMT_ALLOWED = frozenset('YmdHMSj z%')
+_EPOCH_FMT_ALLOWED = frozenset('YmdHMSjz%')
 _UUID5_NAMESPACES = {
     'dns': uuid.NAMESPACE_DNS,
     'url': uuid.NAMESPACE_URL,
@@ -318,7 +318,10 @@ def _bool(value):
 
 
 def _b64encode(value):
-    raw = _require_str(value, 'b64encode').encode('utf-8')
+    try:
+        raw = _require_str(value, 'b64encode').encode('utf-8')
+    except UnicodeEncodeError as exc:
+        _error(f'`b64encode` string is not UTF-8 encodable: {exc}')
     return base64.b64encode(raw).decode('ascii')
 
 
@@ -357,8 +360,8 @@ def _regex_match(s, pattern):
         _error(f'`regex_match` invalid pattern: {exc}')
     if match is None:
         return None
-    if match.lastindex:
-        return [g for g in match.groups()]
+    if match.re.groups:
+        return list(match.groups())
     return [match.group(0)]
 
 
@@ -534,7 +537,7 @@ Transformer.register_function(
         '(no random `uuid4`).',
 )(_uuid5)
 Transformer.register_function(
-    'regex_match', input_type='string', output_type='array',
+    'regex_match', input_type='string', output_type='array, null',
     doc='`values: [s, pattern]` — Python `re.search`. On match returns capture groups '
         'as an array (unmatched optionals are `null`); with no groups returns '
         '`[full match]`. On no match returns `null`. Use `bool(...)` in conditions. '

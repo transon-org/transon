@@ -173,3 +173,17 @@ class OperatorInObjectKey(base.TableDataBaseCase):
     }
     data = 'name'
     result = True
+
+
+class OperatorInString(base.TableDataBaseCase):
+    """
+    `in` returns `true` when the left operand is a substring of a string.
+    """
+    tags = ['op:in', 'expr:value']
+    template = {
+        '$': 'expr',
+        'op': 'in',
+        'value': 'transon',
+    }
+    data = 'son'
+    result = True

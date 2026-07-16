@@ -513,6 +513,8 @@ def rule_split(t: Transformer, template, context: Context):
     if value is t.NO_CONTENT:
         return t.NO_CONTENT
     sep = t.walk_param(t.require(template, 'sep'), context, 'sep')
+    if sep is t.NO_CONTENT:
+        t.transformation_error('`sep` must not evaluate to `NO_CONTENT`')
     if isinstance(value, str):
         if not isinstance(sep, str) or sep == '':
             t.transformation_error(
@@ -729,7 +731,7 @@ def rule_expr(t: Transformer, template, context: Context):
     | b64encode     | string               | string         |
     | b64decode     | string               | string         |
     | uuid5         | string               | string         |
-    | regex_match   | string               | array          |
+    | regex_match   | string               | array, null    |
     | regex_replace | string               | string         |
 
 """,

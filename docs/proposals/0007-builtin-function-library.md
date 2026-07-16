@@ -1,6 +1,7 @@
 # RFC 0007 — Grow the built-in function library (string / numeric / collection helpers)
 
-- **Status:** Implemented — pending 0.2.0 packaging (held with RFC 0008)
+- **Status:** Accepted — code landed; packaging deferred to 0.2.0 (held with RFC 0008).
+  Lifecycle note: not yet `Implemented` (that term means shipped in a release per the RFC index).
 - **Created:** 2026-07-16
 - **Roadmap:** R-33 (`done`) — targets a **0.2.0** minor release (with RFC 0008)
 - **Type:** Additive engine capability — every addition is a newly-named function/operator/rule; no behavior change to existing templates

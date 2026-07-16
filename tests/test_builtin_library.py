@@ -36,13 +36,33 @@ def _call(name, data=None, *, value=None, values=None):
 
 
 def test_upper_rejects_non_string():
-    with pytest.raises(TransformationError, match='requires a string'):
+    with pytest.raises(TransformationError, match='requires a string') as exc_info:
         _call('upper', 1)
+    assert 'at template → call' in str(exc_info.value)
 
 
-def test_split_empty_sep_raises_transformation_error():
-    with pytest.raises(TransformationError, match='non-empty string'):
-        Transformer({'$': 'split', 'sep': ''}).transform('a/b')
+def test_split_rejects_no_content_sep():
+    with pytest.raises(TransformationError, match='NO_CONTENT'):
+        Transformer(
+            {
+                '$': 'split',
+                'sep': {'$': 'get', 'name': 'missing'},
+            },
+        ).transform(['a', 'b'])
+
+
+def test_regex_match_optional_groups_all_unmatched():
+    assert _call('regex_match', values=['b', r'(a)?b']) == [None]
+
+
+def test_b64encode_rejects_surrogate():
+    with pytest.raises(TransformationError, match='UTF-8'):
+        _call('b64encode', '\ud800')
+
+
+def test_epoch_rejects_percent_space():
+    with pytest.raises(TransformationError, match='directive'):
+        _call('from_epoch', values=[0, '%Y% %m'])
 
 
 def test_split_no_content_passthrough():
