@@ -72,10 +72,11 @@ exactly the property `get_editor_metadata()` already has for the catalog. The re
 identical.
 
 **Acceptance (packaging parity).** A test loads the packaged `LANGUAGE.md` through
-`importlib.resources` — exercising the installed wheel/sdist layout, not just the source tree — and
-asserts `get_language_reference()['content']` equals those packaged bytes, following the shape-test
-pattern in `tests/test_metadata.py`. This catches a missing package-data glob or a stale packaged
-copy, neither of which the catalog-to-heading coverage test (Deliverable 1) would notice.
+`importlib.resources` — exercising the installed wheel/sdist layout, not just the source tree —
+decodes those bytes as UTF-8, normalizes line endings to `\n`, and asserts the result equals
+`get_language_reference()['content']` (which is UTF-8 text with `\n` newlines), following the
+shape-test pattern in `tests/test_metadata.py`. This catches a missing package-data glob or a stale
+packaged copy, neither of which the catalog-to-heading coverage test (Deliverable 1) would notice.
 
 ## Deliverable 3 — `get_language_reference()` export (R-36)
 
@@ -103,10 +104,13 @@ A read-only export, separate from the docs API, mirroring the `get_editor_metada
 - **Splitting rules** (deterministic): the split is on top-level `##` headings only, so `sections`
   is flat, not a tree. Each section runs from its `##` heading up to the next `##` heading and
   **includes its own heading line**; any deeper (`###`+) heading stays inside its parent section.
-  Content before the first `##` heading (the intro under the `#` title) becomes a leading
-  `{"id": "preamble", ...}` section. `id` is the GitHub-style slug of the heading text; a collision
-  gets a `-2`, `-3`, … suffix in document order, so `id`s are unique and stable. `heading_level` is
-  always `2`. A parity test asserts the concatenation of `sections` (in order) reproduces `content`.
+  Content before the first `##` heading (the intro under the `#` title) becomes a leading preamble
+  section — present **only when that intro is non-empty** — carrying
+  `{"id": "preamble", "title": "", "heading_level": null, ...}`. Every other section carries
+  `heading_level: 2` and the heading's text as `title`. `id` is the GitHub-style slug of the heading
+  text (the preamble's is the literal `"preamble"`); a collision gets a `-2`, `-3`, … suffix in
+  document order, so `id`s are unique and stable. A parity test asserts the concatenation of
+  `sections` (in order) reproduces `content`.
 - **`reference_version` policy** (mirrors `METADATA_VERSION` and the [RFC 0001](0001-editor-metadata-export.md)
   versioned-export conventions): additive changes — a new section, appended prose, a new optional
   field — bump the **minor**; removing or renaming a section `id`, changing the `sections` shape, or
