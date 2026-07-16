@@ -56,12 +56,14 @@ language, and cannot change the meaning of any existing template.
 These are hard invariants for anything added here; they are why several "obvious" functions are
 **declined** below.
 
-1. **Pure and deterministic — no exceptions.** Every downstream contract assumes *same template +
-   same input → same output, forever*: the `transon-blockly` codec projections, and the
+1. **Pure and deterministic (this rule is absolute).** Every downstream contract assumes *same
+   template + same input → same output, forever*: the `transon-blockly` codec projections, and the
    `transon-authoring` `verify()`/`matched` check plus its engine-frozen eval fixtures. Therefore
    **no** `now()`, `today()`, `random`, `uuid`, `env`, or any I/O. Anything date-shaped must
    transform a value **taken from the input**, never read a wall clock. No locale-dependent
-   behavior; date formatting is fixed (ISO-8601, UTC) or takes an explicit format string.
+   behavior; date formatting is fixed (ISO-8601, UTC) or takes an explicit format string. (This
+   governs *determinism*, not error-raising: a function may still raise a transon error on bad
+   input — that is constraint 3's domain.)
 
 2. **Multi-argument is already free.** The `call` rule's `values` mode evaluates
    `function(*values)` ([`transon/rules.py`], `rule_call`), and `int`'s optional base argument is the
@@ -104,7 +106,7 @@ Each of these turns a standing refusal into a capability.
 | `removeprefix`, `removesuffix` | `values: [s, fix]` | str | the **correct** fix for `refs/heads/` — `lstrip` would wrongly eat leading characters, not a prefix |
 | `strip`, `lstrip`, `rstrip` | unary, or `values: [s, chars]` | str | character-set trimming; explicitly **not** a substitute for `removeprefix` |
 | `from_epoch` | unary (number) | str | epoch **seconds** → ISO-8601 UTC (`YYYY-MM-DDThh:mm:ssZ`), fixed format, pure; a non-numeric input raises `TransformationError` |
-| `format_epoch` | `values: [n, fmt]` | str | epoch seconds + explicit `strftime`-style format; UTC only, no locale, no `%Z` guessing |
+| `format_epoch` | `values: [n, fmt]` | str | epoch seconds + explicit format; UTC only. **Locale-free directives only** — restricted to a whitelist (`%Y %m %d %H %M %S %j %z` + literal text); locale-sensitive directives (`%a %b %c %x %X %p`) and `%Z` are rejected with a `TransformationError`, so output stays deterministic across hosts |
 
 > **Date scope is deliberately narrow.** Only epoch-based, because epoch is unambiguous and
 > locale-free. General `parse_date(s, fmt)` is listed under Tier 3 — parsing arbitrary strings drags
@@ -205,6 +207,12 @@ lever, which is why its totality is worth deciding deliberately rather than by a
 - **Per-function empty/error audit against constraint 3** — prove no bare `ValueError`/`KeyError`
   escapes `rule_call`'s `TypeError`-only guard; add an explicit transon error or `default` where it
   would.
+- **Boundary contracts pinned per function** (part of that audit, each with a test): `split` — empty
+  `sep` raises a `TransformationError`, not Python's `ValueError`; `from_epoch` / `format_epoch` —
+  state the accepted numeric range and rounding/precision (fractional seconds truncated vs rounded),
+  and normalize non-finite (`NaN`/`inf`) or out-of-range inputs to a `TransformationError`, never a
+  raw `ValueError`/`OverflowError`/`OSError`; `format_epoch` — reject any non-whitelisted directive
+  (see the Tier-1 note) rather than emit locale-dependent text.
 - One flat-corpus example per function (`get_example_names_for_function` must resolve), so the editor
   enum and the authoring snapshot both pick it up.
 - `SPECIFICATION.md` function section updated; **changelog** entry under a new `## [0.2.0]` (additive,

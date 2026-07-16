@@ -3,7 +3,7 @@
 - **Status:** Implemented (v0.1.1–0.1.2)
 - **Created:** 2026-06-27
 - **Roadmap:** R-23 (`switch`/`cond`), R-24 (`get_editor_metadata()`), R-25 (`include` default-marker inheritance) — all `done`
-- **Type:** Additive engine capabilities — no behavior change to existing templates
+- **Type:** Additive engine capabilities, with one narrowly scoped behavior change — Deliverable 3 (R-25) makes an `include`d template that pins no marker inherit the parent's default marker instead of always assuming `"$"`; no other existing template changes meaning
 - **Consumers:** `transon-blockly` (`docs/metadata-contract.md` §6.1–§6.3)
 - **Supersedes / Superseded by:** — / —
 

@@ -3,7 +3,7 @@
 - **Status:** Implemented (v0.1.5, 2026-07-02)
 - **Created:** 2026-07-02
 - **Roadmap:** R-29 (export tags + tiers), R-30 (grow curated corpus) — both `done`
-- **Type:** Additive metadata-**export** change + **content-only** corpus growth — no new rules, no change to template semantics/validation or the docs API shape. `METADATA_VERSION` `2.1` → `2.2`
+- **Type:** Additive metadata-**export** change (adds `tags` to serialized examples, flowing into both `get_editor_metadata()` and `get_all_docs()`) + **content-only** corpus growth — no new rules, no change to template semantics or validation, and no existing docs-API field changes shape. `METADATA_VERSION` `2.1` → `2.2`
 - **Consumers:** `transon-blockly` (`docs/metadata-contract.md` §2.7; SPEC-first there, its FR-009 / §12.8)
 - **Supersedes / Superseded by:** — / —
 

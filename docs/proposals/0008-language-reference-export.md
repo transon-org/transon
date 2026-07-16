@@ -3,7 +3,7 @@
 - **Status:** Proposed
 - **Created:** 2026-07-16
 - **Roadmap:** R-34 (Language Reference document), R-35 (package the reference), R-36 (`get_language_reference()` export) — proposed; add rows to `docs/ROADMAP.md` on acceptance. (R-33 is held by [RFC 0007](0007-builtin-function-library.md).)
-- **Type:** New documentation artifact + packaging + a read-only export API — additive; no behavior change to any template or engine API
+- **Type:** New documentation artifact + packaging + a new read-only export API (`get_language_reference()`) — additive; no change to existing template semantics or existing engine APIs
 - **Consumers:** `transon-authoring` (authority ladder rung 2; `SKILL.md`, AD-018/NFR-001/NFR-003), `transon-org.github.io` (docs site)
 - **Supersedes / Superseded by:** — / —
 
@@ -71,6 +71,12 @@ exactly the property `get_editor_metadata()` already has for the catalog. The re
 `transon-authoring` `resources/` force-include pattern) or a release check asserts the two are
 identical.
 
+**Acceptance (packaging parity).** A test loads the packaged `LANGUAGE.md` through
+`importlib.resources` — exercising the installed wheel/sdist layout, not just the source tree — and
+asserts `get_language_reference()['content']` equals those packaged bytes, following the shape-test
+pattern in `tests/test_metadata.py`. This catches a missing package-data glob or a stale packaged
+copy, neither of which the catalog-to-heading coverage test (Deliverable 1) would notice.
+
 ## Deliverable 3 — `get_language_reference()` export (R-36)
 
 A read-only export, separate from the docs API, mirroring the `get_editor_metadata()` conventions:
@@ -94,6 +100,19 @@ A read-only export, separate from the docs API, mirroring the `get_editor_metada
   consumers can serve **targeted** section lookups (a 700-line dump into an agent context is the
   failure mode; one section is the unit of consumption). `content` is the byte-exact document for
   consumers that want the whole thing.
+- **Splitting rules** (deterministic): the split is on top-level `##` headings only, so `sections`
+  is flat, not a tree. Each section runs from its `##` heading up to the next `##` heading and
+  **includes its own heading line**; any deeper (`###`+) heading stays inside its parent section.
+  Content before the first `##` heading (the intro under the `#` title) becomes a leading
+  `{"id": "preamble", ...}` section. `id` is the GitHub-style slug of the heading text; a collision
+  gets a `-2`, `-3`, … suffix in document order, so `id`s are unique and stable. `heading_level` is
+  always `2`. A parity test asserts the concatenation of `sections` (in order) reproduces `content`.
+- **`reference_version` policy** (mirrors `METADATA_VERSION` and the [RFC 0001](0001-editor-metadata-export.md)
+  versioned-export conventions): additive changes — a new section, appended prose, a new optional
+  field — bump the **minor**; removing or renaming a section `id`, changing the `sections` shape, or
+  dropping/renaming a top-level field is **breaking** and bumps the **major**. A consumer that reads
+  an unsupported major MUST fail its drift check loudly (as `transon-authoring`'s `check_snapshot.py`
+  already does for the metadata pin) rather than silently serve stale semantics.
 - `python -m transon.reference` prints the JSON (parallel to `python -m transon.docs` and
   `python -m transon.metadata`).
 - The export states **language facts only** — no consumer-specific shapes (no skill procedure, no

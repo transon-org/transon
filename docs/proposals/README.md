@@ -59,7 +59,7 @@ is the *authoritative* record of each work item's status via its **R-number**.
    ```markdown
    # RFC NNNN — <title>
 
-   - **Status:** Proposed
+   - **Status:** Proposed — `needs-decision`
    - **Created:** <YYYY-MM-DD>
    - **Roadmap:** R-NN (<label>) — <roadmap term>
    - **Type:** <additive | shape-breaking | fix; behavior impact on existing templates>
