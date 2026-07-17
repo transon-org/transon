@@ -1,6 +1,6 @@
 # RFC 0008 — Author-facing Language Reference: document, packaging, and export API
 
-- **Status:** Accepted (2026-07-18) — awaiting implementation
+- **Status:** Implemented (2026-07-18, in `main` — unreleased; ships in the next release per Sequencing)
 - **Created:** 2026-07-16
 - **Amended:** 2026-07-18 — consolidation scope extended to the `Transformer` docstring and
   `README.md`; single ownership principle (structure in the catalog, per-entity behavior in

@@ -62,9 +62,9 @@
 | [R-31](#r-31-normalize-exports-to-one-flat-example-corpus-name-references) | Normalize exports to one flat example corpus (name references) | medium | done |
 | [R-32](#r-32-bounded-per-level-recursion-budget-for-self-include-walks) | Bounded per-level recursion budget for self-`include` walks | medium | done |
 | [R-33](#r-33-grow-the-built-in-function-library) | Grow the built-in function library (string / numeric / collection helpers) | medium | done |
-| [R-34](#r-34-language-reference-document-languagemd) | Language Reference document (`LANGUAGE.md`) | medium | accepted |
-| [R-35](#r-35-package-the-language-reference-as-package-data) | Package the Language Reference as package data | low | accepted |
-| [R-36](#r-36-get_language_reference-versioned-export) | `get_language_reference()` versioned export | medium | accepted |
+| [R-34](#r-34-language-reference-document-languagemd) | Language Reference document (`LANGUAGE.md`) | medium | done |
+| [R-35](#r-35-package-the-language-reference-as-package-data) | Package the Language Reference as package data | low | done |
+| [R-36](#r-36-get_language_reference-versioned-export) | `get_language_reference()` versioned export | medium | done |
 
 ---
 
@@ -1038,7 +1038,7 @@ failures to `TransformationError`); `split` rule in `transon/rules.py`; total `i
 
 ### R-34. Language Reference document (`LANGUAGE.md`)
 
-**Status**: accepted · **Severity**: medium ·
+**Status**: done · **Severity**: medium ·
 **Source**: [`proposals/0008-language-reference-export.md`](proposals/0008-language-reference-export.md) (Deliverable 1)
 
 A new hand-written `docs/LANGUAGE.md`: the template-language reference for authors (human or
@@ -1056,9 +1056,19 @@ hand-maintained copies (spec §2/§11, the class docstring, README overlap) with
 author-scoped, pinnable document — the `transon-authoring` authority-ladder gap stays open and
 repair loops keep rediscovering semantics.
 
+**Shipped**: `docs/LANGUAGE.md` (7 pinned sections: preamble, templates-and-the-marker,
+context-and-scoping, the-no_content-model, error-model, expressions-and-calls,
+composition-patterns). Consolidation: spec §2 reduced to the engine-internal view, §4
+to a pointer + the Recursion budget invariant (per-rule facts folded into
+`transon/rules.py` docstrings — accessors' scope errors, `attr` error split, `map`/
+`filter`/`zip`/`join`/`file` edge cases, `expr`/`call` mode errors + the sanctioned
+reference pointer), §11 to a pointer; `Transformer` class docstring slimmed to the
+embedder narrative (pitch owned by README); section-id pin in
+`tests/test_reference.py`. Changelog entry under Unreleased.
+
 ### R-35. Package the Language Reference as package data
 
-**Status**: accepted · **Severity**: low ·
+**Status**: done · **Severity**: low ·
 **Source**: [`proposals/0008-language-reference-export.md`](proposals/0008-language-reference-export.md) (Deliverable 2)
 
 Ship `LANGUAGE.md` in the wheel and sdist (e.g. `transon/resources/LANGUAGE.md`) so an
@@ -1071,9 +1081,14 @@ line-endings normalized to `\n`) equal `get_language_reference()['content']`.
 **Impact if not done**: the `transon-authoring` harnesses mount no repo checkout, so an
 unpackaged reference is invisible to the primary consumer.
 
+**Shipped**: `transon/resources/LANGUAGE.md` (committed copy; hatchling picks it up in
+both wheel and sdist with no config change — verified by building both).
+`tests/test_reference.py` loads it through `importlib.resources` and asserts it equals
+both `get_language_reference()['content']` and the canonical `docs/LANGUAGE.md`.
+
 ### R-36. `get_language_reference()` versioned export
 
-**Status**: accepted · **Severity**: medium ·
+**Status**: done · **Severity**: medium ·
 **Source**: [`proposals/0008-language-reference-export.md`](proposals/0008-language-reference-export.md) (Deliverable 3)
 
 `transon.reference.get_language_reference()` → `{reference_version, engine_version, format,
@@ -1088,6 +1103,13 @@ scope here).
 **Impact if not done**: consumers can only ship the raw file — no targeted section lookup, no
 version pin, no drift check; a 700-line context dump instead of one section as the unit of
 consumption.
+
+**Shipped**: `transon/reference.py::get_language_reference()` — `REFERENCE_VERSION`
+`'1.0'`, fence-aware deterministic `##` splitting with GitHub-style slug ids and
+collision suffixes, preamble rule, engine-version degradation to `None` when not
+installed; `python -m transon.reference` CLI. Spec §5.2 documents the export. Tests:
+shape, section pin, concatenation parity, splitter unit cases in
+`tests/test_reference.py`.
 
 ---
 

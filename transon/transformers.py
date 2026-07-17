@@ -248,42 +248,17 @@ def arm(*, _variants, _constants=None, _containers=None, **slots) -> ArmSpec:
 
 class Transformer:
     """
-    ## What is transon?
+    The engine's entry point: construct a `Transformer` from a template (plain
+    JSON in which a dict carrying the marker key, default `$`, is a rule
+    invocation) and apply it to input data. The **template language** itself —
+    the evaluation model, scoping, the `NO_CONTENT` model, the error taxonomy,
+    composition patterns — is specified in the
+    [Language Reference](https://github.com/transon-org/transon/blob/main/docs/LANGUAGE.md)
+    (also served by `transon.reference.get_language_reference()`); what the
+    project is and how it compares to alternatives is in the
+    [README](https://github.com/transon-org/transon#readme).
 
-    `transon` reshapes one JSON document into another using a template that is
-    itself plain JSON. Instead of writing imperative glue code to walk and rebuild
-    data, you describe the *shape* of the output once and let the engine fill it in
-    from the input — there is no separate template language and no string-embedded
-    DSL to learn.
-
-    It is **inspired by** [XSLT](https://en.wikipedia.org/wiki/XSLT) (declarative,
-    tree-to-tree transformation) and [JsonLogic](https://jsonlogic.com/) (logic
-    expressed as data), applying those ideas to JSON-to-JSON transformation.
-
-    **Design principles:** templates are always valid JSON; rules are composable and
-    nest arbitrarily (so even arithmetic is expressed as nested rules, with no DSL);
-    and a single configurable `$` marker is what distinguishes a rule from literal
-    data.
-
-    **Compared to alternatives:**
-
-    - [jsonnet](https://github.com/google/jsonnet) and
-      [jsonata](https://github.com/jsonata-js/jsonata) define their own
-      domain-specific languages; `transon` templates stay valid JSON.
-    - [jolt](https://github.com/bazaarvoice/jolt) is also JSON-to-JSON, but drives
-      transformations with fixed operation specs; `transon` rules compose and nest.
-    - [json-templates](https://github.com/datavis-tech/json-templates) does simple
-      placeholder substitution; `transon` adds rules, expressions, and functions.
-
-    ## Install & get started
-
-    Install from [PyPI](https://pypi.org/project/transon/):
-
-    ```shell
-    pip install transon
-    ```
-
-    Run your first transform:
+    ## Usage
 
     ```python
     from transon import Transformer
@@ -292,157 +267,28 @@ class Transformer:
     Transformer(template).transform(["a", "b"])  # => {"items": ["a", "b"]}
     ```
 
-    **Links:** [GitHub](https://github.com/transon-org/transon) ·
-    [Specification](https://github.com/transon-org/transon/blob/main/docs/SPECIFICATION.md) ·
-    [Changelog](https://github.com/transon-org/transon/blob/main/CHANGELOG.md)
+    Constructor options:
 
-    ## Usage
+    - **`validate=True`** (or calling `.validate()`) — static template check up
+      front, without input data; malformed rules raise `DefinitionError`.
+    - **`marker="@"`** — change the rule marker if `$` collides with your data.
+    - **`file_writer`** — callback the `file` rule writes through.
+    - **`template_loader`** — callback the `include` rule loads sub-templates
+      through; it receives an `IncludeContext` and constructs the sub-transformer
+      (see :class:`IncludeContext`).
+    - **`max_include_depth`** — nested-`include` depth limit (default 50).
 
-    `transon` is a homogeneous JSON-to-JSON template engine: templates are themselves
-    plain JSON, and the shape of the output is defined entirely by the template.
-    Input data is interpolated into the template's placeholders.
-
-    ```plantuml
-    @startuml
-    skinparam shadowing false
-    skinparam rectangle {
-      BackgroundColor #FEFEFE
-      BorderColor #333333
-    }
-    rectangle "JSON Template" as T
-    rectangle "JSON Input" as I
-    rectangle "transon" as E
-    rectangle "JSON Output" as O
-    T -down-> E
-    I -right-> E
-    E -right-> O
-    @enduml
-    ```
-
-    ## Templates
-
-    Template could be any JSON structure. It will be reflected as-is in output, except for rule structures.
-    Rules are JSON objects with special attribute named `$` (this is called marker and can be changed).
-    If the rule has nested template the same applies to it as well.
-
-    Example template:
-
-    ```json
-    {
-        "test": {
-            "$": "map",
-            "item": [
-                {
-                    "x": {
-                        "$": "item"
-                    }
-                }
-            ]
-        }
-    }
-    ```
-
-    At the top level output will just copy template `{"test": ...}`.
-    Then the `map` rule will be applied to the input executing sub-template, defined by `item` attribute,
-    for each item in input collection.
-    Let's assume that our input is `[1, 2, 3]`.
-    Inner template contains another rule `{"$": "item"}` which points to value of items of the input.
-
-    So the final result will be:
-
-    ```json
-    {
-        "test": [
-            [{"x": 1}],
-            [{"x": 2}],
-            [{"x": 3}]
-        ]
-    }
-    ```
-
-    Note that each item preserves its template definition (including list around object).
-
-    ## How evaluation works
-
-    A handful of rules cover everything because they compose, and they compose because
-    the engine evaluates every template the same way. Understanding these four
-    mechanics lets you predict how any template behaves without trial and error.
-
-    **1. Recursive tree walk.** The engine walks the template top-down and rebuilds it
-    node by node. Each node is handled by its JSON type:
-
-    - a **list** → walk every element, return a new list;
-    - a **dict containing the marker key** (`$`) → a *rule invocation* (see below);
-    - a **dict without the marker** → walk every value, return a new dict with the same
-      keys;
-    - any **scalar** (string, number, boolean, `null`) → copied through unchanged.
-
-    So a template that contains no markers is returned as a deep copy of itself; rules
-    are the only thing that injects data.
-
-    **2. Marker-based rule detection.** A dict is a rule *only* when it contains the
-    marker key; its value names the rule (`{"$": "map", ...}`) and the sibling keys are
-    the rule's parameters. Those parameters are themselves templates and are walked
-    recursively, so rules nest arbitrarily — this is why even arithmetic is just nested
-    `expr` rules rather than a string mini-language. (To emit a literal dict that really
-    does contain a `$` key, use the `object` rule's `fields` mode, or change the marker
-    with `Transformer(template, marker="@")`.)
-
-    **3. Context and scope.** Evaluation carries a *context* whose `this` is the current
-    value (the transformation input at the root). Iterating rules — `map` and `filter` —
-    *derive* a child context for each element, exposing the accessors `item`, `index`
-    (lists) and `key`, `value`, `index` (dicts); those accessors are only valid inside
-    that derived scope. Variables (`set`/`get`) flow **downward only**: a value `set` in
-    a scope is visible to its descendants and to later-evaluated siblings, but not to
-    parent or earlier-evaluated scopes. This downward-only rule is what makes nested
-    transformations predictable.
-
-    **4. `NO_CONTENT` skip propagation.** Missing lookups don't blow up: `attr`/`get`
-    over an absent key/variable produce the `NO_CONTENT` sentinel (distinct from
-    `null`). Container rules then *skip* it rather than emitting `null` — `map` drops
-    the item, `object`/`filter`/`file` omit the entry, `join` leaves it out — so
-    optional data simply disappears from the output. A `default` parameter (on `attr`,
-    `get`, `format`, `include`, `join`) substitutes a value instead, and a top-level
-    `NO_CONTENT` becomes `None` (configurable via `transform(data, no_content=...)`).
-
-    These four behaviours are the whole evaluation model; the
-    [specification](https://github.com/transon-org/transon/blob/main/docs/SPECIFICATION.md)
-    (§2) documents the exhaustive details (scoping edge cases, every `NO_CONTENT`
-    producer/consumer, the error model).
-
-    ## What you can do
-
-    Beyond simple interpolation, `transon` offers:
-
-    - **Static validation** — `Transformer(template, validate=True)` (or calling
-      `.validate()`) checks the template's structure up front, without any input data,
-      raising `DefinitionError` on malformed rules.
-    - **Defaults for missing values** — `attr`, `get`, `join`, `format`, and `include`
-      accept a `default` template, used when the looked-up value is absent.
-    - **A "no value" model** — rules can produce `NO_CONTENT`; container rules such as
-      `map`, `object`, `filter`, and `file` skip it instead of emitting `null`.
-      `transform(data, no_content=...)` controls what a top-level `NO_CONTENT` becomes
-      (defaults to `None`).
-    - **Literal keys** — the `object` rule's `fields` mode builds dicts with literal keys,
-      including a key equal to the marker (`$`).
-    - **Configurable marker** — `Transformer(template, marker="@")` if `$` collides with
-      your data.
-    - **Safe output** — `transform(data, copy_output=True)` deep-copies the result so it
-      shares no mutable structure with the input (which is never mutated regardless).
-    - **A clear error model** — `DefinitionError` signals a malformed template,
-      `TransformationError` signals data that does not fit; both messages include the
-      template path where the problem occurred (`at template → …`). See the
-      **Error model** examples below for the literal messages each one produces.
-    - **I/O delegates** — the `file` rule writes through a `file_writer` callback and the
-      `include` rule loads sub-templates through a `template_loader` callback.
-
-    The full set of built-in rules is documented below under **Rules**; see the
-    specification for exhaustive semantics.
+    `transform(data, no_content=None, *, copy_output=False)` returns the output:
+    `no_content` chooses what a top-level `NO_CONTENT` becomes (default `None`);
+    `copy_output=True` deep-copies the result once so it shares no mutable
+    structure with the input (which is never mutated regardless — but pass-through
+    rules return references into it). Failures raise `DefinitionError` (malformed
+    template) or `TransformationError` (data does not fit) — catch these two;
+    messages include the template path (`at template → …`).
 
     ## Extending
 
-    All rules are pluggable. Built-in rules are documented below under **Rules**.
-    However, you can easily add your own rules with their own attributes.
+    All rules are pluggable, and you can add your own with their own attributes:
 
     ```python
     @Transformer.register_rule('my_rule')
@@ -450,7 +296,8 @@ class Transformer:
         ...
     ```
 
-    You can also inherit `Transformer` class and add rules to subclass to avoid functionality collision.
+    You can also inherit `Transformer` and register rules on the subclass to
+    avoid functionality collision:
 
     ```python
     class Transformer1(Transformer):
@@ -468,11 +315,11 @@ class Transformer:
         ...
     ```
 
-    Note that `my_rule` can be used with both transformers but may behave differently.
-
-    In the same fashion you can also add additional operators for expressions (`expr`) calculations
-    and functions (`call`) using decorators
-    `register_operator` and `register_function`.
+    Note that `my_rule` can be used with both transformers but may behave
+    differently. In the same fashion you can add operators for `expr` and
+    functions for `call` with the `register_operator` and `register_function`
+    decorators. Subclass registrations never affect the base class; lookups
+    resolve through the MRO (the stability contract is `SPECIFICATION.md` §3).
     """
 
     DEFAULT_MARKER = '$'

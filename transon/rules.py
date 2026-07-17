@@ -79,6 +79,8 @@ def rule_this(_t: Transformer, _template, context: Context):
 def rule_parent(t: Transformer, _template, context: Context):
     """
     Returns the value stored in previous context.
+    Using `parent` in the root context (where no previous scope exists) raises
+    `DefinitionError`.
     """
     if context.parent is None:
         t.definition_error('`parent` is not available in the root context')
@@ -90,6 +92,7 @@ def rule_item(_t: Transformer, _template, context: Context):
     """
     Works inside `map`/`filter` when iterating over lists.
     Returns current item.
+    Using it outside such an iteration scope raises `DefinitionError`.
     """
     return context.item
 
@@ -99,6 +102,7 @@ def rule_key(_t: Transformer, _template, context: Context):
     """
     Works inside `map`/`filter` when iterating over dicts.
     Returns the key of current element.
+    Using it outside such an iteration scope raises `DefinitionError`.
     """
     return context.key
 
@@ -108,6 +112,7 @@ def rule_index(_t: Transformer, _template, context: Context):
     """
     Works inside `map`/`filter`.
     Returns 0-based index of iteration.
+    Using it outside an iteration scope raises `DefinitionError`.
     """
     return context.index
 
@@ -117,6 +122,7 @@ def rule_value(_t: Transformer, _template, context: Context):
     """
     Works inside `map`/`filter` when iterating over dicts.
     Returns the value of current element.
+    Using it outside such an iteration scope raises `DefinitionError`.
     """
     return context.value
 
@@ -136,24 +142,13 @@ def rule_set(t: Transformer, template, context: Context):
     Returns `context.this` unchanged (pass-through), so it can sit inside a
     `chain` without altering the piped value.
 
-    **Scoping** — where a `set` is visible depends on which context object it
-    runs in:
-
-    - **Descendant scopes**: visible in any context derived *after* the `set`
-      (child scopes resolve ancestor variables through the parent chain; the first
-      `set` in a child materializes inherited variables for write isolation).
-    - **Later siblings, same scope**: when a `set` runs directly at a literal-dict
-      key or list element, later-evaluated siblings in that dict/list share the
-      same context and can `get` the variable. Earlier siblings cannot — visibility
-      follows dict key / list index order.
-    - **First `chain` func**: runs in the caller's context, so a `set` there is
-      visible to later `chain` funcs and to sibling templates outside the `chain`.
-    - **Later `chain` funcs, `map`/`filter` items, etc.**: run in derived contexts;
-      their `set` values stay inside that scope and do not escape to parents or
-      already-evaluated siblings.
-
-    `include` starts a separate transformation — variables do not cross that
-    boundary.
+    Visibility follows the language's downward-only scoping model (Language
+    Reference, "Context and scoping"): the variable is visible to scopes derived
+    *after* the `set` and to later-evaluated siblings sharing the same scope —
+    never to parent scopes once a derived scope ends, and never across an
+    `include` boundary (a separate transformation). Note the refactoring
+    pitfall: wrapping a step in `chain`, reordering dict keys, or moving a `set`
+    can change visibility with no error.
     """
     t_name = t.require(template, 'name')
     name = t.walk_param(t_name, context, 'name')
@@ -212,9 +207,14 @@ def rule_attr(t: Transformer, template, context: Context):
     """
     Returns values of attribute or item from current value in context.
     Can search in deeply nested structures with path.
-    If attribute is not present returns no value.
-    If the dynamic name or any path segment evaluates to `NO_CONTENT`, returns
-    no value (uniformly for all container types).
+
+    - A missing key or an index out of range → no value (`NO_CONTENT`), or the
+      `default` when provided. Looking further into a missing value stays
+      missing — a deep path over an absent branch does not raise.
+    - If the dynamic name or any path segment evaluates to `NO_CONTENT` → no
+      value (uniformly for all container types).
+    - Any other lookup failure (e.g. indexing a string with a string) raises
+      `TransformationError`.
 
     Parameters are mutually exclusive.
     """
@@ -311,6 +311,20 @@ def _iter_contexts(t: Transformer, context: Context):
 def rule_map(t: Transformer, template, context: Context):
     """
     Iterates over `list` or `dict` and produces new `dict` or `list` with items based on template.
+
+    Each iteration derives a sub-context whose `this` is the element, with the
+    iteration accessors available (`item`/`index` over lists; `key`/`value`/`index`
+    over dicts). Modes (mutually exclusive):
+
+    - `item`: one output element per input element → list.
+    - `items`: the template yields a *list* of elements per input element; the
+      lists are concatenated → list (the flatten-while-mapping mode).
+    - `key`+`value`: one output entry per input element → dict.
+
+    Results that evaluate to `NO_CONTENT` are skipped — the item (or the whole
+    key/value pair) is omitted from the output rather than emitted as `null`.
+    Iterating a value that is neither a list nor a dict raises
+    `TransformationError`.
     """
     if 'item' in template:
         t_item = template['item']
@@ -358,6 +372,12 @@ def rule_map(t: Transformer, template, context: Context):
 def rule_filter(t: Transformer, template, context: Context):
     """
     Iterates over `list` or `dict` and filters out items regarding condition calculation.
+
+    Keeps the elements whose `cond` evaluates truthy; a condition that evaluates
+    to `NO_CONTENT` excludes the element. The container type is preserved:
+    list → list, dict → dict (entries keep their original keys and values).
+    Filtering a value that is neither a list nor a dict raises
+    `TransformationError`.
     """
 
     t_cond = t.require(template, 'cond')
@@ -395,6 +415,8 @@ def rule_zip(t: Transformer, template, context: Context):
     """
     Transposes iterables like Python's `zip`: rows become columns and columns become rows.
     Each output row is a **list** (JSON-friendly), not a Python tuple.
+    The result is as long as the shortest input. A non-iterable item raises
+    `TransformationError`.
     """
 
     t_items = t.require(template, 'items')
@@ -416,7 +438,8 @@ def rule_zip(t: Transformer, template, context: Context):
 def rule_file(t: Transformer, template, context: Context):
     """
     Writes a file using `write_file` delegate (a parameter to `Transformer` constructor).
-    This rule produces no result.
+    This rule always produces no result (`NO_CONTENT`) — so a `map` over `file`
+    yields `[]`, and a template that only writes files transforms to `None`.
     File will not be written if `name` or `content` returns no result.
     """
     def write_file(_name, _content):
@@ -458,8 +481,13 @@ def _is_dict(x):
 )
 def rule_join(t: Transformer, template, context: Context):
     """
-    Joins (concatenates) together several dicts, lists of strings.
-    If items to be concatenated have different types an exception will be thrown.
+    Type-homogeneous concatenation — all items must share one JSON type:
+
+    - all **strings** → joined with `sep` (default empty string);
+    - all **lists** → flattened one level into a single list;
+    - all **dicts** → merged into a single dict (later keys win);
+    - mixed types → `TransformationError`.
+
     Items that evaluate to `NO_CONTENT` are omitted before concatenation.
     When no items remain, returns `NO_CONTENT` unless `default` is provided.
     """
@@ -654,8 +682,13 @@ def rule_expr(t: Transformer, template, context: Context):
     3. **Multiple `values` were specified:**
     Result is calculated by applying operation to all values in pairs (reduction).
     In this case current context value is ignored.
+    `values` must be a non-empty list — an empty reduction has no seed and
+    raises `DefinitionError`.
 
-    Parameters are mutually exclusive.
+    Parameters are mutually exclusive. An operator applied to incompatible
+    operand types raises `TransformationError`. The application semantics shared
+    by all operators (modes, reduction, type coercion, `NO_CONTENT` interaction)
+    are specified in the Language Reference ("Expressions and calls").
     """
     op_code = t.require(template, 'op')
     op = t.get_operator(op_code)
@@ -751,10 +784,15 @@ def rule_call(t: Transformer, template, context: Context):
     Runs conversion function with single parameter - provided value.
     Current context is ignored in this case.
     3. **Multiple `values` were specified:**
-    Runs conversion function with multiple parameters.
+    Runs conversion function with multiple parameters (`values` must be a list;
+    a non-list raises `DefinitionError`).
     Current context is ignored in this case.
 
-    Parameters are mutually exclusive.
+    Parameters are mutually exclusive. Built-in functions convert their
+    documented failure modes into `TransformationError`. The application
+    semantics shared by all functions (modes, argument passing, totality,
+    `NO_CONTENT` interaction) are specified in the Language Reference
+    ("Expressions and calls").
     """
     name = t.require(template, 'name')
     function = t.get_function(name)
@@ -807,6 +845,8 @@ def rule_format(t: Transformer, template, context: Context):
 
     Returns no value when the formatting value (or any unpacked list element or dict
     key/value) is `NO_CONTENT`, unless `default` is provided.
+    A pattern referencing a key or index the value does not supply raises
+    `TransformationError`.
     """
     t_pattern = t.require(template, 'pattern')
     pattern = t.walk_param(t_pattern, context, 'pattern')
