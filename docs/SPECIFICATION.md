@@ -46,68 +46,150 @@ Packaging is uv / PEP 621 (`pyproject.toml`, `uv.lock`). Runtime dependencies: n
 
 ## 2. Core concepts
 
-> **Author-facing semantics live in [`transon/resources/LANGUAGE.md`](../transon/resources/LANGUAGE.md)** — the Template
-> Language Reference (evaluation model, scoping, the `NO_CONTENT` model, the error
-> taxonomy, `expr`/`call` machinery, composition patterns), also served by
-> `transon.reference.get_language_reference()` (§5.2). This section keeps only the
-> **engine-internal** view: which code implements those semantics and the
-> implementation invariants a contributor must preserve.
+> **Deliberate duplication (decision 2026-07-18).** This section is the complete
+> normative statement of the language semantics *inside the engine contract*; the
+> author-facing packaged form is [`transon/resources/LANGUAGE.md`](../transon/resources/LANGUAGE.md)
+> (served by `transon.reference.get_language_reference()`, §5.2), and per-entity
+> behavior is also stated in the registration docs. The spec deliberately keeps its
+> own full copy so it remains a single, complete document — when changing behavior,
+> update all three surfaces in the same change.
 
-### 2.1 Template walk
+### 2.1 Templates and the marker
 
-`Transformer.walk` dispatches by JSON type: **list** → `walk_list`, **dict with the
-marker key** → `walk_rule` (registry dispatch), **dict without** → `walk_dict`,
-**scalar** → `walk_scalar`. The marker is per-instance (`marker=` constructor kwarg).
-Rule parameters are walked recursively except parameters registered as constants
-(`ParamKind.CONSTANT`, e.g. `expr.op`, `call.name`). The literal-marker escape is the
-`object` rule's `fields` mode (R-14).
+A template is any JSON value. The engine walks it recursively (`Transformer.walk`):
+
+- **list** → walk each element, return a new list (`walk_list`).
+- **dict containing the marker key** (default `"$"`) → this is a **rule invocation**;
+  dispatch to the registered rule named by the marker's value (`walk_rule`).
+- **dict without the marker** → walk each value, return a new dict with the same keys (`walk_dict`).
+- **anything else** (scalar) → returned as-is (`walk_scalar`).
+
+The marker is configurable per `Transformer` instance (`marker=` constructor kwarg).
+To emit a literal dict that contains the marker key, use the `object` rule in `fields`
+mode (`{"$": "object", "fields": {"$": ...}}`): the keys of `fields` are emitted
+verbatim while the values are walked as templates (R-14). The single-pair form
+(`{"$": "object", "key": "$", "value": ...}`) also works for one literal key.
+
+A rule invocation dict carries its parameters as sibling keys of the marker:
+
+```json
+{"$": "attr", "name": "x"}
+```
+
+Rule parameters are themselves templates (walked recursively), except where a rule
+explicitly requires a constant (e.g. `expr.op`, `call.name`, `chain.funcs` list
+structure).
 
 ### 2.2 Context
 
-`Context` (in `transformers.py`) is a linked chain of scopes holding `this`, the
-iteration slots, user variables, and a `parent` link. Implementation invariants
-(R-15/R-22 — the observable scoping model built on them is specified in the Language
-Reference, "Context and scoping"):
+`Context` (in `transformers.py`) is a linked chain of scopes. Each context holds:
 
-- `context.derive(**props)` stores **only** the new props (copy-on-write); reads of
-  user variables walk the parent chain; the **first** `set` in a derived scope
-  materializes inherited variables locally so writes stay isolated.
-- `set` writes into the data dict of the exact context object it executes in;
-  `walk_dict`/`walk_list` pass the **same** context object to all siblings, and the
-  first func of a `chain` runs in the caller's context — these two facts produce the
-  documented sibling-order and first-chain-func visibility.
-- The names `this`, `item`, `key`, `value`, `index` are **reserved**
-  (`Context.RESERVED_NAMES`): `__contains__`/`__getitem__`/`__setitem__` check against
-  them and raise `DefinitionError`.
+- `this` — the current value (root context: the transformation input).
+- Iteration properties — `item`, `index` (lists), `key`, `value`, `index` (dicts);
+  only present inside `map`/`filter` iterations.
+- User variables — arbitrary names written by the `set` rule, read by `get`.
+- `parent` — the context this one was derived from.
+
+`context.derive(**props)` creates a child linked via `parent`: it stores only the
+new props (e.g. `this`, iteration slots). Reads of user variables walk the parent
+chain; the first `set` in a derived scope materializes inherited variables into the
+local dict so writes stay isolated. `set` writes into the data dict of the exact
+context object it executes in.
+
+#### Variable scoping (`set` / `get`)
+
+Template authors should treat these rules as the contract (R-15):
+
+| Where `set` runs | Visible to |
+|---|---|
+| Descendant scopes (`derive()` after the `set`) | Yes — visible via parent-chain lookup; first `set` in a child snapshots inherited vars |
+| Later sibling keys/items in the same literal dict/list | Yes — siblings share one context object; order matters |
+| Earlier sibling keys/items in the same literal dict/list | No — already evaluated |
+| First func of a `chain` | Caller's scope, later `chain` funcs, and later siblings outside the `chain` |
+| Later `chain` func, `map`/`filter` iteration, etc. | Only that derived scope and its descendants |
+| Parent scope after a derived scope ends | No |
+| `include` sub-template | No — separate `transform()` |
+
+Consequences (all verified against the implementation):
+
+- Variables flow **downward only**: a `derive()` performed *after* a `set` carries the
+  variable; the parent's own dict is untouched by sets in derived contexts. So a `set`
+  inside a `map` item or inside a non-first `chain` step is invisible once that scope
+  ends.
+- `walk_dict`/`walk_list` pass the **same context object** to all siblings, so a `set`
+  executed directly at one key of a literal dict is visible to later-evaluated sibling
+  keys (insertion order). The first func of a `chain` also runs in the caller's
+  context, so a `set` there escapes into the caller's scope; subsequent funcs run in
+  derived contexts and their sets do not.
+- `get` walks the current context's data dict, then the parent chain for undefined
+  names — so ancestor variables are visible without eager copying on `derive()`. The
+  first `set` in a derived scope materializes inherited variables locally.
+
+Refactoring pitfall: wrapping a step in `chain`, reordering dict keys, or moving a
+`set` can change visibility with no error — consult the table above.
+
+The names `this`, `item`, `key`, `value`, `index` are **reserved**
+(`Context.RESERVED_NAMES`): `Context.__contains__`, `__getitem__`, `__setitem__`
+check against them, so they cannot be used as variable names with `set`/`get`
+(violation raises `DefinitionError`).
 
 ### 2.3 NO_CONTENT — the "no value" sentinel
 
 `Transformer.NO_CONTENT` is a singleton `NoContent` instance representing the absence
-of a value (distinct from JSON `null`/Python `None`). Implementation facts:
+of a value (distinct from JSON `null`/Python `None`). Semantics:
 
-- `NoContent.__bool__` is `False` (falsiness powers `expr` `and`/`or` fallbacks) and
-  `NoContent.__getitem__` returns `self` (absorption for deep `attr` paths). Rules
-  that test for absence use **identity** (`is NO_CONTENT`), never truthiness.
-- The skip-don't-emit propagation model is specified in the Language Reference ("The
-  NO_CONTENT model"); each rule's exact treatment is stated in that rule's docstring
-  and is part of the public contract (§10).
-- `transform()` substitutes a top-level `NO_CONTENT` via its `no_content` parameter
-  (default `None`, §3.1); inside evaluation rules always see the raw sentinel.
+- **Producers**: `attr` (missing key/index), `get` (undefined variable), `file` (always),
+  `include` (when the included template yields `NO_CONTENT`), `join` (when there are no
+  items to join). Optional `default` on `attr`, `get`, `format`, `include`, and `join`
+  returns a substitute instead of `NO_CONTENT`.
+- **Falsiness**: `NoContent` is falsy in boolean context (`bool()`, `expr` `and`/`or`),
+  so logical operators can fall back from `NO_CONTENT` (e.g. `chain` of `join` then
+  `expr` `or` with a fallback value). Rules that test for absence still use identity
+  (`is NO_CONTENT`), not truthiness.
+- **Absorption**: `NoContent.__getitem__` returns `self`, so further `attr` lookups on
+  a missing value stay `NO_CONTENT` instead of raising.
+- **Consumers (skip/filter behavior)**:
+  - `map`: items (or key/value pairs) that evaluate to `NO_CONTENT` are omitted.
+  - `object`: in `key`/`value` mode returns `{}` if key or value is `NO_CONTENT`;
+    in `fields` mode omits each entry whose value is `NO_CONTENT`.
+  - `file`: skips writing if name or content is `NO_CONTENT`.
+  - `filter`: a condition evaluating to `NO_CONTENT` excludes the element.
+  - `join`: items that evaluate to `NO_CONTENT` are omitted before concatenation; when
+    no items remain the result is `NO_CONTENT` unless `default` is provided.
+  - `split`: when `context.this` is `NO_CONTENT`, returns `NO_CONTENT` (passthrough).
+- **`format`**: returns `NO_CONTENT` when the formatting value (or any unpacked list
+  element or dict key/value) is `NO_CONTENT`, unless `default` is provided.
+- **Top-level `transform()`**: by default maps a top-level `NO_CONTENT` result to
+  `None` via the `no_content` parameter (see §3.1). Pass `Transformer.NO_CONTENT`
+  as `no_content` to receive the raw sentinel.
 
 ### 2.4 Error model
 
-`DefinitionError` (malformed template) and `TransformationError` (valid template,
-incompatible data) are both defined in `transformers.py` and exported from the package
-root. The taxonomy as an author experiences it is in the Language Reference ("Error
-model"); which conditions each rule raises is in that rule's docstring. Engine-side
-contract:
+| Exception | Meaning | Raised when |
+|---|---|---|
+| `DefinitionError` | The template is malformed | Unknown rule/operator/function name; missing required rule parameter (`Transformer.require` or `Transformer.validate()`); unknown rule parameters; ambiguous or incomplete mutually-exclusive parameter groups (`validate()`); `attr` with neither `name` nor `names`; `map` with no valid parameter combination; reserved variable name (`this`, `item`, `key`, `value`, `index`) used with `set`/`get`; iteration accessors (`item`, `key`, `value`, `index`) or `parent` used outside their valid scope; `expr`/`call` with a non-list or empty `values` parameter; `map` `items` template evaluating to a non-list; non-list `chain.funcs` (`validate()`); `include` with no configured `template_loader` (default loader) |
+| `TransformationError` | The template is valid but input data is incompatible | `map`/`filter` over a non-iterable (not list/dict); `join` over mixed-type items; `split` on a non-string/non-array input or with an invalid `sep`; `attr` lookup with an incompatible index type; `zip` over non-iterable items; `expr` operator applied to incompatible operand types; `call` with incompatible argument types or a function that rejects its arguments (e.g. empty `min`/`max`, bad epoch, invalid regex); `format` pattern referencing a missing key or index; `set`/`get` when a dynamic `name` evaluates to `NO_CONTENT`; `include` depth limit exceeded (nested include chain too deep) |
 
-- Errors are raised **lazily** during `transform()`; static checking is the opt-in
-  `validate()` walk (§3.4).
-- Every message is routed through `format_error_message`, which appends the template
-  location (`at template → …`) from the template-path `ContextVar` maintained by
-  `walk` — new raise sites must use `t.definition_error` / `t.transformation_error`
-  (or `format_error_message`) so the path is never lost.
+Both are exported from the package root. By default, errors are raised lazily during
+`transform()` — there is no automatic validation. Opt in with `Transformer.validate()`
+or `Transformer(..., validate=True)` for a static walk that raises `DefinitionError`
+for unknown rules, unknown rule parameters, missing required parameters, ambiguous
+mutually-exclusive parameter combinations, and invalid literal operator/function names
+(see §3.4).
+
+`DefinitionError` and `TransformationError` messages include the template location
+where the failure occurred (a path of dict keys, list indices, rule names, and rule
+parameter names), for example:
+
+```
+value is not iterable: 'not-a-list'
+  at template → pipeline → chain → funcs[0] → map
+```
+
+Engine-side plumbing contract: every message is routed through
+`format_error_message`, which appends the template location from the template-path
+`ContextVar` maintained by `walk` — new raise sites must use `t.definition_error` /
+`t.transformation_error` (or `format_error_message`) so the path is never lost.
 
 ---
 
@@ -257,27 +339,165 @@ parameter with no descriptor defaults to a dynamic template (`ParamKind.DYNAMIC`
 
 ## 4. Built-in rule reference
 
-Per-rule behavior is **not** specified here (ownership principle, RFC 0008): each
-rule's semantics — parameters, modes, edge cases, `NO_CONTENT` treatment, error
-conditions — live in its registration docs in `transon/rules.py` (docstrings +
-`register_rule` param kwargs), which every export carries (`get_all_docs()`,
-`get_editor_metadata()['docs']`) and the docs site renders. Operator and function
-catalogs live the same way in `transon/operators.py` / `transon/functions.py` and the
-`expr` `op` / `call` `name` parameter docs. Cross-cutting semantics (evaluation model,
-scoping, `NO_CONTENT`, errors, `expr`/`call` machinery) are in
-[`transon/resources/LANGUAGE.md`](../transon/resources/LANGUAGE.md).
+> **Deliberate duplication (decision 2026-07-18).** The same per-rule facts are
+> stated in the registration docs (`transon/rules.py` docstrings + param kwargs),
+> which every export carries and the docs site renders. The spec keeps this full
+> reference so it remains a single, complete contract — update both in the same
+> change.
 
-### Recursion budget
+All rules live in `transon/rules.py`. "Dynamic" parameters are walked as templates;
+"constant" parameters are read verbatim.
 
-Walking one level of template nesting consumes a bounded, small number of Python
-call-stack frames — one core recursion frame per node (no `walk`/`_walk`-style
-doubling). Because the generated `transon-blockly` editor codec self-`include`s once
-per document node (AD-030), its reachable nesting depth is governed by this budget,
-not by `max_include_depth`. The engine therefore transforms self-`include`ing
-templates at nesting depths well past the editor's deepest generator (`G_encode`,
-depth 41) within CPython's default recursion limit (1000). Exceeding
-`max_include_depth` MUST surface as the `include` depth-limit `TransformationError`,
-never a raw `RecursionError`. (Roadmap R-32.)
+### 4.1 Context accessors (no parameters)
+
+| Rule | Returns | Valid scope |
+|---|---|---|
+| `this` | `context.this` — current value | anywhere |
+| `parent` | `context.parent.this` — value of previous scope | any non-root scope |
+| `item` | current list element | inside `map`/`filter` over a list |
+| `index` | 0-based iteration index | inside `map`/`filter` |
+| `key` | current dict key | inside `map`/`filter` over a dict |
+| `value` | current dict value | inside `map`/`filter` over a dict |
+
+Accessing `parent` in the root context or an iteration property outside its scope
+raises `DefinitionError`.
+
+### 4.2 Variables
+
+| Rule | Parameters | Semantics |
+|---|---|---|
+| `set` | `name` (dynamic) | Stores `context.this` under `name` in the *current* context; returns `context.this` (pass-through, usable as a tap inside `chain`). Raises `TransformationError` if `name` evaluates to `NO_CONTENT`. Scoping: see §2.2 (variable scoping table). |
+| `get` | `name` (dynamic), `default` (optional, dynamic) | Returns the stored value from the *current* context (ancestor variables resolved via parent-chain lookup). Returns `NO_CONTENT` if undefined. Raises `TransformationError` if `name` evaluates to `NO_CONTENT`. When `default` is provided, returns its evaluation instead of `NO_CONTENT`. Scoping: see §2.2. |
+
+Examples for each scoping case live in `transon/tests/test_set.py` (docs-site examples).
+
+### 4.3 Data access — `attr`
+
+Parameters (mutually exclusive; one required, else `DefinitionError`):
+
+- `name` (dynamic): single key or numeric index into `context.this`.
+- `names` (dynamic): list of keys/indexes, applied sequentially (deep path).
+- `default` (optional, dynamic): returned instead of `NO_CONTENT` when the lookup misses.
+
+Missing key (`KeyError`) or index out of range (`IndexError`) → `NO_CONTENT` (or
+`default` when provided).
+When `name` or any path segment in `names` evaluates to `NO_CONTENT` → `NO_CONTENT`
+(uniform regardless of container type).
+Other lookup failures (e.g. `TypeError` indexing a string with a string) →
+`TransformationError`.
+
+### 4.4 Structure builders
+
+| Rule | Parameters | Semantics |
+|---|---|---|
+| `object` | exactly one of: `key`+`value` \| `fields` | `key`+`value` (dynamic): single-pair dict `{key: value}`; `{}` if either side is `NO_CONTENT`. For dynamically-named attributes. `fields`: literal mapping whose keys are emitted verbatim (including the marker `$` — the canonical literal-marker-key escape, R-14) and whose values are walked as templates; entries with a `NO_CONTENT` value are omitted. |
+| `map` | exactly one of: `item` \| `items` \| `key`+`value` | Iterates `context.this` (list or dict). `item`: one output element per input element → list. `items`: template yields a *list* of elements per input element, concatenated → list (a non-list result raises `DefinitionError`). `key`+`value`: → dict. `NO_CONTENT` results are skipped. Each iteration derives a sub-context with `this`=element plus iteration props. |
+| `filter` | `cond` (required, dynamic) | Keeps elements where `cond` is truthy (and not `NO_CONTENT`). Preserves container type: list→list, dict→dict. |
+| `zip` | `items` (required, dynamic) | Transposes iterables like Python's `zip`: each output row is a **list** (`[list(row) for row in zip(*items)]`). Non-iterable items → `TransformationError`. |
+| `join` | `items` (required, dynamic), `sep` (dynamic, strings only, default `""`), `default` (optional, dynamic) | Type-homogeneous concatenation: all-strings → `sep.join`; all-lists → flatten one level; all-dicts → merged dict (later keys win). Items that evaluate to `NO_CONTENT` are omitted before concatenation. When no items remain → `NO_CONTENT` (or `default` when provided). Mixed types → `TransformationError`. `sep` must evaluate to a string when joining strings. |
+| `split` | `sep` (required, dynamic) | Inverse of string/list `join`. Input `NO_CONTENT` → `NO_CONTENT`. String input: `sep` must be a non-empty string → list of strings (empty `sep` → `TransformationError`). Array input: result is a list of lists; `sep` is a single non-array element (split on `==`) or a non-empty array (split on each contiguous subsequence occurrence). Empty-array `sep` → `TransformationError`. Because an array `sep` means subsequence, you cannot split on a separator *element* that is itself an array. Other input types → `TransformationError`. |
+| `chain` | `funcs` (required; list of templates) | Function composition: walks each template in order, each result becomes `this` of a derived context for the next. `chain(f1, f2, f3)(x) == f3(f2(f1(x)))`. |
+
+### 4.5 Computation
+
+| Rule | Parameters | Semantics |
+|---|---|---|
+| `expr` | `op` (required, constant), optionally `value` (dynamic) or `values` (dynamic) | No param → unary `op(this)`. `value` → binary `op(this, value)`. `values` → `reduce(op, values)` (**`this` is ignored**). |
+| `call` | `name` (required, constant), optionally `value` or `values` (dynamic) | No param → `fn(this)`. `value` → `fn(value)`. `values` → `fn(*values)`. `this` is ignored when params given. |
+| `format` | `pattern` (required, dynamic), `value` (optional, dynamic; defaults to `this`), `default` (optional, dynamic) | Python `str.format`. `pattern` must evaluate to a string. Returns `NO_CONTENT` when the formatting value (or any unpacked list element or dict key/value) is `NO_CONTENT`, unless `default` is provided. List value → positional unpack `pattern.format(*v)`; dict value → keyword unpack `pattern.format(**v)`; otherwise single argument. |
+| `switch` | `key` (required, dynamic), `cases` (required, `mapping`), `default` (optional, dynamic) | **Lazy** equality dispatch: evaluates `key`, then walks **only** the matching entry of `cases` (a literal-keyed mapping of templates). No match — including `key` → `NO_CONTENT` — evaluates `default` if present, else `NO_CONTENT`. Non-selected cases are never walked. |
+| `cond` | `cases` (required, `arms`), `default` (optional, dynamic) | **Lazy** ordered conditional (subsumes `if`/`else`): `cases` is an ordered list of `{when, then}` arms. Walks each `when` in order; the first truthy one selects its `then` (the only `then` walked). A `when` of `NO_CONTENT` is falsy. No match → `default` if present, else `NO_CONTENT`. |
+
+### 4.6 Side effects & composition
+
+| Rule | Parameters | Semantics |
+|---|---|---|
+| `file` | `name`, `content` (both required, dynamic) | Calls the configured `file_writer(name, content)`. Skipped if either is `NO_CONTENT`. Always returns `NO_CONTENT` (so `map` over `file` yields `[]`). |
+| `include` | `name` (required, dynamic), `default` (optional, dynamic) | Loads a sub-`Transformer` via the configured `template_loader` and runs it against `context.this`. Variables/context do **not** cross the boundary — only the value. The `template_loader` is always called as `loader(name, context=...)` and handed an `IncludeContext` (parent loader, marker, depth guard, include-stack); it **constructs** the sub-`Transformer` itself (e.g. via `context.transformer(template)`). The sub-`Transformer` therefore inherits the parent transformer's marker by default (so a sub-template using the default marker stays consistent across the boundary; pass an explicit `marker` to `context.transformer` to pin a different one), the parent's `template_loader` propagates so recursive/self-`include`ing templates re-resolve without per-host patching, and the loaded instance is never mutated. Sub-result `NO_CONTENT` is propagated as this transformer's `NO_CONTENT` (or `default` when provided). Nested includes are tracked by name; exceeding `max_include_depth` (constructor parameter, default 50) raises `TransformationError` with the include chain in the message. |
+
+> **Recursion budget.** Walking one level of template nesting consumes a bounded, small number of
+> Python call-stack frames — one core recursion frame per node (no `walk`/`_walk`-style doubling).
+> Because the generated `transon-blockly` editor codec self-`include`s once per document node
+> (AD-030), its reachable nesting depth is governed by this budget, not by `max_include_depth`. The
+> engine therefore transforms self-`include`ing templates at nesting depths well past the editor's
+> deepest generator (`G_encode`, depth 41) within CPython's default recursion limit (1000).
+> Exceeding `max_include_depth` MUST surface as the `include` depth-limit `TransformationError`,
+> never a raw `RecursionError`. (Roadmap R-32.)
+
+### 4.7 Built-in operators (`expr`)
+
+Each operator has a mnemonic and a code-style alias. Most map to the Python
+`operator` module; `in` is a total membership predicate:
+
+| Mnemonic | Alias | Python impl | Note |
+|---|---|---|---|
+| `lt le eq ne ge gt` | `< <= == != >= >` | `operator.lt` … | comparisons |
+| `add sub mul div mod` | `+ - * / %` | `operator.add` …, `truediv` for `div` | `+` also concatenates strings/lists |
+| `and or not` | `&& \|\| !` | logical `and`/`or`/`not` | Python truthiness; returns operands, not always `bool` |
+| `in` | `in` | membership | **Total** (never raises). Binary `op(a, b)` = "`a` is a member of `b`": array → element membership; string → substring (`a` must be a string, else `false`); object → key presence (`a` must be a string, else `false`); any other container → `false`. |
+
+### 4.8 Built-in functions (`call`)
+
+Existing conversion family: `str`, `int`, `float` (Python builtins), `type` (JSON type
+name — **total** over well-formed JSON), and `bool` (Python truthiness — **total**).
+
+Every other built-in is a wrapper that converts documented failure modes into
+`TransformationError` itself (`rule_call` only catches `TypeError`). Multi-argument
+forms use `call` `values`.
+
+#### Strings
+
+| name | args | notes |
+|---|---|---|
+| `upper` `lower` `capitalize` | unary | non-string → `TransformationError` |
+| `replace` | `[s, old, new]` | total on strings |
+| `removeprefix` `removesuffix` | `[s, fix]` | prefix/suffix removal (not character-set strip) |
+| `strip` `lstrip` `rstrip` | unary or `[s, chars]` | character-set trimming |
+
+#### Strings and arrays
+
+| name | args | notes |
+|---|---|---|
+| `slice` | `[x, start]` or `[x, start, stop]` | `x` string or array; Python slice semantics (negative indices, out-of-range clamps). Non-int index or other `x` type → `TransformationError`. |
+| `reversed` | unary | array → reversed array; string → reversed string; other → `TransformationError` |
+
+#### Epoch dates (UTC only)
+
+| name | args | notes |
+|---|---|---|
+| `from_epoch` | unary or `[n, fmt]` | Epoch **seconds** (int/float) → string. Default format is fixed ISO-8601 `YYYY-MM-DDThh:mm:ssZ`. Fractional seconds are **truncated**. Non-numeric / NaN / inf / out-of-range → `TransformationError`. |
+| `to_epoch` | `[s]` or `[s, fmt]` | String → epoch seconds (int). Default accepts the same fixed ISO form. Parse failure → `TransformationError`. |
+
+Shared format whitelist (locale-free, deterministic): `%Y %m %d %H %M %S %j %z %%`
+plus literal text. Any other directive (including `%a %b %c %x %X %p %Z`) →
+`TransformationError`.
+
+#### Collections and numerics
+
+| name | args | notes |
+|---|---|---|
+| `length` | unary | string / array / object → int; other → `TransformationError` |
+| `flatten` | unary | one level; non-array input or non-array element → `TransformationError` |
+| `sum` | unary | array of numbers; `sum([]) == 0`; booleans and non-numeric elements → `TransformationError` |
+| `min` `max` | `[array]` or `[array, default]` | empty without `default` → `TransformationError` |
+| `sorted` | unary | homogeneous scalars only; mixed types → `TransformationError` |
+| `unique` | unary | first-occurrence order; dict/list elements → `TransformationError` |
+| `abs` `floor` `ceil` | unary | numbers only (`math.floor`/`ceil`); non-number → `TransformationError` |
+| `round` | unary or `[x, ndigits]` | numbers only |
+
+#### Encoding, hashing, regex
+
+| name | args | notes |
+|---|---|---|
+| `b64encode` | unary | str → UTF-8 → standard-alphabet base64 str |
+| `b64decode` | unary | invalid base64 or non-UTF-8 payload → `TransformationError` |
+| `uuid5` | `[namespace, name]` | Deterministic UUID; `namespace` is `dns`/`url`/`oid`/`x500` or a UUID string. Random `uuid4` is deliberately absent (determinism). |
+| `regex_match` | `[s, pattern]` | On match: array of capture groups (`groups()`; unmatched optionals → `null`); with no groups: `[full match]`. On no match: `null`. Condition use: `bool(regex_match(...))`. Invalid pattern → `TransformationError`. |
+| `regex_replace` | `[s, pattern, repl]` | str; invalid pattern → `TransformationError` |
+
+**Regex dialect** is Python `re` (the same engine on CPython and the Pyodide reference
+host). ReDoS exposure is a **host** responsibility (e.g. per-case timeouts); the engine
+does not limit pattern complexity.
 
 ---
 
@@ -557,14 +777,30 @@ tagged example cases.
   (no `walk`/`_walk`-style per-node doubling), so self-`include`ing templates reach
   depths well past `G_encode` (41) before the host stack overflows; over-depth surfaces
   as the `include` depth-limit `TransformationError`, never a raw `RecursionError`
-  (§4 "Recursion budget", Roadmap R-32).
+  (§4.6 "Recursion budget", Roadmap R-32).
 
 ---
 
 ## 11. Engine data flow (reference example)
 
-Relocated to the Language Reference: [`transon/resources/LANGUAGE.md`](../transon/resources/LANGUAGE.md), "Composition
-patterns" (the `zip` + `map` worked end-to-end flow).
+Template:
+
+```json
+{
+  "$": "chain",
+  "funcs": [
+    {"$": "zip", "items": [{"$": "attr", "name": "keys"},
+                            {"$": "attr", "name": "values"}]},
+    {"$": "map", "key": {"$": "attr", "name": 0},
+                  "value": {"$": "attr", "name": 1}}
+  ]
+}
+```
+
+Input `{"keys": ["a","b"], "values": [1,2]}` → root context `this=input` →
+`zip` produces `[["a",1], ["b",2]]` → chain derives context with that as `this` →
+`map` iterates, each pair becomes `this`/`item` in a sub-context → `attr` with numeric
+names indexes the tuple → output `{"a": 1, "b": 2}`.
 
 ---
 

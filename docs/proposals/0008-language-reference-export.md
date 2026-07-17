@@ -7,7 +7,8 @@
   registration docs, cross-cutting semantics in `LANGUAGE.md`); no per-entity sections in
   `LANGUAGE.md`; sequencing decision; single-copy refinement — the packaged
   `transon/resources/LANGUAGE.md` is canonical, `docs/LANGUAGE.md` is a pointer (see
-  Deliverable 2)
+  Deliverable 2); spec-completeness decision — `SPECIFICATION.md` deliberately retains a full
+  duplicated copy of the semantics (see the sourcing rule)
 - **Roadmap:** R-34 (Language Reference document), R-35 (package the reference), R-36 (`get_language_reference()` export) — `accepted`, rows in `docs/ROADMAP.md`; docs-site counterpart is D-20 in `docs/DOCS_SITE_ROADMAP.md`. (R-33 is held by [RFC 0007](0007-builtin-function-library.md).)
 - **Type:** New documentation artifact + packaging + a new read-only export API (`get_language_reference()`) — additive; no change to existing template semantics or engine API shapes. The **content** of `get_all_docs()['doc']` shrinks to the embedder-facing narrative as part of the consolidation (shape unchanged; the docs export carries no schema version, so the change is coordinated by release note in `CHANGELOG.md`). Symmetrically, per-rule doc **content grows** in both exports (`get_all_docs()` and `get_editor_metadata()['docs']`) as §4's facts fold into the docstrings — also shape-unchanged, doc text is contractually opaque
 - **Consumers:** `transon-authoring` (authority ladder rung 2; `SKILL.md`, AD-018/NFR-001/NFR-003), `transon-org.github.io` (docs site)
@@ -89,11 +90,13 @@ reference**, addressed to template authors (human or agent), containing semantic
 copy of the language semantics, not by writing a fresh parallel one. One source of truth per
 fact — two hand-maintained descriptions of `NO_CONTENT` will diverge, and today there are three:
 
-- **`SPECIFICATION.md` §2/§11** — the cross-cutting language content is relocated into
-  `LANGUAGE.md`; **§4's per-rule facts are relocated into the rule docstrings** (see the
-  ownership principle), and §4 shrinks to a pointer at the generated reference. The spec keeps
-  the engine-contract material and links out for semantics. §5's "nothing is hand-maintained
-  separately" claim is reworded to name `LANGUAGE.md` as the one hand-written artifact.
+- **`SPECIFICATION.md` §2/§4/§11** — the language content is **copied** into `LANGUAGE.md`
+  (cross-cutting) and into the rule docstrings (per-entity facts, which grow richer), and the
+  spec **retains its own full normative statement** — a deliberate, recorded exception to
+  move-don't-copy (decision 2026-07-18): the spec's value as a single, complete engine
+  contract outweighs the drift risk, which is accepted and managed by review discipline
+  (banners at spec §2/§4 require updating all surfaces in the same change). §5's "nothing is
+  hand-maintained separately" claim is reworded to name `LANGUAGE.md`.
 - **The `Transformer` class docstring** — its language sections ("Templates", "How evaluation
   works", the language half of "What you can do") are relocated. The docstring shrinks to
   embedder-facing content only: a short orientation paragraph, Python API usage, "Extending", and
@@ -104,8 +107,10 @@ fact — two hand-maintained descriptions of `NO_CONTENT` will diverge, and toda
   landing from README at build time (docs-site work, see Sequencing), not from the docstring.
 
 **Ownership principle — one owner per altitude.** Every fact has exactly one home, chosen by
-its altitude; every channel composes these sources (joined by entity name, the same name-join
-the corpus normalization R-31 established) and none restates another:
+its altitude; every **consumer channel** composes these sources (joined by entity name, the
+same name-join the corpus normalization R-31 established) and none restates another.
+(`SPECIFICATION.md` is the recorded exception — a contributor document, not a consumer
+channel, that deliberately restates the semantics in full; see the sourcing rule.)
 
 - **Structure** — parameter names, required-ness, modes/variants, dynamic-vs-constant kinds,
   containers, operator/function types: the registration metadata, exported as the
@@ -226,10 +231,12 @@ explicitly.
 
 - **No behavior change**: no template semantics move; this is documentation + packaging + a
   read-only accessor.
-- **No second source of truth**: content is moved out of `SPECIFICATION.md` (§2/§11 to the
-  reference, §4 to the docstrings), the `Transformer` docstring, and `README.md` — never
-  duplicated; the section-pin test guards the reference's shape, the no-`TBD` gate guards the
-  registration docs.
+- **No second source of truth among consumer surfaces**: the `Transformer` docstring and
+  `README.md` content is moved, never duplicated, and every export composes one owner per
+  fact; the section-pin test guards the reference's shape, the no-`TBD` gate guards the
+  registration docs. The one sanctioned duplication is `SPECIFICATION.md` (decision
+  2026-07-18): it keeps a full copy of the language semantics so the engine contract stays a
+  single, complete document, aligned by review discipline.
 - **No generated prose**: rule *examples* stay generated and normalized in the corpus (§5, R-31);
   `LANGUAGE.md` references behavior, it does not re-serialize examples. (How the docs site
   *renders* `LANGUAGE.md` is docs-site work — D-20, see Sequencing — but rendering

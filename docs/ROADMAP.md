@@ -1059,13 +1059,14 @@ repair loops keep rediscovering semantics.
 
 **Shipped**: `transon/resources/LANGUAGE.md` (7 pinned sections: preamble, templates-and-the-marker,
 context-and-scoping, the-no_content-model, error-model, expressions-and-calls,
-composition-patterns). Consolidation: spec §2 reduced to the engine-internal view, §4
-to a pointer + the Recursion budget invariant (per-rule facts folded into
-`transon/rules.py` docstrings — accessors' scope errors, `attr` error split, `map`/
+composition-patterns). Consolidation: spec §4's per-rule facts folded into
+`transon/rules.py` docstrings (accessors' scope errors, `attr` error split, `map`/
 `filter`/`zip`/`join`/`file` edge cases, `expr`/`call` mode errors + the sanctioned
-reference pointer), §11 to a pointer; `Transformer` class docstring slimmed to the
-embedder narrative (pitch owned by README); section-id pin in
-`tests/test_reference.py`. Changelog entry under Unreleased.
+reference pointer); the spec **retains its full §2/§4/§11 statement** — deliberate,
+banner-flagged duplication (decision 2026-07-18) so the engine contract stays one
+complete document; `Transformer` class docstring slimmed to the embedder narrative
+(pitch owned by README); section-id pin in `tests/test_reference.py`. Changelog entry
+under Unreleased.
 
 ### R-35. Package the Language Reference as package data
 

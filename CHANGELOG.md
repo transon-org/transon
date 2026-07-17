@@ -50,8 +50,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   per-rule facts (edge cases, `NO_CONTENT` treatment, error conditions) folded into
   the registration docs, so per-rule doc content in `get_all_docs()` and
   `get_editor_metadata()['docs']` is longer (doc text is contractually opaque — no
-  shape change). `SPECIFICATION.md` §2/§4/§11 now hold the engine-internal view and
-  link out to the reference. Docs-site counterpart work is D-20. (Roadmap R-34)
+  shape change). `SPECIFICATION.md` deliberately retains its full §2/§4/§11 statement
+  (the engine contract stays one complete document; the duplication is banner-flagged
+  in-document and aligned by review). Docs-site counterpart work is D-20.
+  (Roadmap R-34)
 
 ## [0.1.8] - 2026-07-16
 
