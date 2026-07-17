@@ -8,11 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **Template Language Reference (RFC 0008).** New hand-written `docs/LANGUAGE.md` —
+- **Template Language Reference (RFC 0008).** New hand-written `transon/resources/LANGUAGE.md` —
   the author-facing, cross-cutting language semantics (evaluation model, scoping,
   the `NO_CONTENT` model, error taxonomy, `expr`/`call` machinery, composition
-  patterns; **no per-entity sections**) — shipped as package data
-  (`transon/resources/LANGUAGE.md`, wheel + sdist) and served by a new versioned
+  patterns; **no per-entity sections**) — canonical **and** packaged in one file
+  (ships as-is in the wheel + sdist; `docs/LANGUAGE.md` is a pointer) and served by a new versioned
   export `transon.reference.get_language_reference()` (`REFERENCE_VERSION` `1.0`;
   `{reference_version, engine_version, format, content, sections}` with a
   deterministic flat `##`-heading split, stable slug ids, and sections-concatenation
@@ -44,7 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   The `Transformer` class docstring — exported as the `doc` field and rendered by the
   docs site — is consolidated per RFC 0008's ownership principle: its language
   sections ("Templates", "How evaluation works", the language half of "What you can
-  do") moved into `docs/LANGUAGE.md`; the pitch/install/comparison sections are owned
+  do") moved into the Language Reference (`transon/resources/LANGUAGE.md`); the pitch/install/comparison sections are owned
   solely by `README.md`; what remains is the embedder-facing narrative (Python API
   usage + extending). Symmetrically, per-rule docstrings **grew richer**: spec §4's
   per-rule facts (edge cases, `NO_CONTENT` treatment, error conditions) folded into

@@ -1,7 +1,6 @@
 """Shape, section-pin, split-parity, and packaging tests for the Language
 Reference export (RFC 0008, R-34/R-35/R-36)."""
 import importlib.resources
-from pathlib import Path
 
 from transon.reference import (
     REFERENCE_VERSION,
@@ -10,9 +9,9 @@ from transon.reference import (
 )
 
 #: The pinned section-id list (RFC 0008 drift protection): adding, renaming, or
-#: removing a section in ``docs/LANGUAGE.md`` must update this pin **and** follow
-#: the ``REFERENCE_VERSION`` policy — additive changes bump the minor, removals/
-#: renames are breaking and bump the major. Never a silent edit.
+#: removing a section in ``transon/resources/LANGUAGE.md`` must update this pin
+#: **and** follow the ``REFERENCE_VERSION`` policy — additive changes bump the
+#: minor, removals/renames are breaking and bump the major. Never a silent edit.
 PINNED_SECTION_IDS = [
     'preamble',
     'templates-and-the-marker',
@@ -22,8 +21,6 @@ PINNED_SECTION_IDS = [
     'expressions-and-calls',
     'composition-patterns',
 ]
-
-REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_reference_shape():
@@ -64,11 +61,10 @@ def test_section_fields():
         assert set(section) == {'id', 'title', 'heading_level', 'content'}
 
 
-def test_packaged_copy_is_served_and_matches_canonical():
-    """Packaging parity (RFC 0008 Deliverable 2): the export serves the packaged
-    ``transon/resources/LANGUAGE.md`` via ``importlib.resources``, and that copy
-    is byte-identical (modulo line endings) to the canonical, hand-edited
-    ``docs/LANGUAGE.md``."""
+def test_packaged_resource_is_served():
+    """Packaging parity (RFC 0008 Deliverable 2): the export serves the
+    canonical ``transon/resources/LANGUAGE.md`` via ``importlib.resources`` —
+    the single hand-edited copy, which is also what ships in the wheel/sdist."""
     ref = get_language_reference()
     packaged = (
         importlib.resources.files('transon')
@@ -79,12 +75,6 @@ def test_packaged_copy_is_served_and_matches_canonical():
         .replace('\r', '\n')
     )
     assert packaged == ref['content']
-    canonical = (REPO_ROOT / 'docs' / 'LANGUAGE.md').read_text(encoding='utf-8')
-    canonical = canonical.replace('\r\n', '\n').replace('\r', '\n')
-    assert canonical == ref['content'], (
-        'docs/LANGUAGE.md and transon/resources/LANGUAGE.md have diverged — '
-        'copy the canonical docs/LANGUAGE.md over the packaged resource'
-    )
 
 
 def test_split_without_preamble():

@@ -262,7 +262,7 @@ class Transformer:
     invocation) and apply it to input data. The **template language** itself —
     the evaluation model, scoping, the `NO_CONTENT` model, the error taxonomy,
     composition patterns — is specified in the
-    [Language Reference](https://github.com/transon-org/transon/blob/main/docs/LANGUAGE.md)
+    [Language Reference](https://github.com/transon-org/transon/blob/main/transon/resources/LANGUAGE.md)
     (also served by `transon.reference.get_language_reference()`); what the
     project is and how it compares to alternatives is in the
     [README](https://github.com/transon-org/transon#readme).

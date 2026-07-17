@@ -5,7 +5,9 @@
 - **Amended:** 2026-07-18 — consolidation scope extended to the `Transformer` docstring and
   `README.md`; single ownership principle (structure in the catalog, per-entity behavior in
   registration docs, cross-cutting semantics in `LANGUAGE.md`); no per-entity sections in
-  `LANGUAGE.md`; sequencing decision (see below)
+  `LANGUAGE.md`; sequencing decision; single-copy refinement — the packaged
+  `transon/resources/LANGUAGE.md` is canonical, `docs/LANGUAGE.md` is a pointer (see
+  Deliverable 2)
 - **Roadmap:** R-34 (Language Reference document), R-35 (package the reference), R-36 (`get_language_reference()` export) — `accepted`, rows in `docs/ROADMAP.md`; docs-site counterpart is D-20 in `docs/DOCS_SITE_ROADMAP.md`. (R-33 is held by [RFC 0007](0007-builtin-function-library.md).)
 - **Type:** New documentation artifact + packaging + a new read-only export API (`get_language_reference()`) — additive; no change to existing template semantics or engine API shapes. The **content** of `get_all_docs()['doc']` shrinks to the embedder-facing narrative as part of the consolidation (shape unchanged; the docs export carries no schema version, so the change is coordinated by release note in `CHANGELOG.md`). Symmetrically, per-rule doc **content grows** in both exports (`get_all_docs()` and `get_editor_metadata()['docs']`) as §4's facts fold into the docstrings — also shape-unchanged, doc text is contractually opaque
 - **Consumers:** `transon-authoring` (authority ladder rung 2; `SKILL.md`, AD-018/NFR-001/NFR-003), `transon-org.github.io` (docs site)
@@ -56,8 +58,9 @@ RFC's sourcing rule covers it (Deliverable 1).
 
 ## Deliverable 1 — the Language Reference document (R-34)
 
-A new `docs/LANGUAGE.md`: the Transon **template language reference**, addressed to template
-authors (human or agent), containing semantics only:
+A new `transon/resources/LANGUAGE.md` (canonical **and** packaged — see Deliverable 2; a
+`docs/LANGUAGE.md` pointer keeps `docs/` discoverability): the Transon **template language
+reference**, addressed to template authors (human or agent), containing semantics only:
 
 - The marker: rule invocation shape, literal-marker escaping, marker inheritance across `include`.
 - Context: `this`/`item`/`key`/`index`/`parent`, variable scoping (`set`/`get`), scope derivation.
@@ -137,20 +140,21 @@ to drift. The prose stays hand-written.
 
 ## Deliverable 2 — ship the reference in the package (R-35)
 
-`LANGUAGE.md` becomes package data (e.g. `transon/resources/LANGUAGE.md`, included in the wheel
+`LANGUAGE.md` lives as package data (`transon/resources/LANGUAGE.md`, included in the wheel
 and sdist), so an installed `transon==<version>` serves its own language reference offline —
-exactly the property `get_editor_metadata()` already has for the catalog. The repo-root
-`docs/LANGUAGE.md` stays the canonical, human-edited source; the build maps it in (mirroring the
-`transon-authoring` `resources/` force-include pattern) or a release check asserts the two are
-identical.
+exactly the property `get_editor_metadata()` already has for the catalog. **Single-copy
+refinement (implementation decision)**: rather than a canonical `docs/` file mirrored into the
+package (force-include, or a copy plus identity check — both create a second copy or a build
+mode that differs between dev and installed layouts), the packaged file **is** the canonical,
+hand-edited source — the same rule as per-rule docs living in `rules.py` — and
+`docs/LANGUAGE.md` is a pointer. No sync step exists to forget.
 
 **Acceptance (packaging parity).** A test loads the packaged `LANGUAGE.md` through
 `importlib.resources`, decodes those bytes as UTF-8, normalizes line endings to `\n`, and asserts
-the result equals `get_language_reference()['content']` **and** the canonical `docs/LANGUAGE.md`,
-following the shape-test pattern in `tests/test_metadata.py`. In CI this proves **source-tree
-parity** (a stale packaged copy fails immediately); the wheel/sdist inclusion itself is verified
-by building the distributions at release — the section-pin test (Deliverable 1) would notice
-neither.
+the result equals `get_language_reference()['content']`, following the shape-test pattern in
+`tests/test_metadata.py`. With the single-copy refinement there is no second copy to drift; the
+wheel/sdist inclusion itself is verified by building the distributions at release — which the
+section-pin test (Deliverable 1) would not notice.
 
 ## Deliverable 3 — `get_language_reference()` export (R-36)
 

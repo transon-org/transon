@@ -32,8 +32,8 @@ producing JSON *output*. It is inspired by XSLT and JsonLogic.
 | `transon/docs.py` | Documentation generator: harvests docstrings + test cases into JSON |
 | `transon/metadata.py` | Editor-metadata export (`get_editor_metadata`) for the visual editor (§5.1) |
 | `transon/reference.py` | Language Reference export (`get_language_reference`) — serves the packaged `LANGUAGE.md` (§5.2) |
-| `transon/resources/LANGUAGE.md` | Packaged copy of `docs/LANGUAGE.md` (ships in the wheel/sdist; a test asserts identity) |
-| `docs/LANGUAGE.md` | **Template Language Reference** — author-facing, cross-cutting semantics (canonical, hand-edited) |
+| `transon/resources/LANGUAGE.md` | **Template Language Reference** — author-facing, cross-cutting semantics; canonical, hand-edited, and packaged (single copy — ships as-is in the wheel/sdist) |
+| `docs/LANGUAGE.md` | Pointer at the canonical reference above (kept for `docs/` discoverability) |
 | `transon/tests/` | **Example corpus**: table-driven test cases that double as documentation |
 | `tests/` | Plain pytest tests for engine mechanics (errors, extension, docs generation) |
 | `.github/workflows/dev.yml` | CI: pytest + coverage on Python 3.9–3.13 (uv) |
@@ -46,7 +46,7 @@ Packaging is uv / PEP 621 (`pyproject.toml`, `uv.lock`). Runtime dependencies: n
 
 ## 2. Core concepts
 
-> **Author-facing semantics live in [`docs/LANGUAGE.md`](LANGUAGE.md)** — the Template
+> **Author-facing semantics live in [`transon/resources/LANGUAGE.md`](../transon/resources/LANGUAGE.md)** — the Template
 > Language Reference (evaluation model, scoping, the `NO_CONTENT` model, the error
 > taxonomy, `expr`/`call` machinery, composition patterns), also served by
 > `transon.reference.get_language_reference()` (§5.2). This section keeps only the
@@ -265,7 +265,7 @@ conditions — live in its registration docs in `transon/rules.py` (docstrings +
 catalogs live the same way in `transon/operators.py` / `transon/functions.py` and the
 `expr` `op` / `call` `name` parameter docs. Cross-cutting semantics (evaluation model,
 scoping, `NO_CONTENT`, errors, `expr`/`call` machinery) are in
-[`docs/LANGUAGE.md`](LANGUAGE.md).
+[`transon/resources/LANGUAGE.md`](../transon/resources/LANGUAGE.md).
 
 ### Recursion budget
 
@@ -285,7 +285,7 @@ never a raw `RecursionError`. (Roadmap R-32.)
 
 The documentation (and the playground at https://transon-org.github.io/) is **generated
 from source artifacts**; the one hand-written artifact is
-[`docs/LANGUAGE.md`](LANGUAGE.md) (the Template Language Reference — cross-cutting
+[`transon/resources/LANGUAGE.md`](../transon/resources/LANGUAGE.md) (the Template Language Reference — cross-cutting
 semantics only, no per-entity sections; served packaged via §5.2, its section shape
 pinned by `tests/test_reference.py`). Everything else is harvested:
 
@@ -424,12 +424,13 @@ export (RFC 0008, R-36) serving the packaged `LANGUAGE.md` offline:
   is breaking and bumps the major. Consumers MUST fail loudly on an unsupported major.
 - The export is **engine-global** (base `Transformer` only; no `cls=` parameter) and
   states language facts only.
-- Packaging: `transon/resources/LANGUAGE.md` ships in the wheel and sdist (hatchling
+- Packaging: `transon/resources/LANGUAGE.md` is the **canonical, hand-edited, single
+  copy** — the file that ships in the wheel and sdist is the file you edit (hatchling
   packages the whole `transon/` tree; verified by building the distributions at
-  release). `docs/LANGUAGE.md` is the canonical hand-edited source;
-  `tests/test_reference.py` asserts **source-tree parity** — the packaged resource
-  read via `importlib.resources` equals both the export's `content` and the
-  canonical file — pins the section-id list, and checks the split parity.
+  release; no sync step, same rule as per-rule docs living in `rules.py`).
+  `docs/LANGUAGE.md` is a pointer. `tests/test_reference.py` asserts the packaged
+  resource read via `importlib.resources` equals the export's `content`, pins the
+  section-id list, and checks the split parity.
 - `python -m transon.reference` prints this JSON.
 
 ---
@@ -562,7 +563,7 @@ tagged example cases.
 
 ## 11. Engine data flow (reference example)
 
-Relocated to the Language Reference: [`docs/LANGUAGE.md`](LANGUAGE.md), "Composition
+Relocated to the Language Reference: [`transon/resources/LANGUAGE.md`](../transon/resources/LANGUAGE.md), "Composition
 patterns" (the `zip` + `map` worked end-to-end flow).
 
 ---

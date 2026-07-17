@@ -207,7 +207,7 @@ the project today.
 
 The engine's RFC 0008 release relocates content the site renders today: the `Transformer`
 class docstring (`get_all_docs()['doc']`) shrinks to an embedder-facing narrative (its language
-sections move to the new `docs/LANGUAGE.md`, its pitch to `README.md`), and rule docstrings
+sections move to the new Language Reference (`transon/resources/LANGUAGE.md`), its pitch to `README.md`), and rule docstrings
 grow richer (spec §4's per-rule facts fold in). In the same release window the site must:
 
 1. render `LANGUAGE.md` as a language-guide section/page (source: `get_language_reference()`

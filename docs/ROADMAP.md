@@ -1041,7 +1041,8 @@ failures to `TransformationError`); `split` rule in `transon/rules.py`; total `i
 **Status**: done · **Severity**: medium ·
 **Source**: [`proposals/0008-language-reference-export.md`](proposals/0008-language-reference-export.md) (Deliverable 1)
 
-A new hand-written `docs/LANGUAGE.md`: the template-language reference for authors (human or
+A new hand-written Language Reference (`transon/resources/LANGUAGE.md` — canonical and
+packaged in one file; `docs/LANGUAGE.md` is a pointer): the reference for authors (human or
 agent), carrying **cross-cutting semantics only** — the marker, context/scoping, the
 `NO_CONTENT` propagation model, the error taxonomy, `expr`/`call` machinery, composition
 patterns. **No per-entity sections**: per-rule/operator/function prose stays in the
@@ -1056,7 +1057,7 @@ hand-maintained copies (spec §2/§11, the class docstring, README overlap) with
 author-scoped, pinnable document — the `transon-authoring` authority-ladder gap stays open and
 repair loops keep rediscovering semantics.
 
-**Shipped**: `docs/LANGUAGE.md` (7 pinned sections: preamble, templates-and-the-marker,
+**Shipped**: `transon/resources/LANGUAGE.md` (7 pinned sections: preamble, templates-and-the-marker,
 context-and-scoping, the-no_content-model, error-model, expressions-and-calls,
 composition-patterns). Consolidation: spec §2 reduced to the engine-internal view, §4
 to a pointer + the Recursion budget invariant (per-rule facts folded into
@@ -1073,18 +1074,18 @@ embedder narrative (pitch owned by README); section-id pin in
 
 Ship `LANGUAGE.md` in the wheel and sdist (e.g. `transon/resources/LANGUAGE.md`) so an
 installed `transon==<version>` serves its own language reference offline — the property
-`get_editor_metadata()` already has for the catalog. The repo-root `docs/LANGUAGE.md` stays the
-canonical, human-edited source; the build maps it in or a release check asserts the two are
-identical. Acceptance: an `importlib.resources` test asserts the packaged bytes (UTF-8,
+`get_editor_metadata()` already has for the catalog. Single-copy refinement: the packaged file
+**is** the canonical, hand-edited source (`docs/LANGUAGE.md` is a pointer) — no build mapping,
+no mirror to sync. Acceptance: an `importlib.resources` test asserts the packaged bytes (UTF-8,
 line-endings normalized to `\n`) equal `get_language_reference()['content']`.
 
 **Impact if not done**: the `transon-authoring` harnesses mount no repo checkout, so an
 unpackaged reference is invisible to the primary consumer.
 
-**Shipped**: `transon/resources/LANGUAGE.md` (committed copy; hatchling picks it up in
-both wheel and sdist with no config change — verified by building both).
-`tests/test_reference.py` loads it through `importlib.resources` and asserts it equals
-both `get_language_reference()['content']` and the canonical `docs/LANGUAGE.md`.
+**Shipped**: `transon/resources/LANGUAGE.md` is the canonical, hand-edited, single copy;
+hatchling picks it up in both wheel and sdist with no config change — verified by building
+both. `tests/test_reference.py` loads it through `importlib.resources` and asserts it equals
+`get_language_reference()['content']`. `docs/LANGUAGE.md` reduced to a pointer.
 
 ### R-36. `get_language_reference()` versioned export
 
