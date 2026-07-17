@@ -728,7 +728,12 @@ class Transformer:
         """
         context = Context(this=data)
         result = self.walk(self.template, context)
-        if result is self.NO_CONTENT and no_content is not self.NO_CONTENT:
+        if result is self.NO_CONTENT:
+            # Never deepcopy this branch: the sentinel is compared by identity
+            # everywhere, and a substitute is caller-owned (it cannot alias the
+            # input, so `copy_output` has nothing to protect).
+            if no_content is self.NO_CONTENT:
+                return result
             return no_content
         if copy_output:
             return copy.deepcopy(result)

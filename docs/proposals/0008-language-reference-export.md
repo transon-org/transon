@@ -1,6 +1,6 @@
 # RFC 0008 — Author-facing Language Reference: document, packaging, and export API
 
-- **Status:** Implemented (2026-07-18, in `main` — unreleased; ships in the next release per Sequencing)
+- **Status:** Implemented (2026-07-18) — unreleased; ships in the next release per Sequencing, which will name the version here
 - **Created:** 2026-07-16
 - **Amended:** 2026-07-18 — consolidation scope extended to the `Transformer` docstring and
   `README.md`; single ownership principle (structure in the catalog, per-entity behavior in
@@ -145,11 +145,12 @@ exactly the property `get_editor_metadata()` already has for the catalog. The re
 identical.
 
 **Acceptance (packaging parity).** A test loads the packaged `LANGUAGE.md` through
-`importlib.resources` — exercising the installed wheel/sdist layout, not just the source tree —
-decodes those bytes as UTF-8, normalizes line endings to `\n`, and asserts the result equals
-`get_language_reference()['content']` (which is UTF-8 text with `\n` newlines), following the
-shape-test pattern in `tests/test_metadata.py`. This catches a missing package-data glob or a stale
-packaged copy, neither of which the section-pin test (Deliverable 1) would notice.
+`importlib.resources`, decodes those bytes as UTF-8, normalizes line endings to `\n`, and asserts
+the result equals `get_language_reference()['content']` **and** the canonical `docs/LANGUAGE.md`,
+following the shape-test pattern in `tests/test_metadata.py`. In CI this proves **source-tree
+parity** (a stale packaged copy fails immediately); the wheel/sdist inclusion itself is verified
+by building the distributions at release — the section-pin test (Deliverable 1) would notice
+neither.
 
 ## Deliverable 3 — `get_language_reference()` export (R-36)
 
@@ -164,7 +165,8 @@ A read-only export, separate from the docs API, mirroring the `get_editor_metada
   "format": "markdown",
   "content": "<the full LANGUAGE.md text>",
   "sections": [
-    {"id": "no-content", "title": "NO_CONTENT", "heading_level": 2, "content": "..."},
+    {"id": "preamble", "title": "", "heading_level": null, "content": "..."},
+    {"id": "the-no_content-model", "title": "The NO_CONTENT model", "heading_level": 2, "content": "..."},
     ...
   ]
 }
@@ -172,13 +174,15 @@ A read-only export, separate from the docs API, mirroring the `get_editor_metada
 
 - `sections` is a flat, ordered split of `content` by heading, each with a stable slug `id`, so
   consumers can serve **targeted** section lookups (a 700-line dump into an agent context is the
-  failure mode; one section is the unit of consumption). `content` is the byte-exact document for
-  consumers that want the whole thing.
+  failure mode; one section is the unit of consumption). `content` is the full document as
+  canonical normalized text (UTF-8, line endings normalized to LF) for consumers that want the
+  whole thing.
 - **Splitting rules** (deterministic): the split is on top-level `##` headings only, so `sections`
   is flat, not a tree. Each section runs from its `##` heading up to the next `##` heading and
   **includes its own heading line**; any deeper (`###`+) heading stays inside its parent section.
   Content before the first `##` heading (the intro under the `#` title) becomes a leading preamble
-  section — present **only when that intro is non-empty** — carrying
+  section — present **whenever that prefix is non-empty**, whitespace-only prefixes included, so
+  the concatenation parity below always holds — carrying
   `{"id": "preamble", "title": "", "heading_level": null, ...}`. Every other section carries
   `heading_level: 2` and the heading's text as `title`. `id` is the GitHub-style slug of the heading
   text (the preamble's is the literal `"preamble"`); a collision gets a `-2`, `-3`, … suffix in

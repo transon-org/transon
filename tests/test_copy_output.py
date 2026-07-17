@@ -64,3 +64,18 @@ def test_copy_output_keyword_only():
     data = {'$': 'attr', 'name': 'missing'}
     transformer = Transformer(data)
     assert transformer.transform({}, 'fallback', copy_output=True) == 'fallback'
+
+
+def test_copy_output_preserves_no_content_identity():
+    transformer = Transformer({'$': 'attr', 'name': 'missing'})
+    result = transformer.transform(
+        {}, no_content=Transformer.NO_CONTENT, copy_output=True,
+    )
+    assert result is Transformer.NO_CONTENT
+
+
+def test_copy_output_returns_substitute_unchanged():
+    substitute = {'fallback': True}
+    transformer = Transformer({'$': 'attr', 'name': 'missing'})
+    result = transformer.transform({}, no_content=substitute, copy_output=True)
+    assert result is substitute

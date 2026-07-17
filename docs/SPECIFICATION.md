@@ -411,22 +411,25 @@ into a lean structural `catalog` (consumed by the editor's generators) and an
 export (RFC 0008, R-36) serving the packaged `LANGUAGE.md` offline:
 
 - Shape: `{reference_version, engine_version, format: "markdown", content, sections}`.
-  `content` is the byte-exact document (UTF-8, `\n` newlines); `sections` is a flat,
-  ordered split on top-level `##` headings (each section includes its own heading
-  line; deeper headings stay inside their parent; a non-empty intro before the first
-  `##` becomes a leading `{"id": "preamble"}` section; ids are GitHub-style slugs,
-  collisions suffixed `-2`, `-3`, … in document order). Concatenating `sections`
-  reproduces `content` exactly.
+  `content` is the full document as canonical normalized text (UTF-8, line endings
+  normalized to LF); `sections` is a flat, ordered split on top-level `##` headings
+  (each section includes its own heading line; deeper headings and fenced code blocks
+  stay inside their parent; any non-empty prefix before the first `##` — whitespace
+  included — becomes a leading `{"id": "preamble"}` section; ids are GitHub-style
+  slugs, collisions suffixed `-2`, `-3`, … in document order). Concatenating
+  `sections` reproduces `content` exactly.
 - `REFERENCE_VERSION` policy (mirrors `METADATA_VERSION`): additive changes — a new
   section, appended prose, a new optional field — bump the minor; removing/renaming a
   section `id`, changing the `sections` shape, or dropping/renaming a top-level field
   is breaking and bumps the major. Consumers MUST fail loudly on an unsupported major.
 - The export is **engine-global** (base `Transformer` only; no `cls=` parameter) and
   states language facts only.
-- Packaging: `transon/resources/LANGUAGE.md` ships in the wheel and sdist;
-  `docs/LANGUAGE.md` is the canonical hand-edited source and
-  `tests/test_reference.py` asserts the two are identical, pins the section-id list,
-  and checks the split parity.
+- Packaging: `transon/resources/LANGUAGE.md` ships in the wheel and sdist (hatchling
+  packages the whole `transon/` tree; verified by building the distributions at
+  release). `docs/LANGUAGE.md` is the canonical hand-edited source;
+  `tests/test_reference.py` asserts **source-tree parity** — the packaged resource
+  read via `importlib.resources` equals both the export's `content` and the
+  canonical file — pins the section-id list, and checks the split parity.
 - `python -m transon.reference` prints this JSON.
 
 ---

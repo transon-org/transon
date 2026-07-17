@@ -92,9 +92,12 @@ def test_split_without_preamble():
     assert [s['id'] for s in sections] == ['only']
 
 
-def test_split_blank_intro_emits_no_preamble():
-    sections = _split_sections('\n\n## First\nbody\n')
-    assert [s['id'] for s in sections] == ['first']
+def test_split_whitespace_only_prefix_is_preserved_as_preamble():
+    """Every prefix byte belongs to the preamble — parity beats prettiness."""
+    content = '\n\n## First\nbody\n'
+    sections = _split_sections(content)
+    assert [s['id'] for s in sections] == ['preamble', 'first']
+    assert ''.join(s['content'] for s in sections) == content
 
 
 def test_split_slug_collisions_get_suffixes():
@@ -108,6 +111,31 @@ def test_split_ignores_headings_inside_code_fences():
     content = '# T\nintro\n\n## Real\n```\n## not a heading\n```\ntail\n'
     sections = _split_sections(content)
     assert [s['id'] for s in sections] == ['preamble', 'real']
+    assert ''.join(s['content'] for s in sections) == content
+
+
+def test_split_ignores_headings_inside_tilde_fences():
+    content = '## Real\n~~~\n## not a heading\n~~~\ntail\n'
+    sections = _split_sections(content)
+    assert [s['id'] for s in sections] == ['real']
+    assert ''.join(s['content'] for s in sections) == content
+
+
+def test_split_fence_closes_only_on_matching_delimiter():
+    # A ``` line inside a ~~~ fence does not close it, and a longer run of the
+    # same character does; a shorter run does not.
+    content = (
+        '## A\n'
+        '~~~~\n'
+        '```\n'
+        '## still fenced\n'
+        '~~~\n'
+        '## still fenced too\n'
+        '~~~~~\n'
+        '## B\n'
+    )
+    sections = _split_sections(content)
+    assert [s['id'] for s in sections] == ['a', 'b']
     assert ''.join(s['content'] for s in sections) == content
 
 

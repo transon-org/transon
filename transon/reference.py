@@ -20,6 +20,11 @@ REFERENCE_VERSION = '1.0'
 #: Characters kept by the GitHub-style heading slugger (besides spaces → hyphens).
 _SLUG_KEEP = re.compile(r'[^0-9a-z _-]')
 
+#: A fenced-code delimiter line: up to 3 spaces of indent, then a backtick or
+#: tilde run of length >= 3 (CommonMark), with the rest of the line captured so
+#: closers (which must carry no trailing content) can be told from openers.
+_FENCE = re.compile(r'^ {0,3}(`{3,}|~{3,})(.*)$')
+
 
 def _engine_version():
     """The installed ``transon`` distribution version, or ``None`` when unavailable.
@@ -65,13 +70,21 @@ def _split_sections(content):
     """
     lines = content.splitlines(keepends=True)
     boundaries = []
-    in_fence = False
+    fence = None
     for index, line in enumerate(lines):
-        if line.lstrip().startswith('```'):
-            in_fence = not in_fence
-            continue
-        if not in_fence and line.startswith('## '):
-            boundaries.append(index)
+        match = _FENCE.match(line)
+        if fence is None:
+            if match:
+                fence = match.group(1)
+            elif line.startswith('## '):
+                boundaries.append(index)
+        elif (
+            match
+            and match.group(1)[0] == fence[0]
+            and len(match.group(1)) >= len(fence)
+            and not match.group(2).strip()
+        ):
+            fence = None
 
     sections = []
     seen_ids = {}
@@ -83,7 +96,9 @@ def _split_sections(content):
 
     first = boundaries[0] if boundaries else len(lines)
     preamble = ''.join(lines[:first])
-    if preamble.strip():
+    # Any non-empty prefix — even whitespace-only — must be emitted, or the
+    # sections-concatenation parity invariant breaks.
+    if preamble:
         sections.append({
             'id': _unique('preamble'),
             'title': '',

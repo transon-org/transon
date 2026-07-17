@@ -20,6 +20,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `tests/test_reference.py`; packaging parity is tested via `importlib.resources`.
   (Roadmap R-34, R-35, R-36)
 
+### Fixed
+
+- **`map` `items` mode validates its result shape.** An `items` template that
+  evaluates to a non-list (a dict, a string, a scalar) now raises a located
+  `DefinitionError` (``` `items` must evaluate to a list for `map` rule ```)
+  instead of accidentally iterating dict keys / string characters or leaking a
+  raw `TypeError`. Templates relying on the accidental iteration must wrap the
+  value in a list. (Found in review of Roadmap R-34)
+- **`transform(..., copy_output=True)` preserves `NO_CONTENT` identity.** When
+  the caller opts into the raw sentinel (`no_content=Transformer.NO_CONTENT`),
+  the result is no longer routed through `copy.deepcopy`, which used to return a
+  fresh `NoContent` instance and break `result is Transformer.NO_CONTENT`; a
+  caller-supplied `no_content` substitute is likewise returned as-is (it cannot
+  alias the input, so there is nothing for `copy_output` to protect).
+
 ### Changed
 
 - **`get_all_docs()['doc']` content (docs-site coordination; shape unchanged).**

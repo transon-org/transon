@@ -339,7 +339,12 @@ def rule_map(t: Transformer, template, context: Context):
         t_items = template['items']
         result = []
         for sub_context in _iter_contexts(t, context):
-            for item in t.walk_param(t_items, sub_context, 'items'):
+            items = t.walk_param(t_items, sub_context, 'items')
+            if not isinstance(items, list):
+                t.definition_error(
+                    '`items` must evaluate to a list for `map` rule'
+                )
+            for item in items:
                 if item is t.NO_CONTENT:
                     continue
                 result.append(item)
