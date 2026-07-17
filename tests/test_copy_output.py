@@ -74,6 +74,14 @@ def test_copy_output_preserves_no_content_identity():
     assert result is Transformer.NO_CONTENT
 
 
+def test_copy_output_preserves_nested_no_content_identity():
+    # A literal template list keeps NO_CONTENT elements (only container rules
+    # skip them), so the sentinel can sit inside a deep-copied result.
+    transformer = Transformer([{'$': 'attr', 'name': 'missing'}])
+    result = transformer.transform({}, copy_output=True)
+    assert result[0] is Transformer.NO_CONTENT
+
+
 def test_copy_output_returns_substitute_unchanged():
     substitute = {'fallback': True}
     transformer = Transformer({'$': 'attr', 'name': 'missing'})

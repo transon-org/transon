@@ -33,7 +33,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the result is no longer routed through `copy.deepcopy`, which used to return a
   fresh `NoContent` instance and break `result is Transformer.NO_CONTENT`; a
   caller-supplied `no_content` substitute is likewise returned as-is (it cannot
-  alias the input, so there is nothing for `copy_output` to protect).
+  alias the input, so there is nothing for `copy_output` to protect). `NoContent`
+  also defines `__copy__`/`__deepcopy__` returning itself, so a sentinel kept
+  *inside* a copied container (e.g. a literal template list holding a missing
+  lookup) preserves identity too.
 
 ### Changed
 

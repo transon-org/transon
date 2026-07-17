@@ -141,6 +141,15 @@ class NoContent:
     def __bool__(self):
         return False
 
+    # The sentinel is compared by identity everywhere, so copying must never
+    # mint a new instance (e.g. `copy_output=True` deep-copying a literal
+    # template list that kept a NO_CONTENT element).
+    def __copy__(self):
+        return self
+
+    def __deepcopy__(self, _memo):
+        return self
+
 
 FileWriterType = Callable[[str, Any], None]
 # `include` always calls the loader as ``loader(name, context=IncludeContext)``; the
