@@ -284,7 +284,7 @@ class Transformer:
     - **`file_writer`** — callback the `file` rule writes through.
     - **`template_loader`** — callback the `include` rule loads sub-templates
       through; it receives an `IncludeContext` and constructs the sub-transformer
-      (see :class:`IncludeContext`).
+      (see the `IncludeContext` docstring).
     - **`max_include_depth`** — nested-`include` depth limit (default 50).
 
     `transform(data, no_content=None, *, copy_output=False)` returns the output:
