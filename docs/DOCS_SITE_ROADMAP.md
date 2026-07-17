@@ -2,7 +2,7 @@
 
 > **Status of this document**: living backlog for the **content** of the docs site /
 > playground at <https://transon-org.github.io/> (separate from the engine roadmap in
-> [`docs/ROADMAP.md`](ROADMAP.md), which tracks engine semantics `R-01…R-22`). Every
+> [`docs/ROADMAP.md`](ROADMAP.md), which tracks engine semantics as `R-xx` items). Every
 > entry follows the same format: problem → impact of not fixing → options (with a
 > recommendation when one is clearly better).
 >
@@ -41,6 +41,7 @@
 | D-04 | Broken JSON in the headline intro example | A. Correctness | high | done |
 | D-06 | Accessor docstrings omit `filter` scope | A. Correctness | medium | done |
 | D-05 | Intro is stale vs. v0.0.11 capabilities | B. Freshness | high | done |
+| D-20 | Migrate to the engine Language Reference (RFC 0008 release) | B. Freshness | medium | accepted |
 | D-11 | `file` rule has zero examples | C. Completeness | high | done |
 | D-12 | Parameters rendered with no example | C. Completeness | medium | done |
 | D-08 | Operators and functions are not discoverable | C. Completeness | medium | done |
@@ -198,6 +199,27 @@ the project today.
    but the intro still buries the headline features.
 3. Add a dedicated "Features"/"Highlights" section sourced from a new docstring or a
    new corpus-backed block, leaving the existing intro intact.
+
+### D-20. Migrate to the engine Language Reference (RFC 0008 release)
+
+**Status**: accepted · **Severity**: medium ·
+**Source**: engine [`proposals/0008-language-reference-export.md`](proposals/0008-language-reference-export.md) (Sequencing) — **hard dependency of that engine release (atomic)**
+
+The engine's RFC 0008 release relocates content the site renders today: the `Transformer`
+class docstring (`get_all_docs()['doc']`) shrinks to an embedder-facing narrative (its language
+sections move to the new `docs/LANGUAGE.md`, its pitch to `README.md`), and rule docstrings
+grow richer (spec §4's per-rule facts fold in). In the same release window the site must:
+
+1. render `LANGUAGE.md` as a language-guide section/page (source: `get_language_reference()`
+   sections or the packaged file);
+2. build its landing/pitch from `README.md` at build time instead of the class docstring;
+3. repurpose the slimmed `doc` field as an "Embedding" (Python API) page.
+
+Per-rule pages need no site work — they render whatever docstring text arrives, now richer.
+
+**Impact if not fixed**: shipping against the new engine release without this leaves a slim
+embedder intro as the landing and no language narrative anywhere on the site — a regression of
+D-05/D-10/D-18.
 
 ---
 

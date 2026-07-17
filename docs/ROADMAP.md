@@ -62,6 +62,9 @@
 | [R-31](#r-31-normalize-exports-to-one-flat-example-corpus-name-references) | Normalize exports to one flat example corpus (name references) | medium | done |
 | [R-32](#r-32-bounded-per-level-recursion-budget-for-self-include-walks) | Bounded per-level recursion budget for self-`include` walks | medium | done |
 | [R-33](#r-33-grow-the-built-in-function-library) | Grow the built-in function library (string / numeric / collection helpers) | medium | done |
+| [R-34](#r-34-language-reference-document-languagemd) | Language Reference document (`LANGUAGE.md`) | medium | accepted |
+| [R-35](#r-35-package-the-language-reference-as-package-data) | Package the Language Reference as package data | low | accepted |
+| [R-36](#r-36-get_language_reference-versioned-export) | `get_language_reference()` versioned export | medium | accepted |
 
 ---
 
@@ -1019,6 +1022,72 @@ flatten / concat as `map`+`expr` `values` reductions, and no direct `length`.
 **Shipped**: 30 new `call` functions in `transon/functions.py` (wrappers that convert documented
 failures to `TransformationError`); `split` rule in `transon/rules.py`; total `in` operator in
 `transon/operators.py`; corpus examples + error-path tests; `SPECIFICATION.md` §4.7/§4.8 updated.
+
+---
+
+## Theme G — Author-facing Language Reference (RFC 0008)
+
+> Engine-side counterpart of the `transon-authoring` authority-ladder gap (skill contract
+> rung 2): no author-facing, pinnable, offline-servable language document exists. Design and
+> the full ownership principle (structure in the catalog, per-entity behavior in registration
+> docs, cross-cutting semantics in `LANGUAGE.md`) are recorded in
+> [`proposals/0008-language-reference-export.md`](proposals/0008-language-reference-export.md);
+> accepted 2026-07-18. R-34/R-35/R-36 plus the docstring/README consolidation ship
+> **atomically in one release** (RFC Sequencing); the docs-site counterpart is D-20 in
+> [`DOCS_SITE_ROADMAP.md`](DOCS_SITE_ROADMAP.md).
+
+### R-34. Language Reference document (`LANGUAGE.md`)
+
+**Status**: accepted · **Severity**: medium ·
+**Source**: [`proposals/0008-language-reference-export.md`](proposals/0008-language-reference-export.md) (Deliverable 1)
+
+A new hand-written `docs/LANGUAGE.md`: the template-language reference for authors (human or
+agent), carrying **cross-cutting semantics only** — the marker, context/scoping, the
+`NO_CONTENT` propagation model, the error taxonomy, `expr`/`call` machinery, composition
+patterns. **No per-entity sections**: per-rule/operator/function prose stays in the
+registration docs, so the document changes only when the language model changes, not when the
+catalog grows. Assembled by relocation, never duplication: spec §2/§11 cross-cutting content
+moves in; spec §4's per-rule facts move into the rule docstrings (which grow richer); the
+`Transformer` class docstring shrinks to embedder-facing content; `README.md` becomes the sole
+owner of the pitch. Drift protection: a pinned section-id test (no catalog-coverage check).
+
+**Impact if not done**: the cross-cutting narrative stays scattered across three
+hand-maintained copies (spec §2/§11, the class docstring, README overlap) with no
+author-scoped, pinnable document — the `transon-authoring` authority-ladder gap stays open and
+repair loops keep rediscovering semantics.
+
+### R-35. Package the Language Reference as package data
+
+**Status**: accepted · **Severity**: low ·
+**Source**: [`proposals/0008-language-reference-export.md`](proposals/0008-language-reference-export.md) (Deliverable 2)
+
+Ship `LANGUAGE.md` in the wheel and sdist (e.g. `transon/resources/LANGUAGE.md`) so an
+installed `transon==<version>` serves its own language reference offline — the property
+`get_editor_metadata()` already has for the catalog. The repo-root `docs/LANGUAGE.md` stays the
+canonical, human-edited source; the build maps it in or a release check asserts the two are
+identical. Acceptance: an `importlib.resources` test asserts the packaged bytes (UTF-8,
+line-endings normalized to `\n`) equal `get_language_reference()['content']`.
+
+**Impact if not done**: the `transon-authoring` harnesses mount no repo checkout, so an
+unpackaged reference is invisible to the primary consumer.
+
+### R-36. `get_language_reference()` versioned export
+
+**Status**: accepted · **Severity**: medium ·
+**Source**: [`proposals/0008-language-reference-export.md`](proposals/0008-language-reference-export.md) (Deliverable 3)
+
+`transon.reference.get_language_reference()` → `{reference_version, engine_version, format,
+content, sections}` with deterministic flat `##`-heading splitting (stable slug ids, preamble
+rule, sections-concatenation parity with `content`), a `METADATA_VERSION`-style version policy
+(minor = additive, major = breaking; consumers fail their drift check loudly on an unsupported
+major), and a `python -m transon.reference` CLI. Engine-global (base `Transformer` only, no
+`cls=` parameter); language facts only, no consumer-specific shapes. `transon-authoring` then
+pins/syncs/drift-checks it like the metadata snapshot (that half lives in its repo, out of
+scope here).
+
+**Impact if not done**: consumers can only ship the raw file — no targeted section lookup, no
+version pin, no drift check; a 700-line context dump instead of one section as the unit of
+consumption.
 
 ---
 
