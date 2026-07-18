@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-07-18
+
+### Changed
+
+- **README rewritten as a newcomer funnel (docs-only release — no code change).**
+  Show-don't-tell narrative: "What is transon?" now opens in plain words, replaces the
+  ASCII flow diagram with a prerendered PlantUML SVG (`docs/assets/transon-flow.puml` →
+  `.svg`, committed; referenced by absolute URL so it renders on GitHub, PyPI, and the
+  docs site), and leads with a hero example (template → input → output, mirroring the
+  `RecipePluckFieldFromEach` corpus case) before any terminology. New "Why transon?"
+  (three plain-words bullets) absorbs the old positioning prose; Installation gains the
+  three-line first transform; "What you can do" is reborn as benefit-first
+  "Highlights" and demoted below Installation (the API-surface bullets — `copy_output`,
+  I/O delegates — now live only on the Embedding page); Development Principles moved to
+  the bottom after Comparison (kept verbatim). Reaches PyPI and the docs-site landing
+  on this release.
+
 ## [0.2.1] - 2026-07-18
 
 ### Changed

@@ -1,0 +1,16 @@
+@startuml
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName Helvetica
+skinparam rectangle {
+  BackgroundColor #FEFEFE
+  BorderColor #333333
+}
+rectangle "JSON Template" as T
+rectangle "JSON Input" as I
+rectangle "transon" as E
+rectangle "JSON Output" as O
+T -down-> E
+I -right-> E
+E -right-> O
+@enduml
