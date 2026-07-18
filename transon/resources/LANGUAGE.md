@@ -125,7 +125,7 @@ ambiguous parameter combinations, and invalid literal operator/function names al
 Both error types carry the **template location** where the failure occurred — a path of
 dict keys, list indices, rule names, and parameter names:
 
-```
+```text
 value is not iterable: 'not-a-list'
   at template → pipeline → chain → funcs[0] → map
 ```

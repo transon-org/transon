@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-07-19
+
+### Fixed
+
+- **Untagged code fences now render highlighted on the docs site (docs-only release —
+  no code change).** The site's markdown renderer only routes fenced blocks through
+  the syntax highlighter when the fence carries a language tag; the two bare fences —
+  the JSONata `orders.(qty * price)` snippet in the README "trade-off" section and the
+  `value is not iterable …` located-error trace in the Language Reference error-model
+  section — rendered as unstyled `<pre>` with no themed background. Both are now
+  tagged ```` ```text ````, matching the treatment of the Error model examples.
+  Reaches PyPI and the docs site on this release.
+
 ## [0.2.2] - 2026-07-18
 
 ### Changed

@@ -120,7 +120,7 @@ The same transform — *multiply each order's `qty` by its `price`* — over inp
 
 JSONata — a terse string expression:
 
-```
+```text
 orders.(qty * price)
 ```
 
