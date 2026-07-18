@@ -41,7 +41,7 @@
 | D-04 | Broken JSON in the headline intro example | A. Correctness | high | done |
 | D-06 | Accessor docstrings omit `filter` scope | A. Correctness | medium | done |
 | D-05 | Intro is stale vs. v0.0.11 capabilities | B. Freshness | high | done |
-| D-20 | Migrate to the engine Language Reference (RFC 0008 release) | B. Freshness | medium | accepted |
+| D-20 | Migrate to the engine Language Reference (RFC 0008 release) | B. Freshness | medium | done |
 | D-11 | `file` rule has zero examples | C. Completeness | high | done |
 | D-12 | Parameters rendered with no example | C. Completeness | medium | done |
 | D-08 | Operators and functions are not discoverable | C. Completeness | medium | done |
@@ -202,8 +202,20 @@ the project today.
 
 ### D-20. Migrate to the engine Language Reference (RFC 0008 release)
 
-**Status**: accepted · **Severity**: medium ·
-**Source**: engine [`proposals/0008-language-reference-export.md`](proposals/0008-language-reference-export.md) (Sequencing) — **hard dependency of that engine release (atomic)**
+**Status**: done · **Severity**: medium ·
+**Source**: engine [`proposals/0008-language-reference-export.md`](proposals/0008-language-reference-export.md) (Sequencing) — **hard dependency of that engine release (atomic)** ·
+**Shipped**: site repo (`transon-org.github.io`) — pin bumped to `transon>=0.2.0`
+(`public/config.toml`); `public/script.py` now sends an init envelope
+`{docs, reference, readme}` from the one installed engine: new `Landing.tsx` renders the
+engine README (read at runtime from the installed wheel's metadata long-description —
+version-consistent with the pin, refining the "at build time" wording; H1/badges and the
+`Development` section filtered; per-section anchors keep `#comparison` working;
+`Comparison.tsx`/`Comparison.md` deleted as superseded duplicates), new
+`LanguageReference.tsx` renders `get_language_reference()` sections with `lang-`-prefixed
+anchors + per-section TOC links, and new `Embedding.tsx` renders the slimmed `doc` field as
+the `#embedding` Python-API page. Per-rule pages unchanged. Verified in-browser against the
+built app (anchors, rendering, playground bridge, no console errors); `yarn build` green;
+deployed from `master`.
 
 The engine's RFC 0008 release relocates content the site renders today: the `Transformer`
 class docstring (`get_all_docs()['doc']`) shrinks to an embedder-facing narrative (its language
