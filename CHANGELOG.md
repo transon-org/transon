@@ -6,6 +6,55 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Template Language Reference (RFC 0008).** New hand-written `transon/resources/LANGUAGE.md` —
+  the author-facing, cross-cutting language semantics (evaluation model, scoping,
+  the `NO_CONTENT` model, error taxonomy, `expr`/`call` machinery, composition
+  patterns; **no per-entity sections**) — canonical **and** packaged in one file
+  (ships as-is in the wheel + sdist; `docs/LANGUAGE.md` is a pointer) and served by a new versioned
+  export `transon.reference.get_language_reference()` (`REFERENCE_VERSION` `1.0`;
+  `{reference_version, engine_version, format, content, sections}` with a
+  deterministic flat `##`-heading split, stable slug ids, and sections-concatenation
+  parity) plus a `python -m transon.reference` CLI. Section ids are pinned in
+  `tests/test_reference.py`; packaging parity is tested via `importlib.resources`.
+  (Roadmap R-34, R-35, R-36)
+
+### Fixed
+
+- **`map` `items` mode validates its result shape.** An `items` template that
+  evaluates to a non-list (a dict, a string, a scalar) now raises a located
+  `DefinitionError` (``` `items` must evaluate to a list for `map` rule ```)
+  instead of accidentally iterating dict keys / string characters or leaking a
+  raw `TypeError`. Templates relying on the accidental iteration must wrap the
+  value in a list. (Found in review of Roadmap R-34)
+- **`transform(..., copy_output=True)` preserves `NO_CONTENT` identity.** When
+  the caller opts into the raw sentinel (`no_content=Transformer.NO_CONTENT`),
+  the result is no longer routed through `copy.deepcopy`, which used to return a
+  fresh `NoContent` instance and break `result is Transformer.NO_CONTENT`; a
+  caller-supplied `no_content` substitute is likewise returned as-is (it cannot
+  alias the input, so there is nothing for `copy_output` to protect). `NoContent`
+  also defines `__copy__`/`__deepcopy__` returning itself, so a sentinel kept
+  *inside* a copied container (e.g. a literal template list holding a missing
+  lookup) preserves identity too.
+
+### Changed
+
+- **`get_all_docs()['doc']` content (docs-site coordination; shape unchanged).**
+  The `Transformer` class docstring — exported as the `doc` field and rendered by the
+  docs site — is consolidated per RFC 0008's ownership principle: its language
+  sections ("Templates", "How evaluation works", the language half of "What you can
+  do") moved into the Language Reference (`transon/resources/LANGUAGE.md`); the pitch/install/comparison sections are owned
+  solely by `README.md`; what remains is the embedder-facing narrative (Python API
+  usage + extending). Symmetrically, per-rule docstrings **grew richer**: spec §4's
+  per-rule facts (edge cases, `NO_CONTENT` treatment, error conditions) folded into
+  the registration docs, so per-rule doc content in `get_all_docs()` and
+  `get_editor_metadata()['docs']` is longer (doc text is contractually opaque — no
+  shape change). `SPECIFICATION.md` deliberately retains its full §2/§4/§11 statement
+  (the engine contract stays one complete document; the duplication is banner-flagged
+  in-document and aligned by review). Docs-site counterpart work is D-20.
+  (Roadmap R-34)
+
 ## [0.1.8] - 2026-07-16
 
 ### Added

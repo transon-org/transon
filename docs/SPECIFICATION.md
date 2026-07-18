@@ -31,6 +31,9 @@ producing JSON *output*. It is inspired by XSLT and JsonLogic.
 | `transon/functions.py` | Functions for the `call` rule (registered via `register_function`) |
 | `transon/docs.py` | Documentation generator: harvests docstrings + test cases into JSON |
 | `transon/metadata.py` | Editor-metadata export (`get_editor_metadata`) for the visual editor (§5.1) |
+| `transon/reference.py` | Language Reference export (`get_language_reference`) — serves the packaged `LANGUAGE.md` (§5.2) |
+| `transon/resources/LANGUAGE.md` | **Template Language Reference** — author-facing, cross-cutting semantics; canonical, hand-edited, and packaged (single copy — ships as-is in the wheel/sdist) |
+| `docs/LANGUAGE.md` | Pointer at the canonical reference above (kept for `docs/` discoverability) |
 | `transon/tests/` | **Example corpus**: table-driven test cases that double as documentation |
 | `tests/` | Plain pytest tests for engine mechanics (errors, extension, docs generation) |
 | `.github/workflows/dev.yml` | CI: pytest + coverage on Python 3.9–3.13 (uv) |
@@ -42,6 +45,14 @@ Packaging is uv / PEP 621 (`pyproject.toml`, `uv.lock`). Runtime dependencies: n
 ---
 
 ## 2. Core concepts
+
+> **Deliberate duplication (decision 2026-07-18).** This section is the complete
+> normative statement of the language semantics *inside the engine contract*; the
+> author-facing packaged form is [`transon/resources/LANGUAGE.md`](../transon/resources/LANGUAGE.md)
+> (served by `transon.reference.get_language_reference()`, §5.2), and per-entity
+> behavior is also stated in the registration docs. The spec deliberately keeps its
+> own full copy so it remains a single, complete document — when changing behavior,
+> update all three surfaces in the same change.
 
 ### 2.1 Templates and the marker
 
@@ -156,7 +167,7 @@ of a value (distinct from JSON `null`/Python `None`). Semantics:
 
 | Exception | Meaning | Raised when |
 |---|---|---|
-| `DefinitionError` | The template is malformed | Unknown rule/operator/function name; missing required rule parameter (`Transformer.require` or `Transformer.validate()`); unknown rule parameters; ambiguous or incomplete mutually-exclusive parameter groups (`validate()`); `attr` with neither `name` nor `names`; `map` with no valid parameter combination; reserved variable name (`this`, `item`, `key`, `value`, `index`) used with `set`/`get`; iteration accessors (`item`, `key`, `value`, `index`) or `parent` used outside their valid scope; `expr`/`call` with a non-list or empty `values` parameter; non-list `chain.funcs` (`validate()`); `include` with no configured `template_loader` (default loader) |
+| `DefinitionError` | The template is malformed | Unknown rule/operator/function name; missing required rule parameter (`Transformer.require` or `Transformer.validate()`); unknown rule parameters; ambiguous or incomplete mutually-exclusive parameter groups (`validate()`); `attr` with neither `name` nor `names`; `map` with no valid parameter combination; reserved variable name (`this`, `item`, `key`, `value`, `index`) used with `set`/`get`; iteration accessors (`item`, `key`, `value`, `index`) or `parent` used outside their valid scope; `expr`/`call` with a non-list or empty `values` parameter; `map` `items` template evaluating to a non-list; non-list `chain.funcs` (`validate()`); `include` with no configured `template_loader` (default loader) |
 | `TransformationError` | The template is valid but input data is incompatible | `map`/`filter` over a non-iterable (not list/dict); `join` over mixed-type items; `split` on a non-string/non-array input or with an invalid `sep`; `attr` lookup with an incompatible index type; `zip` over non-iterable items; `expr` operator applied to incompatible operand types; `call` with incompatible argument types or a function that rejects its arguments (e.g. empty `min`/`max`, bad epoch, invalid regex); `format` pattern referencing a missing key or index; `set`/`get` when a dynamic `name` evaluates to `NO_CONTENT`; `include` depth limit exceeded (nested include chain too deep) |
 
 Both are exported from the package root. By default, errors are raised lazily during
@@ -174,6 +185,11 @@ parameter names), for example:
 value is not iterable: 'not-a-list'
   at template → pipeline → chain → funcs[0] → map
 ```
+
+Engine-side plumbing contract: every message is routed through
+`format_error_message`, which appends the template location from the template-path
+`ContextVar` maintained by `walk` — new raise sites must use `t.definition_error` /
+`t.transformation_error` (or `format_error_message`) so the path is never lost.
 
 ---
 
@@ -323,6 +339,12 @@ parameter with no descriptor defaults to a dynamic template (`ParamKind.DYNAMIC`
 
 ## 4. Built-in rule reference
 
+> **Deliberate duplication (decision 2026-07-18).** The same per-rule facts are
+> stated in the registration docs (`transon/rules.py` docstrings + param kwargs),
+> which every export carries and the docs site renders. The spec keeps this full
+> reference so it remains a single, complete contract — update both in the same
+> change.
+
 All rules live in `transon/rules.py`. "Dynamic" parameters are walked as templates;
 "constant" parameters are read verbatim.
 
@@ -369,7 +391,7 @@ Other lookup failures (e.g. `TypeError` indexing a string with a string) →
 | Rule | Parameters | Semantics |
 |---|---|---|
 | `object` | exactly one of: `key`+`value` \| `fields` | `key`+`value` (dynamic): single-pair dict `{key: value}`; `{}` if either side is `NO_CONTENT`. For dynamically-named attributes. `fields`: literal mapping whose keys are emitted verbatim (including the marker `$` — the canonical literal-marker-key escape, R-14) and whose values are walked as templates; entries with a `NO_CONTENT` value are omitted. |
-| `map` | exactly one of: `item` \| `items` \| `key`+`value` | Iterates `context.this` (list or dict). `item`: one output element per input element → list. `items`: template yields a *list* of elements per input element, concatenated → list. `key`+`value`: → dict. `NO_CONTENT` results are skipped. Each iteration derives a sub-context with `this`=element plus iteration props. |
+| `map` | exactly one of: `item` \| `items` \| `key`+`value` | Iterates `context.this` (list or dict). `item`: one output element per input element → list. `items`: template yields a *list* of elements per input element, concatenated → list (a non-list result raises `DefinitionError`). `key`+`value`: → dict. `NO_CONTENT` results are skipped. Each iteration derives a sub-context with `this`=element plus iteration props. |
 | `filter` | `cond` (required, dynamic) | Keeps elements where `cond` is truthy (and not `NO_CONTENT`). Preserves container type: list→list, dict→dict. |
 | `zip` | `items` (required, dynamic) | Transposes iterables like Python's `zip`: each output row is a **list** (`[list(row) for row in zip(*items)]`). Non-iterable items → `TransformationError`. |
 | `join` | `items` (required, dynamic), `sep` (dynamic, strings only, default `""`), `default` (optional, dynamic) | Type-homogeneous concatenation: all-strings → `sep.join`; all-lists → flatten one level; all-dicts → merged dict (later keys win). Items that evaluate to `NO_CONTENT` are omitted before concatenation. When no items remain → `NO_CONTENT` (or `default` when provided). Mixed types → `TransformationError`. `sep` must evaluate to a string when joining strings. |
@@ -482,7 +504,10 @@ does not limit pattern complexity.
 ## 5. Documentation pipeline
 
 The documentation (and the playground at https://transon-org.github.io/) is **generated
-from source artifacts**; nothing is hand-maintained separately:
+from source artifacts**; the one hand-written artifact is
+[`transon/resources/LANGUAGE.md`](../transon/resources/LANGUAGE.md) (the Template Language Reference — cross-cutting
+semantics only, no per-entity sections; served packaged via §5.2, its section shape
+pinned by `tests/test_reference.py`). Everything else is harvested:
 
 1. **Rule docs** — rule function docstrings (markdown, may embed plantuml).
 2. **Parameter docs** — `**params` kwargs of `register_rule`.
@@ -599,6 +624,34 @@ into a lean structural `catalog` (consumed by the editor's generators) and an
 - `python -m transon.metadata` prints this JSON.
 - `docs.template_loader` makes every test case's template `include`-able by its class
   name (e.g. `{"$": "include", "name": "MapListsToDict"}`).
+
+### 5.2 Language Reference export
+
+`transon/reference.py` provides `get_language_reference()` — a dedicated, versioned
+export (RFC 0008, R-36) serving the packaged `LANGUAGE.md` offline:
+
+- Shape: `{reference_version, engine_version, format: "markdown", content, sections}`.
+  `content` is the full document as canonical normalized text (UTF-8, line endings
+  normalized to LF); `sections` is a flat, ordered split on top-level `##` headings
+  (each section includes its own heading line; deeper headings and fenced code blocks
+  stay inside their parent; any non-empty prefix before the first `##` — whitespace
+  included — becomes a leading `{"id": "preamble"}` section; ids are GitHub-style
+  slugs, collisions suffixed `-2`, `-3`, … in document order). Concatenating
+  `sections` reproduces `content` exactly.
+- `REFERENCE_VERSION` policy (mirrors `METADATA_VERSION`): additive changes — a new
+  section, appended prose, a new optional field — bump the minor; removing/renaming a
+  section `id`, changing the `sections` shape, or dropping/renaming a top-level field
+  is breaking and bumps the major. Consumers MUST fail loudly on an unsupported major.
+- The export is **engine-global** (base `Transformer` only; no `cls=` parameter) and
+  states language facts only.
+- Packaging: `transon/resources/LANGUAGE.md` is the **canonical, hand-edited, single
+  copy** — the file that ships in the wheel and sdist is the file you edit (hatchling
+  packages the whole `transon/` tree; verified by building the distributions at
+  release; no sync step, same rule as per-rule docs living in `rules.py`).
+  `docs/LANGUAGE.md` is a pointer. `tests/test_reference.py` asserts the packaged
+  resource read via `importlib.resources` equals the export's `content`, pins the
+  section-id list, and checks the split parity.
+- `python -m transon.reference` prints this JSON.
 
 ---
 
@@ -754,7 +807,7 @@ names indexes the tuple → output `{"a": 1, "b": 2}`.
 ## 12. Known issues & design questions
 
 Suspected accidental behaviors and open design questions are tracked exclusively in
-[`docs/ROADMAP.md`](ROADMAP.md) (items `R-01`…`R-22`), each with impact analysis,
+[`docs/ROADMAP.md`](ROADMAP.md) (`R-xx` items), each with impact analysis,
 fix options, and a decision status. This document describes current behavior only.
 
 **Do not "fix" quirky behavior silently** — every behavior change needs an explicit

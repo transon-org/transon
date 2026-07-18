@@ -27,7 +27,7 @@ is the *authoritative* record of each work item's status via its **R-number**.
 |---|---|---|
 | **Proposed** | Open for a decision; no code yet (or scope not finalized). | `needs-decision` |
 | **Accepted** | Decision made; awaiting implementation. | `accepted` |
-| **Implemented** | Shipped in a release (the `Status` line names the version). | `done` |
+| **Implemented** | Implementation merged (roadmap items `done`). The `Shipped` column names the release version once tagged — `—` until then. | `done` |
 | **Rejected** | Decided against; kept for the record. | `rejected` |
 | **Deferred** | Postponed pending a trigger stated in the RFC. | — |
 | **Superseded** | Replaced by a later RFC (named in `Superseded by`). | — |
@@ -43,7 +43,7 @@ is the *authoritative* record of each work item's status via its **R-number**.
 | [0005](0005-example-corpus-normalization.md) | Normalize exports to one flat example corpus | Implemented | R-31 | v0.1.6 | docs site, `transon-blockly` |
 | [0006](0006-transformer-recursion-depth-budget.md) | Bounded per-level recursion budget (self-`include` depth) | Implemented | R-32 | v0.1.7 | `transon-blockly` |
 | [0007](0007-builtin-function-library.md) | Grow the built-in function library | Implemented | R-33 | v0.1.8 | `transon-authoring`, `transon-blockly` |
-| [0008](0008-language-reference-export.md) | Author-facing Language Reference: doc, packaging, export | Proposed | R-34, R-35, R-36 | — | `transon-authoring`, docs site |
+| [0008](0008-language-reference-export.md) | Author-facing Language Reference: doc, packaging, export | Implemented | R-34, R-35, R-36 | — | `transon-authoring`, docs site |
 
 ## Adding a new RFC
 
