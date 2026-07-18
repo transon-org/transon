@@ -108,6 +108,7 @@ rules — traded against the terseness of a string DSL. Pick the tool that fits 
 | [Jsonnet](https://jsonnet.org/) | full templating language | yes | native binary | generating large config (e.g. Kubernetes) from a real language |
 | [json-templates](https://github.com/datavis-tech/json-templates) | JSON with `{{placeholders}}` | no | tiny JS library | simple value substitution into a JSON skeleton |
 
+
 **Where `transon` is _not_ the best pick** (worth being honest about):
 
 - **Expression-heavy** transforms read far more concisely in a string DSL like JSONata
