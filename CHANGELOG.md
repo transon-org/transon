@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-18
+
+### Changed
+
+- **README restructured (docs-only release — no code change).** The landing narrative
+  lost in the 0.2.0 consolidation is restored at its owner: a "What is transon?"
+  section leads (the reshapes-one-JSON-document narrative, diagram, inspired-by), and
+  the skimmable "What you can do" capability list returns (validation, defaults, the
+  `NO_CONTENT` model, literal keys, marker, `copy_output`, the error model, delegates,
+  plus the new offline reference/metadata exports). The standalone "Inspired by"
+  section folded into "What is transon?"; the duplicated tagline sentence dropped.
+  Reaches PyPI's project page and — because the docs site reads the installed wheel's
+  README at runtime (D-20) — the site landing, on this release.
+
 ## [0.2.0] - 2026-07-18
 
 ### Added

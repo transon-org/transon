@@ -5,8 +5,14 @@
 ![Codecov](https://img.shields.io/codecov/c/github/transon-org/transon)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/transon)
 
-Homogeneous JSON template engine.
-`transon` creates JSON out of template and JSON input.
+> Homogeneous JSON template engine — the template is itself plain JSON.
+
+## What is transon?
+
+`transon` reshapes one JSON document into another using a template that is itself plain
+JSON. Instead of writing imperative glue code to walk and rebuild data, you describe the
+*shape* of the output once and let the engine fill it in from the input — there is no
+separate template language and no string-embedded DSL to learn.
 
 ```
                     ┌─────────────────┐
@@ -18,10 +24,37 @@ Homogeneous JSON template engine.
 └──────────────┘    └─────────────────┘    └───────────────┘
 ```
 
+It is **inspired by** [XSLT](https://en.wikipedia.org/wiki/XSLT) (declarative,
+tree-to-tree transformation) and [JsonLogic](https://jsonlogic.com/) (logic expressed as
+data), applying those ideas to JSON-to-JSON transformation.
+
 Documentation and playground: https://transon-org.github.io/
 
-`transon` is a powerful and flexible JSON template engine that enables developers to transform JSON data using a customizable set of rules. 
-With `transon`, you can generate dynamic templates, manipulate JSON data, and produce new JSON structures that meet your specific requirements.
+## What you can do
+
+Beyond simple interpolation, `transon` offers:
+
+- **Static validation** — `Transformer(template, validate=True)` (or calling
+  `.validate()`) checks the template's structure up front, without any input data.
+- **Defaults for missing values** — `attr`, `get`, `join`, `format`, and `include`
+  accept a `default` template, used when the looked-up value is absent.
+- **A "no value" model** — missing data produces the `NO_CONTENT` sentinel; container
+  rules skip it instead of emitting `null`, so optional data simply disappears from the
+  output.
+- **Literal keys** — the `object` rule's `fields` mode builds dicts with literal keys,
+  including a key equal to the marker (`$`).
+- **Configurable marker** — `Transformer(template, marker="@")` if `$` collides with
+  your data.
+- **Safe output** — `transform(data, copy_output=True)` deep-copies the result so it
+  shares no mutable structure with the input (which is never mutated regardless).
+- **A clear error model** — `DefinitionError` for malformed templates,
+  `TransformationError` for data that does not fit; messages include the template path
+  where the problem occurred (`at template → …`).
+- **I/O delegates** — the `file` rule writes through a `file_writer` callback and the
+  `include` rule loads sub-templates through a `template_loader` callback.
+- **Offline docs & metadata exports** — the installed package serves its own
+  [Language Reference](transon/resources/LANGUAGE.md)
+  (`transon.reference.get_language_reference()`), editor metadata, and generated docs.
 
 ## Development Principles
 
@@ -56,10 +89,6 @@ Requires Python 3.9+ and [uv](https://docs.astral.sh/uv/).
 uv sync --dev
 uv run pytest .
 ```
-
-## Inspired by
- - [XSLT](https://en.wikipedia.org/wiki/XSLT)
- - [JsonLogic](https://jsonlogic.com/)
 
 ## Comparison
 
