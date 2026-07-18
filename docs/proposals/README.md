@@ -27,7 +27,7 @@ is the *authoritative* record of each work item's status via its **R-number**.
 |---|---|---|
 | **Proposed** | Open for a decision; no code yet (or scope not finalized). | `needs-decision` |
 | **Accepted** | Decision made; awaiting implementation. | `accepted` |
-| **Implemented** | Shipped in a release (the `Status` line names the version). | `done` |
+| **Implemented** | Implementation merged (roadmap items `done`). The `Shipped` column names the release version once tagged — `—` until then. | `done` |
 | **Rejected** | Decided against; kept for the record. | `rejected` |
 | **Deferred** | Postponed pending a trigger stated in the RFC. | — |
 | **Superseded** | Replaced by a later RFC (named in `Superseded by`). | — |
