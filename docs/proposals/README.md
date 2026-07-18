@@ -43,7 +43,7 @@ is the *authoritative* record of each work item's status via its **R-number**.
 | [0005](0005-example-corpus-normalization.md) | Normalize exports to one flat example corpus | Implemented | R-31 | v0.1.6 | docs site, `transon-blockly` |
 | [0006](0006-transformer-recursion-depth-budget.md) | Bounded per-level recursion budget (self-`include` depth) | Implemented | R-32 | v0.1.7 | `transon-blockly` |
 | [0007](0007-builtin-function-library.md) | Grow the built-in function library | Implemented | R-33 | v0.1.8 | `transon-authoring`, `transon-blockly` |
-| [0008](0008-language-reference-export.md) | Author-facing Language Reference: doc, packaging, export | Implemented | R-34, R-35, R-36 | — | `transon-authoring`, docs site |
+| [0008](0008-language-reference-export.md) | Author-facing Language Reference: doc, packaging, export | Implemented | R-34, R-35, R-36 | v0.2.0 | `transon-authoring`, docs site |
 
 ## Adding a new RFC
 
