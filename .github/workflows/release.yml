@@ -1,30 +1,36 @@
 name: Publish Package to PyPI
 
+# Authentication is PyPI **Trusted Publishing** (OIDC): no long-lived token is
+# stored in this repository. The identity is bound to (owner, repo, workflow
+# filename, environment), which is why the publish jobs are separate — a job can
+# declare only one environment, and TestPyPI and PyPI are distinct publishers.
+#
+# Manual runs publish to TestPyPI only. Production requires a *pushed* `v*` tag:
+# `github.ref` alone is not sufficient, because a workflow_dispatch run can
+# itself select a tag ref, which a bare ref test would accept.
+
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  build-and-deploy:
+  build:
+    name: Build and check the distribution
     runs-on: ubuntu-latest
-    # Trusted Publishing (OIDC): the identity is bound to
-    # (owner, repo, workflow filename, environment), so this name must match the
-    # environment registered on PyPI. It is also the attachment point for
-    # required reviewers, if production publishes should need approval.
-    environment: pypi
-    permissions:
-      contents: read
-      id-token: write # mandatory for Trusted Publishing
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v8.2.0
         with:
           enable-cache: true
+      # The tag names the release; a mismatch would publish the wrong version
+      # under it, and PyPI never lets a version be reused.
       - name: Check Package Version
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         run: |
           version=$(uv version --short)
           tag=${GITHUB_REF#refs/tags/}
@@ -35,8 +41,51 @@ jobs:
           fi
       - run: uv python install 3.11
       - run: uv build --python 3.11
-      # No password: authentication is PyPI Trusted Publishing (OIDC). The
-      # short-lived identity is minted per run and cannot outlive it.
+      - name: Hand the built artifacts to the publish jobs
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  # Manual rehearsal. Registered as a separate trusted publisher on
+  # test.pypi.org against this workflow filename + the `testpypi` environment.
+  publish-testpypi:
+    name: Publish to TestPyPI
+    if: github.event_name == 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      contents: read
+      id-token: write # mandatory for Trusted Publishing
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          repository-url: https://test.pypi.org/legacy/
+
+  # Production. Reachable only from a pushed `v*` tag — the same condition that
+  # guards the version check above, so that check can never be skipped. The
+  # `pypi` environment is the attachment point for required reviewers.
+  publish-pypi:
+    name: Publish to PyPI
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write # mandatory for Trusted Publishing
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
