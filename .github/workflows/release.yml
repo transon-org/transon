@@ -5,9 +5,20 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: read
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    # Trusted Publishing (OIDC): the identity is bound to
+    # (owner, repo, workflow filename, environment), so this name must match the
+    # environment registered on PyPI. It is also the attachment point for
+    # required reviewers, if production publishes should need approval.
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write # mandatory for Trusted Publishing
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v8.2.0
@@ -24,7 +35,8 @@ jobs:
           fi
       - run: uv python install 3.11
       - run: uv build --python 3.11
+      # No password: authentication is PyPI Trusted Publishing (OIDC). The
+      # short-lived identity is minted per run and cannot outlive it.
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
-          password: ${{ secrets.PYPI_TOKEN }}
